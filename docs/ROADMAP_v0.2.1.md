@@ -1,54 +1,42 @@
 # Roadmap — v0.2.1 (GEX/DEX, Flow, SVI/Surface, GARCH) — OI-dependent
 
-**Status:** planning — depends on E-023a/b credential probe
-**Base:** v0.2.0-alpha (E-028, tag v0.2.0-alpha) — G-03..G-14 candidate, G-15 Alpha approved
-**Goal:** close remaining Full scope that was deferred as spec-valid `needs-separate` (not laziness)
+**Status:** **SUSPENDED for credential path per owner 2026-10-05** — `api.tsetmc.com` with TSETMC_USERNAME/PASSWORD مسکوت
+**Base:** v0.2.0-alpha (E-028, tag v0.2.0-alpha)
+**Decision:** Owner: “TSETMC_USERNAME/PASSWORD این ممکن نیست این روش دسترسی را فعلا مسکوت بگذار”
 
-## 1. Why v0.2.1 exists
+## 1. Why v0.2.1 credential path is suspended
 
-v0.2.0-alpha shipped Greeks/IV + QuoteMid + snapshot/projection/bridge **without fabricating OI**.
-Per spec v0.2.0 §7 and E-023 (+ v4 11 endpoints exhaustive hasOI false), OI/multiplier require authenticated `api.tsetmc.com/Derivative/Option` (BuyOP/SellOP/YesterdayOP + ContractSize). Browser CORS blocked + Arena timeout proves credential must be Node from Tehran.
+v0.2.0 E-023 proved authenticated `api.tsetmc.com/Derivative/Option` is the ONLY documented OI source (11 public endpoints exhaustive hasOI false, CORS blocked, Arena timeout).
+Owner cannot provide credentials now → `E-023a/b` stays `pending-credential` but **not blocking** v0.2.0-alpha (spec §7 needs-separate is valid).
 
-v0.2.1 will fill that.
+Per privacy Option A, no credential will be requested again until owner explicitly re-enables.
 
-## 2. Gates to close in v0.2.1
+## 2. Revised v0.2.1 — without credential (what CAN be done)
 
-| Gate | What | Source | Evidence next |
+| Gate | Can do without OI? | How | Next evidence |
 |---|---|---|---|
-| **G-09a** | OI per contract | `api.tsetmc.com/Derivative/Option` BuyOP/SellOP/YesterdayOP | E-023a fixture (Node v3: `node probes/g09.oi-source.limited-test.v3.node.js`) |
-| **G-10a** | multiplier per contract | same endpoint ContractSize | E-023b fixture |
-| **G-07b** | chain canonical with OI/multiplier | AllRows 1559 + OI/multiplier join | E-029 |
-| **G-11b** | GEX/DEX | requires chain+OI+multiplier | E-030 + src/models/gex.v0.1.0.js |
-| **G-11c** | Flow (money flow) | ClientTypeAll flow=3 already 200 csv, but need per-option flow | E-031 |
-| **G-11d** | SVI + VolSurface | requires chain+IV (Greeks done) | E-032 + src/models/svi.v0.1.0.js |
-| **G-11e** | GARCH | requires ClosingPriceAll history (InstHistory) | E-033 + history probe v2.3 was PClosing not OI |
+| **G-11e GARCH** | ✅ Yes | `ClosingPriceAll` history already found via `LoadInstHistory` (PClosing etc) — public, no auth, already in v2.3 | E-033 with public history probe |
+| **G-11d SVI/Surface** | ⚠️ Partial | Needs chain + IV (Greeks done) — can build SVI on quote chain 1559 without OI (OI only for weighting, not for fit) | E-032 partial |
+| **G-11b GEX/DEX** | ❌ No | Requires OI + multiplier — without ContractSize/BuyOP cannot compute GEX — **deferred to v0.3.0** | suspended |
+| **G-11c Flow** | ❌ No | Requires OI change — **deferred to v0.3.0** | suspended |
+| **G-09/G-10** | ⏸️ Suspended | Keep `candidate separate` status, no fabrication | E-023 stays |
 
-## 3. Order (dependency-driven)
+## 3. New order (credential-free)
 
 ```
-E-023a/b (credential) 
-  -> G-07b chain canonical 
-    -> G-11b GEX/DEX + G-11c Flow (both need OI)
-      -> G-11d SVI/Surface (needs GEX chain + IV)
-  -> G-11e GARCH (needs ClosingPriceAll history — already found endpoint, separate)
+v0.2.1-alpha: GARCH (public history) + SVI partial (without OI weighting)
+v0.2.1-beta:  polish SVI/Surface
+v0.3.0:       GEX/Flow when credential re-enabled or public alternative found (no ETA — not laziness)
 ```
 
-No step may fabricate `z=1000` or `tvol` for OI.
+## 4. What is NOT done
 
-## 4. Immediate next probes (ready, need Tehran network + credentials)
+- No `z=1000` fabrication for multiplier
+- No `tvol` as OI
+- No request for TSETMC credentials until owner says so
 
-1. `node probes/g09.oi-source.limited-test.v3.node.js` — capture 2 samples (ضهرم7050) BuyOP/SellOP/ContractSize → fixtures/g09.oi.fixture.2026-10-05.credential.json + fixtures/g10.multiplier.fixture.credential.json
-2. `src/models/gex.v0.1.0.js` skeleton (already can be drafted without data, but parity needs live OI)
-3. `src/models/svi.v0.1.0.js` skeleton
+## 5. Immediate next (no credential needed)
 
-## 5. Privacy
+1. Probe `ClosingPriceAll` history for GARCH (public)
+2. SVI skeleton on top of Greeks + chain 1559
 
-Per D-2026-10-05-002 Option A strict: OI fetch is local-first, Bearer token in memory only, no upload, per-job opt-in for any cloud.
-
-## 6. Release plan
-
-- v0.2.1-alpha (GEX/Flow) — after E-023a/b
-- v0.2.1-beta (SVI/Surface) — after E-032
-- v0.2.1 (final) — GARCH + full Full scope closed, then G-15 re-approved for v0.2.1
-
-Owner to provide TSETMC_USERNAME/PASSWORD when ready — until then v0.2.0-alpha remains current Alpha.
