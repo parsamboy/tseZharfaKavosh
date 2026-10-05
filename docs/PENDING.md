@@ -51,7 +51,7 @@
 |---|---|---|---|
 | G-01 | Governance پایه | ثبت شد؛ canonical approval در D-2026-10-04-003 | ساختار `docs/DECISIONS.md`، `docs/PENDING.md` و `docs/EVIDENCE_LEDGER.md` |
 | G-02 | تصمیم‌های بنیادین | عمدتاً بسته | D2 transport، runtime mapping، D3 topology و version policy ثبت شده؛ Alpha scope باز |
-| G-03 | `mw.AllRows` | ✅ candidate — شواهد platform-verified ثبت شد (E-011 2026-10-05 old.tsetmc.com/Loader.aspx 3356 entries 113 fields) — refreshBehavior تکمیلی اختیاری باقی‌مانده | provenance، host، realm، schema، scope، refresh behavior و fixture — **برای این بخش نهایی شد؛ refresh پس از F5 می‌تواند تکمیلی ثبت شود** |
+| G-03 | `mw.AllRows` | ✅ **confirmed** — platform-verified (E-011 2026-10-05 old.tsetmc.com/Loader.aspx 3356→3358 entries 113 fields + F5 supplemental 10:50) | provenance، host، realm، schema، scope، refresh behavior و fixture — **نهایی شد؛ refreshBehavior با +2 ردیف پس از F5 اثبات شد** |
 | G-04 | option/universe/parser | باز | parser نسخه‌دار، label fixture و relation fixture |
 | G-05 | snapshot/canonical computation | باز | schema، serialization، timezone، rounding، missing policy و model version |
 | G-06 | اولین مدل | باز | مدل اول همراه parity و no-fabrication test |

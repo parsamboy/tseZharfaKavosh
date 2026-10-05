@@ -1,0 +1,63 @@
+{
+  "_fixtureMeta": {
+    "evidenceId": "E-011-supplemental-refresh",
+    "relatedGate": "G-03",
+    "supplementalFor": "E-011",
+    "probeVersion": "LIMITED-TEST-v2",
+    "sourceId": "mw.AllRows@TSETMC",
+    "claim": "mw.AllRows refresh behavior — object-map grows from 3356 to 3358 entries after F5 (~6 min later)",
+    "host": "old.tsetmc.com",
+    "href": "https://old.tsetmc.com/Loader.aspx?ParTree=15131F#",
+    "parTree": "15131F",
+    "realm": "top window (window === window.top === true)",
+    "capturedAt": {
+      "utc": "2026-10-05T07:20:53.028Z",
+      "tehran": "2026-10-05, 10:50:53 Asia/Tehran",
+      "epochMs": 1791184853028
+    },
+    "method": "manual console paste v2 after F5 refresh — read-only, no filter change",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+    "schemaVersion": "0.1.0.0-mwAllRows-schema-001",
+    "provenance": "platform-verified via owner live capture — refreshBehavior",
+    "note": "F5 after ~6 min (10:44:56 -> 10:50:53) — map grew +2 entries, keys unchanged (113), id still inscode unique"
+  },
+  "existence": {
+    "hasWindowMw": true,
+    "hasAllRows": true,
+    "allRowsType": "object",
+    "isArray": false,
+    "length": 3358,
+    "keyCount": 3358
+  },
+  "mapInfo": {
+    "type": "object-map",
+    "mapKeyCount": 3358,
+    "mapKeysSample": [
+      "62444611500832644",
+      "7693632359685850",
+      "2981675816992995",
+      "28144333261517699",
+      "29778185185510585"
+    ],
+    "valueType": "object"
+  },
+  "schema": {
+    "keysCount": 113,
+    "idCandidate": "inscode",
+    "rowType": "object",
+    "rowsWithId": 3358,
+    "duplicateIds": 0
+  },
+  "refreshBehavior": {
+    "initialCapture": "2026-10-05T07:14:56.067Z — 3356 entries",
+    "afterF5Capture": "2026-10-05T07:20:53.028Z — 3358 entries",
+    "delta": "+2 entries in ~356 seconds (~6 min), same 113 keys, same 5 sample map keys order preserved",
+    "lifecycle": "AllRows is live and refresh-sensitive — reload re-creates map with slightly larger universe, likely new instruments or intraday listing changes. Not static.",
+    "note": "Completes §5 refreshBehavior requirement — G-03 can now move from candidate to confirmed"
+  },
+  "limitations": [
+    "Refresh shows growth, not shrinkage — but still no universe completeness claim",
+    "Two extra inscodes not identified individually — deeper diff requires saving full map values"
+  ],
+  "status": "supplemental"
+}
