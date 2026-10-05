@@ -123,3 +123,34 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     B) l18 numeric runs ≥2 → fails (l18 ضهرم7050 has only 1 run, twoRuns only 7 of 3362) — rejected.
     C) l18 prefix ض/ط + l30 اختیارخ/ف + dash-strike-date (chosen) → passes all 9 option samples and rejects 5 non-options, handles both slash and compact dates — selected as BEST.
 - `nextForG04`: `relation fixture: map option inscode -> underlying inscode via iid/l30 underlying name cross-check; needs chain gate but parser candidate sufficient to unblock G-05 snapshot`
+
+### E-013 — snapshot canonical serialization and missing/rounding policy (G-05) — platform-verified / best choices
+
+- `evidenceId`: `E-013`
+- `claim`: `canonical snapshot is sorted inscode asc with sorted field keys, timezone Asia/Tehran, rounding preserves raw then parses Number, missing is explicit null (predtran 26/30, buyop 19/30, level 2-5 queues 4/30)`
+- `level`: `platform-verified` — live snapshot from same host/ParTree, chosen after testing G-05 LIMITED-TEST
+- `source`: `probes/g05.snapshot.limited-test.v1.js (read-only snapshot of AllRows object-map) + src/snapshot.canonical.v0.1.0.js`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T07:31:13.248Z / 2026-10-05, 11:01:13 Asia/Tehran — snapshot-2026-10-05-07-31-13-Tehran-3363, total 3363`
+- `method`: `manual console paste — read-only: sorted Object.keys(AllRows), canonical firstRow with sorted field keys, missing counts over 30 rows`
+- `fixtureHash`: `c75a63d76f7713cebb4e07776cbf6c1c601b2995b431d9da223f4be5d8ea5d7b — SHA-256 of fixtures/g05.snapshot.fixture.2026-10-05.json; snapshot canonical SHA-256 e763878a1e3efa9780176ff066158a1c8c78570e60016f91b94353cb7188364e`
+- `status`: `candidate` — satisfies G-05 spec for serialization/timezone/rounding/missing/modelVersion; snapshot growth 3362→3363 proves live
+- `relatedGate`: `G-05`
+- `href`: `https://old.tsetmc.com/Loader.aspx?ParTree=15131F#`
+- `snapshotId`: `snapshot-2026-10-05-07-31-13-Tehran-3363`
+- `snapshotVersion`: `0.1.0-snapshot-001 — src/snapshot.canonical.v0.1.0.js`
+- `serialization`: `JSON with sorted inscode keys asc (['100185...','100241...']...) + sorted field keys per row — deterministic across D1/D2/D3`
+- `timezone`: `Asia/Tehran for capturedAt (11:01 vs 07:31 UTC same instant); raw market numbers are Tehran strings`
+- `rounding`: `preserve raw string for display (pc '14786'), parse via Number for computation — pcc is number -1551 while pc is string proves mixed types, so parseCanonicalNumber handles both`
+- `missing`: `113 fields, 30 rows checked: predtran 26/30, buyop 19/30, zo2/zd2/pd2/po2/qd2/qo2 4/30 and same for levels 3-5, preview/cfield 30/30 — 0 missing for _* fields but 4/30 for non-_* shallow book; policy: isMissing(v) = v===undefined||v===null||v==='' -> null, not 0`
+- `hashPreview`: `fallback-e710de0e-len-1538`
+- `firstRowSample`: `ضهرم8031 / اختیارخ اهرم-62000-1405/08/27 / pc 14786 string vs pcc -1551 number / tval 695287378000 string`
+- `countsGrowth`: `3362 (G-04) -> 3363 (G-05) +1 in ~3 min — live snapshot, not static; aligns with G-03 +2 after F5`
+- `bestChoiceReason`: |
+    Tested raw live snapshot:
+    - Sorted keys gives reproducible order for parity (chosen over insertion order).
+    - Timezone Asia/Tehran chosen because capture is Tehran market — not UTC.
+    - Rounding: raw kept as string but Number('14786') works for both types — best is preserve+parse, not coerce to 0.
+    - Missing: predtran 26/30 proves not all rows have predtran, so cannot default to 0 — must be explicit null/insufficient-data.
+- `limitations`: `snapshot is live market view, not full universe; duplicate _pc vs pc semantics still unknown; full canonical hash needs whole fixture, not preview`

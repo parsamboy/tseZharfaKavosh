@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "gate": "G-05",
+    "evidenceId": "E-013",
+    "capturedAt": "2026-10-05T07:31:13.248Z / 2026-10-05, 11:01:13 Asia/Tehran",
+    "host": "old.tsetmc.com",
+    "href": "https://old.tsetmc.com/Loader.aspx?ParTree=15131F#",
+    "parTree": "15131F",
+    "snapshotId": "snapshot-2026-10-05-07-31-13-Tehran-3363",
+    "total": 3363,
+    "canonical": "sorted inscode asc + sorted field keys, timezone Asia/Tehran",
+    "parserVersion": "snapshot.canonical@0.1.0",
+    "note": "Best canonical choices after live test: sorted keys, Asia/Tehran, preserve raw then parse Number, missing explicit"
+  },
+  "snapshotId": "snapshot-2026-10-05-07-31-13-Tehran-3363",
+  "total": 3363,
+  "keysSortedSample": ["10018514830520205","10024128313803797","10037611053902482","10055255678920880","10063040211859748"],
+  "firstRowCanonicalSample": {
+    "inscode": "10018514830520205",
+    "l18": "ضهرم8031",
+    "l30": "اختيارخ اهرم-62000-1405/08/27",
+    "pc": "14786",
+    "pcc": -1551,
+    "pcp": "-9.49",
+    "l18prefix": "ض",
+    "strikeFromL30": 62000,
+    "expiryFromL30": "1405/08/27"
+  },
+  "roundingBestChoice": {
+    "choice": "preserve raw string for display, parse via Number for computation — handles both string pc and number pcc",
+    "evidence": "pc string '14786' vs pcc number -1551 in same row — mixed types prove strings must be parsed",
+    "policy": "parseCanonicalNumber(v) returns null if missing/empty, else Number(v.replace(/,/g,''))"
+  },
+  "missingBestChoice": {
+    "choice": "explicit null/undefined, NOT 0 or default — no fabrication",
+    "evidence": "30 rows checked: predtran 26/30 missing, buyop 19/30, level 2-5 queues 4/30, _* fields 0 missing but non-_* 4/30 — shallow order book",
+    "policy": "isMissing(v) = v===undefined||v===null||v==='' ; computation gates must handle null as insufficient-data"
+  },
+  "timezoneBestChoice": {
+    "choice": "Asia/Tehran for capturedAt, raw market values are Tehran-time strings",
+    "evidence": "capturedAt tehran 11:01 vs utc 07:31 same instant"
+  },
+  "serializationBestChoice": {
+    "choice": "JSON.stringify with sorted inscode keys asc and sorted field keys — deterministic hash",
+    "evidence": "keysSortedSample inscode asc gives reproducible order across D1/D2/D3",
+    "hashPreview": "fallback-e710de0e-len-1538"
+  },
+  "countsGrowth": "3362 (G-04) -> 3363 (G-05) +1 in ~3 min — confirms live snapshot, not static",
+  "parserTest": "createCanonicalSnapshot sorts keys: ['1001','1002'] -> ['1001','1002'] ✅"
+}
