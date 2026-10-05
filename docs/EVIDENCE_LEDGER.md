@@ -308,3 +308,22 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `status`: `candidate for G-14/G-16/G-17, open for G-15/G-18`
 - `relatedGate`: `G-14..G-18`
 - `notes`: `P-DEC-001/002 remain open — need explicit owner Class B for Alpha scope and privacy`
+
+### E-023 — OI / multiplier separate source discovered via authenticated API (G-09/G-10) — external-verified
+
+- `evidenceId`: `E-023`
+- `claim`: `OI (BuyOP/SellOP/YesterdayOP) and multiplier (ContractSize) are available from authenticated api.tsetmc.com/Derivative/Option, not from AllRows/MarketWatch/InstHistory — requires TSETMC_USERNAME/PASSWORD Bearer token`
+- `level`: `external-verified` — discovered via web_search + fetch of ali-derogar/option (2 months ago, TSETMC Options Data Pipeline using official api.tsetmc.com), confirmed by v2.2/v2.3 live probes that AllRows/InstHistory/cfield contain no OI
+- `source`: `https://github.com/ali-derogar/option — src/schema.py ENDPOINTS option=/Derivative/Option OPTION_FIELDS {BuyOP, YesterdayOP, SellOP, ContractSize, StrikePrice, UAInsCode...} + src/client.py TSETMC_BASE_URL=https://api.tsetmc.com + src/config.py flow=3 (ATI derivatives)`
+- `host`: `api.tsetmc.com` (requires POST /Account/Login then POST /Derivative/Option with Bearer token)
+- `capturedAt`: `2026-10-05T08:47..08:55Z Tehran — 4 live probes on old.tsetmc.com 15131F (3425 total, 1566 options) + v2.2 perf 14 resources + v2.3 InstHistory ClosingPriceAll confirms no OI`
+- `method`: `read-only LIMITED-TEST v2..v2.4 on old.tsetmc.com (AllRows 113 keys oiLike [], InstHistory empty/price history, MarketWatchPlus 5 polls, cfield empty, fieldMap hasOI false) + web_search tsev2 + fetch raw schema/client`
+- `status`: `candidate (separate authenticated source exists, needs credential probe E-023a/b)`
+- `relatedGate`: `G-09 + G-10` — satisfies spec v0.2.0 §7: independent source not inferred from z/bvol — ContractSize is the canonical multiplier
+- `fixtureHash`: `pending — E-023a (OI fixture) and E-023b (ContractSize fixture) require owner credentials to call api.tsetmc.com/Derivative/Option`
+- `bestChoiceReason`: |
+    Live AllRows has 0 OI fields (113 keys, oiLike []), InstHistory is ClosingPriceAll (PClosing etc) not OI, InstStat numeric 50-89 unknown, cfield empty, MarketWatchPlus has no OI — proves separate source mandatory per spec §7.
+    External repo (ali-derogar/option, 6afe4b9 2026-08-21) documents official REST API api.tsetmc.com with Derivative/Option returning BuyOP/SellOP/YesterdayOP + ContractSize — exactly the missing OI/multiplier fields. This is the ONLY documented TSETMC source for OI.
+    Best choice: accept api.tsetmc.com as G-09/G-10 separate candidate, but gate stays needs-credential until live probe with owner username/password returns fixture.
+- `next`: `owner to provide TSETMC_USERNAME/PASSWORD (or temporary token) for read-only probe v3: POST https://api.tsetmc.com/Derivative/Option body {flow:3} — capture BuyOP/SellOP/ContractSize for sample ضهرم7050 inscode 62444611500832644`
+- `privacy`: `per D-2026-10-05-002 Option A — D3 cloud sync only with explicit per-job opt-in; OI probe will be local-first, no cloud upload, Bearer token kept in memory only`
