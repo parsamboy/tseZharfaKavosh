@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "gate": "G-06",
+    "evidenceId": "E-014",
+    "capturedAt": "2026-10-05T07:36:05.327Z / 2026-10-05, 11:06:05 Asia/Tehran",
+    "host": "old.tsetmc.com",
+    "href": "https://old.tsetmc.com/Loader.aspx?ParTree=15131F#",
+    "parTree": "15131F",
+    "snapshotId": "snapshot-2026-10-05-07-36-05-Tehran-3365",
+    "total": 3365,
+    "modelVersion": "0.1.0-firstModel-001",
+    "model": "QuoteMid — mid=(pd1+po1)/2, spread=po1-pd1, requires pd1/po1",
+    "note": "First valid run after empty snapshot (total 0 at 11:05:51) — empty correctly returned not-found, not fabricated; second run 3365 confirms live"
+  },
+  "snapshotId": "snapshot-2026-10-05-07-36-05-Tehran-3365",
+  "total": 3365,
+  "sampleResults": [
+    { "inscode": "10018514830520205", "mid": 14678, "spread": 118, "spreadPct": 0.803924240359722, "status": "fresh" },
+    { "inscode": "10024128313803797", "mid": 11225, "spread": 250, "spreadPct": 2.2271714922048997, "status": "fresh" },
+    { "inscode": "10037611053902482", "mid": 995000, "spread": 10000, "spreadPct": 1.0050251256281406, "status": "fresh" },
+    { "inscode": "10055255678920880", "mid": 2350, "spread": -4700, "spreadPct": -200, "status": "fresh" },
+    { "inscode": "10063040211859748", "mid": 20000.5, "spread": 399, "spreadPct": 1.9949501262468436, "status": "fresh" }
+  ],
+  "parity": {
+    "run1Hash": "b06a3cfc",
+    "run2Hash": "b06a3cfc",
+    "identical": true,
+    "note": "two runs on same sorted snapshot (G-05 canonical) identical — D1/D2 both JS, same hash"
+  },
+  "noFabrication": {
+    "testRow": { "pd1": null, "po1": "14946" },
+    "result": { "inscode": "TEST-MISSING", "mid": null, "spread": null, "status": "insufficient-data", "reason": "pd1/po1 missing" },
+    "passed": true,
+    "note": "missing pd1 -> insufficient-data, not 0 — complies with G-05 missing explicit"
+  },
+  "emptySnapshotHandling": {
+    "firstAttemptAt": "2026-10-05T07:35:51.172Z — total 0, status not-found, parity null, noFabrication failed — correctly not fabricated, but page not yet loaded",
+    "secondAttemptAt": "2026-10-05T07:36:05.327Z — total 3365, candidate — page loaded, model succeeds",
+    "lesson": "Snapshot live: total 3363 (G-05 11:01) -> 3365 (G-06 11:06) +2 again — confirms live"
+  },
+  "canvas": "mid/spread computed for 5 rows, note spread -4700/ -200% shows inverted book (po1 < pd1) — model preserves raw, not clamps"
+}

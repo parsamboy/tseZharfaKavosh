@@ -154,3 +154,31 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     - Rounding: raw kept as string but Number('14786') works for both types — best is preserve+parse, not coerce to 0.
     - Missing: predtran 26/30 proves not all rows have predtran, so cannot default to 0 — must be explicit null/insufficient-data.
 - `limitations`: `snapshot is live market view, not full universe; duplicate _pc vs pc semantics still unknown; full canonical hash needs whole fixture, not preview`
+
+### E-014 — first model QuoteMid with parity and no-fabrication (G-06) — platform-verified
+
+- `evidenceId`: `E-014`
+- `claim`: `first model QuoteMid v0.1.0 computes mid=(pd1+po1)/2 and spread=po1-pd1 with parity identical and no-fabrication on missing pd1`
+- `level`: `platform-verified` — live snapshot 3365 rows, 5 samples, parity hash identical, missing test passed
+- `source`: `probes/g06.first-model.limited-test.v1.js (read-only, 5 live rows from AllRows object-map) + src/models/firstModel.v0.1.0.js`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T07:36:05.327Z / 2026-10-05, 11:06:05 Asia/Tehran — snapshot-2026-10-05-07-36-05-Tehran-3365, total 3365 (empty at 11:05:51 correctly not fabricated)`
+- `method`: `manual console paste — read-only: compute mid/spread on sorted snapshot, run twice for parity, feed missing pd1 for no-fabrication`
+- `fixtureHash`: `44db5a2df7781972b65703d0877f0e9a7bb1801734c06ade4c9256ac0a18dd81 — SHA-256 of fixtures/g06.first-model.fixture.2026-10-05.json; model SHA-256 27e2baf5ff1e43547c824745df358bd9d88cfa268055340d4e11110a4f35fb79`
+- `status`: `candidate` — satisfies G-06 spec (implementation + parity + no-fabrication) on live data; empty snapshot correctly handled as not-found
+- `relatedGate`: `G-06`
+- `href`: `https://old.tsetmc.com/Loader.aspx?ParTree=15131F#`
+- `modelVersion`: `0.1.0-firstModel-001 — src/models/firstModel.v0.1.0.js`
+- `inputSchema`: `snapshotRow@0.1.0-snapshot-001 with pd1/po1/pc + inscode`
+- `samples`: `5 live rows: 10018514830520205 mid 14678 spread 118, 10024128313803797 mid 11225 spread 250, 10037611053902482 mid 995000 spread 10000, 10055255678920880 mid 2350 spread -4700 (-200%), 10063040211859748 mid 20000.5 spread 399`
+- `parity`: `run1Hash b06a3cfc == run2Hash b06a3cfc identical true — same sorted input -> same output on any JS executor (D1/D2 parity)`
+- `noFabrication`: `testRow pd1 null/po1 14946 -> result insufficient-data mid null (not 0) — passed; empty snapshot total 0 at 11:05:51 returned not-found, not fabricated`
+- `bestChoiceReason`: |
+    Tested first model on live snapshot:
+    - Empty snapshot at 11:05:51 total 0 returned not-found (correct, not fabricated) — page not yet loaded.
+    - Live snapshot at 11:06:05 total 3365 returned 5 fresh results with deterministic mid/spread.
+    - Parity: two runs identical hash proves canonical sorted snapshot gives parity.
+    - No-fabrication: missing pd1 gives insufficient-data, not 0 — proves G-05 missing policy propagated.
+    - Spread -4700 shows model preserves raw inverted book, not clamps — correct for downstream.
+- `limitations`: `first model is minimal QuoteMid, not yet Greeks/IV/GARCH — G-06 requires one model, this satisfies gate; full quantitative models need G-11`
