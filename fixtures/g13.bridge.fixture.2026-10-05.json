@@ -1,0 +1,16 @@
+{
+  "evidenceId": "E-026",
+  "gate": "G-13",
+  "test": "G13-BRIDGE-v2",
+  "version": "0.1.0-bridge-001",
+  "capturedAt": "2026-10-05T09:49:54.864Z",
+  "host": "old.tsetmc.com",
+  "parTree": "15131F",
+  "filterCode": { "has": true, "value": "", "len": 0, "preview": "" },
+  "saveParams": { "type": "function", "snippet": "function(){setData(\"MarketWatchSettings\",JSON.stringify(mw.Settings))}" },
+  "settings": { "FilterNo": 8, "has": true },
+  "trace": { "valid": true, "sample": [{ "state": "submit" }, { "state": "accepted" }, { "state": "running" }, { "state": "done" }] },
+  "status": "candidate",
+  "bestChoice": "FilterCode authoritative property exists (empty now) — bridge uses SaveParams round-trip, FilterNo 8",
+  "note": "FilterCode is string but empty (no active filter) — bridge must set FilterCode then confirm via SaveParams round-trip"
+}
