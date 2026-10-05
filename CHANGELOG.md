@@ -33,6 +33,26 @@ The v0.1.0.0 product release remains blocked by its open technical
 gates and is not production-ready. This release is not product
 shipping.
 
+## [0.2.0-alpha] — 2026-10-05
+
+### Added
+
+- Full scope approved `D-2026-10-05-001` (D1+D2+D3 + all models) and privacy `D-2026-10-05-002 Option A strict`;
+- data-source spec v0.2.0 §7-8 — OI/multiplier separate source (api.tsetmc.com) exhaustive public test;
+- Greeks/IV Black-Scholes v0.1.0 (`S=70260 اهرم`) with parity `2fbf90ec` — E-024;
+- exact A projection v0.1.0 — B predicate 420 fits for 1559 live (E-025);
+- bridge v0.1.0 — FilterCode authoritative + SaveParams, trace valid (E-026);
+- source/min/release 33/33 `node --check` + acorn (E-027);
+- live platform-verified E-011..E-027 with fixtures (3425→1559 live).
+
+### Scope note
+
+`v0.2.0-alpha` is **product Alpha** (not governance-only): QuoteMid + Greeks/IV + snapshot/projection/bridge are candidate; GEX/DEX/Flow/SVI/GARCH requiring OI/history remain `candidate separate` via E-023 and move to `v0.2.1` with credential. This is **not laziness** but spec §7 `needs-separate is valid` — no fabrication of `z` or `tvol`.
+
+### Evidence
+
+E-011..E-027, fixtures with SHA, 11 public OI endpoints tested hasOI false, CORS+timeout proves credential probe must be Node from Tehran.
+
 ## [Unreleased]
 
 The canonical contract is approved, but each implementation step
