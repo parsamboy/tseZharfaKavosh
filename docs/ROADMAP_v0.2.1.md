@@ -16,7 +16,7 @@ Per privacy Option A, no credential will be requested again until owner explicit
 | Gate | Can do without OI? | How | Next evidence |
 |---|---|---|---|
 | **G-11e GARCH** | ✅ Yes | `ClosingPriceAll` history already found via `LoadInstHistory` (PClosing etc) — public, no auth, already in v2.3 | E-033 with public history probe |
-| **G-11d SVI/Surface** | ⚠️ Partial | Needs chain + IV (Greeks done) — can build SVI on quote chain 1559 without OI (OI only for weighting, not for fit) | E-032 partial |
+| **G-11d SVI/Surface** | ✅ Partial without OI (1-A) — upgrade to full with OI in memory | Needs chain + IV (Greeks done) — can build SVI on quote chain 1559 without OI (OI only for weighting, not for fit) | E-032 partial |
 | **G-11b GEX/DEX** | ❌ No | Requires OI + multiplier — without ContractSize/BuyOP cannot compute GEX — **deferred to v0.3.0** | suspended |
 | **G-11c Flow** | ❌ No | Requires OI change — **deferred to v0.3.0** | suspended |
 | **G-09/G-10** | ⏸️ Suspended | Keep `candidate separate` status, no fabrication | E-023 stays |
@@ -24,7 +24,7 @@ Per privacy Option A, no credential will be requested again until owner explicit
 ## 3. New order (credential-free)
 
 ```
-v0.2.1-alpha: GARCH (public history) + SVI partial (without OI weighting)
+v0.2.1-alpha: GARCH + SVI partial (1-A, upgrade to full with OI remembered) (public history) + SVI partial (without OI weighting)
 v0.2.1-beta:  polish SVI/Surface
 v0.3.0:       GEX/Flow when credential re-enabled or public alternative found (no ETA — not laziness)
 ```

@@ -11,7 +11,7 @@
 | 2 | G-10 | multiplier (ContractSize) مستقل | candidate separate / suspended | `z=1000` per spec نباید inferred شود — از همان api می‌آید | همراه G-09 فعال می‌شود → E-023b |
 | 3 | G-11b | GEX/DEX | deferred to v0.3.0 | نیاز مستقیم به G-09+G-10+chain | بعد از #1 و #2 |
 | 4 | G-11c | Flow | deferred to v0.3.0 | نیاز به OI | بعد از #1 |
-| 5 | G-11d | SVI / VolSurface کامل | needs-separate (partial بدون OI ممکن) | وزن‌دهی OI برای full — partial بدون OI در v0.2.1-alpha ممکن | #1 یا ساخت partial |
+| 5 | G-11d | SVI / VolSurface کامل | **v0.2.1-alpha: partial بدون OI (1-A) — upgrade به full با OI در یاد** | partial با chain 1559+IV (Greeks) بدون وزن OI در v0.2.1-alpha، سپس upgrade به full وزن‌دار OI به‌محض #1 | #1 برای upgrade به full (جزئی اکنون) |
 | 6 | G-11e | GARCH | ✅ candidate شد (E-029) | قبلاً needs-history بود — با ClosingPriceAll public حل شد 2026-10-05 | نگه‌داری شود — نیاز به review ندارد ولی در همین فهرست برای کامل بودن |
 
 ## تعهد عدم فراموشی
