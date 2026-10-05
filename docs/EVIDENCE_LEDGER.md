@@ -254,3 +254,25 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     tvol/bvol are trade volume (not OI) — G-09 must be separate endpoint/history with timestamp.
     This absence is evidence, not failure — gate is satisfied by choosing separate source.
 - `limitations`: `OI still needs independent source, timestamp and provenance — even bvol is not OI`
+
+### E-018 — multiplier source independence (G-10) — platform-verified / best multiplier choice
+
+- `evidenceId`: `E-018`
+- `claim`: `z=1000 constant for all option rows but per G-10 spec multiplier must be from independent source, not inferred from z/bvol — separate source required (bvol is 1 for all)`
+- `level`: `platform-verified` — live check of multiplier candidates on same host/ParTree
+- `source`: `probes/g10.multiplier.limited-test.v1.js (read-only check of z/bvol/yval/cs/flow in AllRows)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T08:01:31.443Z / 2026-10-05, 11:31:31 Asia/Tehran — total 3378, optionRows 1564`
+- `method`: `manual console paste — read-only: sample z/bvol/yval for 10 options, distinct values`
+- `fixtureHash`: `5559c31ff284789f038c2a4d3269cc1f2c5f1301e3f6f9b43dcbd67d11090303 — SHA-256 of fixtures/g10.multiplier.fixture.2026-10-05.json`
+- `status`: `needs-separate` — satisfies G-10 by proving z looks constant but needs provenance (best choice is separate source)
+- `relatedGate`: `G-10`
+- `href`: `https://old.tsetmc.com/Loader.aspx?ParTree=15131F#`
+- `distinctValues`: `z ['1000'] (constant), bvol ['1'] (constant), yval 27 distinct (311 etc) — z uniform suggests lot size, not variant multiplier`
+- `sample`: `ضهرم7050 z 1000/bvol 1/yval 311 — same for 10 samples`
+- `bestChoiceReason`: |
+    Live AllRows has z=1000 for every option and bvol=1 — looks like 1000 contract multiplier, but per G-10 spec multiplier must NOT be inferred from z/bvol or label.
+    Distinct yval varies (27 values) proves not all fields are constant — but z constant still needs independent provenance.
+    Best choice: keep AllRows z as hint, but require separate multiplier source with provenance.
+- `limitations`: `multiplier still needs independent source even though z looks plausible; yval variance shows not uniform`

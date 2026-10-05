@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "gate": "G-10",
+    "evidenceId": "E-018",
+    "capturedAt": "2026-10-05T08:01:31.443Z / 2026-10-05, 11:31:31 Asia/Tehran",
+    "host": "old.tsetmc.com",
+    "parTree": "15131F",
+    "total": 3378,
+    "optionRows": 1564,
+    "note": "Best multiplier finding: z=1000 constant for options but per spec needs independent source, not inferred"
+  },
+  "multCheck": {
+    "distinctZ": ["1000"],
+    "distinctBvol": ["1"],
+    "distinctYval": ["200","201","206","208","300","301","303","304","305","306","307","308","309","311","312","313","315","320","321","380","400","403","404","701","706","802","803"],
+    "samples": [
+      {"l18":"ضهرم7050","inscode":"62444611500832644","z":"1000","bvol":"1","yval":"311"},
+      {"l18":"ضهرم7051","inscode":"7693632359685850","z":"1000","bvol":"1","yval":"311"}
+    ]
+  },
+  "bestChoice": {
+    "choice": "z=1000 constant looks like multiplier but per G-10 spec must be from independent source, not inferred from z/bvol — separate source required",
+    "hasMultiplier": true,
+    "needsSeparate": true,
+    "reason": "z distinct only 1000, bvol only 1 — too uniform to be proven multiplier without provenance; spec forbids inference from OI/label"
+  }
+}
