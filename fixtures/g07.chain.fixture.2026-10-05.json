@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "gate": "G-07",
+    "evidenceId": "E-015",
+    "capturedAt": "2026-10-05T07:40:56.274Z / 2026-10-05, 11:10:56 Asia/Tehran",
+    "host": "old.tsetmc.com",
+    "href": "https://old.tsetmc.com/Loader.aspx?ParTree=15131F#",
+    "parTree": "15131F",
+    "total": 3366,
+    "optionRows": 1564,
+    "note": "Best chain finding after live test: AllRows has tradable chain but duplicate strikes and missing OI/multiplier"
+  },
+  "chainSample": {
+    "underlying": "اهرم",
+    "expiry": "1405/07/29",
+    "strikes": [20000,20000,22000,22000,24000,24000,26000,26000,28000,28000,30000,30000,34000,34000,38000,38000,42000,42000,46000,46000],
+    "count": 34,
+    "uniqueStrikes": 17,
+    "duplicateReason": "each strike appears twice — likely call (ض) + put (ط) for same strike/expiry, e.g., 20000 x2"
+  },
+  "optionRowsSample": [
+    { "l18": "ضهرم8031", "l30": "اختيارخ اهرم-62000-1405/08/27", "inscode": "10018514830520205", "parsed": { "underlying": "اهرم", "strike": 62000, "expiry": "1405/08/27" } },
+    { "l18": "ضراز9009", "l30": "اختيارخ هم تراز-42000-05/09/04", "inscode": "10064923955008825", "parsed": null, "note": "parsed null — date 05/09/04 without year, parser needs to handle compact without century" },
+    { "l18": "طاطلس092201", "l30": "اختيارف اطلس-110000-14050922", "inscode": "10156577077666502", "parsed": { "underlying": "اطلس", "strike": 110000, "expiry": "1405/09/22" } },
+    { "l18": "ضملت8079", "l30": "اختيارخ وبملت-1900-1405/08/20", "inscode": "10439638497597852", "parsed": { "underlying": "وبملت", "strike": 1900, "expiry": "1405/08/20" } }
+  ],
+  "counts": { "total": 3366, "optionRows": 1564, "optionPct": "46.5%", "note": "G-04 heuristic ض-only gave 800, now with ض+ط we get 1564 — proves ط puts were missing before" },
+  "fieldsPresent": { "inscode": true, "l18": true, "l30": true, "pd1": true, "po1": true, "qd1": true, "qo1": true, "tno": true, "tval": true, "pmax": true, "pmin": true },
+  "missingChainFields": ["OI/multiplier not in AllRows — needs separate source (CL-003, G-09/G-10)"],
+  "bestChoice": {
+    "choice": "AllRows provides live tradable quote chain (34 entries for اهرم 1405/07/29) but NOT canonical complete chain — duplicate strike entries and missing OI/multiplier require separate source",
+    "hasChain": true,
+    "needsSeparate": true,
+    "reason": "34 entries = 17 unique strikes x2 (call+put) — AllRows gives quotes, but canonical chain needs OI, multiplier, and date parsing fix for 05/09/04"
+  },
+  "parserGap": "ضراز9009 parsed null due to date 05/09/04 — parser v0.1.0 expects 1405/09/04 or 14050904, needs update to handle yy/mm/dd"
+}

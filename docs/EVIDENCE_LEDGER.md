@@ -182,3 +182,30 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     - No-fabrication: missing pd1 gives insufficient-data, not 0 — proves G-05 missing policy propagated.
     - Spread -4700 shows model preserves raw inverted book, not clamps — correct for downstream.
 - `limitations`: `first model is minimal QuoteMid, not yet Greeks/IV/GARCH — G-06 requires one model, this satisfies gate; full quantitative models need G-11`
+
+### E-015 — option-chain source depth and completeness (G-07) — platform-verified / best chain depth
+
+- `evidenceId`: `E-015`
+- `claim`: `AllRows object-map contains tradable quote chain for underlying+expiry (e.g., اهرم 1405/07/29 has 34 entries = 17 unique strikes x2 call/put) but duplicate strikes and parser gap for 05/09/04 show need for separate canonical chain`
+- `level`: `platform-verified` — live chain samples from same host/ParTree, chosen after testing G-07
+- `source`: `probes/g07.chain-source.limited-test.v1.js (read-only chain check on AllRows) + src/optionParser.v0.1.0.js`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T07:40:56.274Z / 2026-10-05, 11:10:56 Asia/Tehran — total 3366, optionRows 1564 (46.5%)`
+- `method`: `manual console paste — read-only: filter optionRows via ض/ط+اختیار, parse l30 for chain, build sample chain for اهرم 1405/07/29, count strikes`
+- `fixtureHash`: `40f092c6a0e281b54a147e6ded1ddde058ba6c9b452ad4f08b20ad2d01e00cb2 — SHA-256 of fixtures/g07.chain.fixture.2026-10-05.json`
+- `status`: `candidate` — satisfies G-07 for quote chain depth (34 entries), but canonical chain needs OI/multiplier and date fix
+- `relatedGate`: `G-07`
+- `href`: `https://old.tsetmc.com/Loader.aspx?ParTree=15131F#`
+- `chainSample`: `اهرم 1405/07/29 — 34 entries, 17 unique strikes [20000,20000,22000,22000,...,46000,46000] — duplicate per strike = call+put`
+- `counts`: `total 3366 (vs 3365 in G-06 +1), optionRows 1564 (vs 800 ض-only in G-04 — proves ط puts were 764 of the 1564)`
+- `fieldsPresent`: `inscode/l18/l30/pd1/po1/qd1/qo1/tno/tval/pmax/pmin all true for options — quote fields present, but OI/multiplier missing`
+- `missingChainFields`: `OI/multiplier not in AllRows — needs separate source G-09/G-10 (CL-003)`
+- `parserGap`: `ضراز9009 l30 05/09/04 parsed null — parser v0.1.0 expects 1405/09/04, needs yy handling — candidate reason, not rejection`
+- `bestChoiceReason`: |
+    Tested chain on live data:
+    - AllRows HAS chain: 34 entries for one underlying+expiry — enough for tradable quotes.
+    - BUT duplicate strikes (x2) show call+put mixed, not unique chain; parser gap for 05/09/04 shows date format variance.
+    - Missing OI/multiplier proves AllRows is quote chain, not canonical full chain.
+    - Best choice: AllRows is candidate for quote chain (tradable), but canonical chain needs separate source + parser v0.1.1 fix.
+- `limitations`: `AllRows chain is live quote view, not historical chain; full chain needs endpoint with OI/multiplier; duplicate handling and date yy fix pending`
