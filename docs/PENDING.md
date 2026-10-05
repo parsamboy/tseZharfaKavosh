@@ -24,17 +24,15 @@ P-DEC-001 از این فهرست **حذف و به تصمیم بسته** تبدی
 
 ### P-DEC-002 — privacy و data-transfer policy
 
-وضعیت: **نیازمند تصمیم Class B مالک**
+وضعیت: **✅ تصمیم گرفته شد — D-2026-10-05-002 (Option A Strict)**
 
-این policy باید مشخص کند دادهٔ بازار، profile، snapshot، result و متن filter در هر deployment چه زمانی از دستگاه خارج می‌شوند.
+مالک در 2026-10-05 گزینهٔ **A — سخت‌گیرانه (no-server-upload + explicit opt-in)** را انتخاب کرد و در `docs/DECISIONS.md` به‌عنوان `D-2026-10-05-002` ثبت شد:
 
-گزینه‌های مفهومی:
+```text
+D1: هیچ upload — D2: local-first — D3: فقط با opt-in صریح هر job
+```
 
-- D1 بدون upload به service پروژه؛ D2 local-first؛ D3 فقط با opt-in صریح؛
-- sync ابری پیش‌فرض برای بخشی از داده؛
-- local-only سخت‌گیرانه و بدون انتقال به D3.
-
-متن فعلی Alpha فقط جهت موقت `no-server-upload by design` برای D1 و رضایت صریح برای cloud را ثبت می‌کند؛ آن را privacy مطلق یا policy نهایی تلقی نکنید.
+P-DEC-002 از این فهرست **حذف و به تصمیم بسته** تبدیل شد؛ مرجع canonical آن `D-2026-10-05-002` است.
 
 ---
 

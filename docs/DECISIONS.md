@@ -443,3 +443,40 @@ Donation در successor چگونه مجاز باشد بدون آن‌که به �
 - این تصمیم privacy/data-transfer policy را تعیین نمی‌کند؛
 - provider و region و storage D3 را انتخاب نمی‌کند؛
 - خودکار بودن bridge مجوز دورزدن network policy نیست.
+
+## D-2026-10-05-002: Privacy و Data-Transfer Policy — Option A (Strict)
+
+- **Class:** B — privacy / data-transfer
+- **Date:** 2026-10-05
+- **Version:** `tseZharfaKavosh v0.1.0.0` / Contract v6.0 — post D-2026-10-05-001
+- **Decision maker:** مالک پروژه
+- **Status:** accepted — replaces P-DEC-002 open
+
+### Question
+
+دادهٔ بازار، snapshot، result و متن filter در هر deployment چه زمانی از دستگاه خارج می‌شوند؟
+
+### Owner choice
+
+مالک گزینهٔ **A — سخت‌گیرانه** را انتخاب کرد (2026-10-05).
+
+### Chosen — Option A (Strict, no-server-upload by design + explicit opt-in)
+
+```text
+D1 Browser-Native:  هیچ upload به service پروژه ندارد — همه‌چیز در page/worker می‌ماند
+D2 Hybrid:          local-first — داده فقط روی localhost می‌ماند؛ هر sync ابری فقط با opt-in صریح job-level
+D3 Cloud:           فقط با opt-in صریح و موردی هر job — بدون opt-in هیچ snapshot/result/filter به cloud نمی‌رود
+```
+
+### Fixed rules
+
+- هیچ داده‌ای بدون رضایت صریح به سرور پروژه یا ثالث ارسال نمی‌شود؛
+- انتقال D3 فقط برای jobهایی که کاربر صریحاً «ارسال به ابر» را تایید کرده — پیش‌فرض local است؛
+- متن filter، inscode، snapshot و result تا تایید، فقط در حافظهٔ محلی؛
+- log و trace ابری فقط با همان رضایت و فقط برای job تاییدشده؛
+- provider ثالث (اگر بعداً انتخاب شد) تابع privacy همان provider است — پروژه دادهٔ donor یا کاربر را مطالبه نمی‌کند.
+
+### Non-effects
+
+- این تصمیم provider، region یا retention را انتخاب نمی‌کند؛
+- این تصمیم D3 را از Alpha حذف نمی‌کند — فقط انتقال را مشروط می‌کند.
