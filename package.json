@@ -1,8 +1,8 @@
 {
   "name": "tsezharfakavosh",
-  "version": "0.1.0.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Governance-only successor scaffold for the tseOptionZharfa lineage",
+  "description": "Full-scope successor (D1+D2+D3 + all models) — data-source spec v0.2.0, privacy Option A",
   "license": "Smart-FFA-1.1",
   "author": {
     "name": "p75ad",
