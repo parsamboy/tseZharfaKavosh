@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/parsamboy/tseZharfaKavosh/fixtures/schemas/mwAllRows.schema.001.json",
+  "title": "mw.AllRows raw fixture — schema 0.1.0.0-mwAllRows-schema-001",
+  "description": "Immutable raw fixture captured by probes/mwAllRows.probe.js for E-011/G-03. Read-only, no fabrication.",
+  "type": "object",
+  "required": ["_fixtureMeta", "allRows"],
+  "properties": {
+    "_fixtureMeta": {
+      "type": "object",
+      "required": ["evidenceId", "probeVersion", "capturedAt", "host", "href", "parTree", "method", "schemaVersion"],
+      "properties": {
+        "evidenceId": { "const": "E-011" },
+        "probeVersion": { "type": "string", "pattern": "^0\\.1\\.0\\.0-probe-" },
+        "capturedAt": {
+          "type": "object",
+          "required": ["utc", "tehran", "epochMs"],
+          "properties": {
+            "utc": { "type": "string", "format": "date-time" },
+            "tehran": { "type": "string" },
+            "epochMs": { "type": "integer" }
+          }
+        },
+        "host": { "type": ["string", "null"] },
+        "href": { "type": ["string", "null"] },
+        "parTree": { "type": ["string", "null"] },
+        "userAgent": { "type": ["string", "null"] },
+        "method": { "type": "string" },
+        "schemaVersion": { "const": "0.1.0.0-mwAllRows-schema-001" },
+        "fixtureHashPreview": { "type": "string" },
+        "fixtureHashNote": { "type": "string" }
+      }
+    },
+    "allRows": {
+      "type": "array",
+      "description": "Full AllRows array as observed — may be empty before page load. No rows fabricated.",
+      "items": { "type": "object" }
+    }
+  }
+}
