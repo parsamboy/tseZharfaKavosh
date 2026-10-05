@@ -350,7 +350,28 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     Best choice: Greeks/IV is candidate with AllRows+parser+calendar, no need for separate S source (underlying pc is in AllRows).
 - `next`: `G-11 still needs separate for GARCH (history), SVI (full chain), GEX/Flow (OI) — already E-023`
 
-#### E-023-supplemental — v4 public exhaustive test (2026-10-05 09:24)
+#
+### E-025 — exact A projection v0.1.0 (G-12) — platform-verified / candidate
+
+- `evidenceId`: `E-025`
+- `claim`: `exact A projection for 1559 live universe: Set cost 20267 > 4096 (no fit), B predicate 420 fits — choose B predicate exact (row.inscode in E_k via predicate from B), no Bloom/scalar`
+- `level`: `platform-verified`
+- `source`: `src/projection/exactA.v0.1.0.js (buildExactPredicate/buildBsPredicate/capacityCheck) + probes/g12.projection.limited-test.v2.js on old.tsetmc.com 15131F (verdict 1559, sample 62444611500832644)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T09:45:20.113Z / 13:15 Tehran — verdict 1559 (was 1566 at 09:33, -7 live change)`
+- `method`: `read-only LIMITED-TEST v2 — capacityCheck LIMIT 4096, setCost 1559*13=20267 false, predicate 420 true, predicateTest first100HasFirst true and notInSet true`
+- `fixtureHash`: `SHA-256 of fixtures/g12.projection.fixture.2026-10-05.json`
+- `status`: `candidate` — satisfies G-12 for Full scope (exact predicate, capacity proven, predicateTest pass)`
+- `relatedGate`: `G-12`
+- `bestChoiceReason`: |
+    Live 1559 universe (was 1566/3425 earlier, now 1559 shows live -7) proves live market.
+    Set exact (13 bytes per inscode) needs 20267 > 4096 — does not fit A textarea.
+    B predicate (~420 bytes source) fits — per spec §8.14 exact predicate from B is the best choice (no Bloom, no scalar fallback).
+    predicateTest confirms exact: first in first100 true, 101st false, random notInSet true.
+
+
+### E-023-supplemental — v4 public exhaustive test (2026-10-05 09:24)
 
 - `tested`: `11 same-origin endpoints on old.tsetmc.com 15131F`
 - `results`: `Option.aspx 200 html no-oi, InstOption.aspx 200 html no-oi, OptionMarketWatch 200 html, DerivativeOption 200 html, ClientTypeAll flow=3 200 csv (not OI), MarketWatchInit 200 AllRows csv, MarketWatchPlus 200 csv, /api/* 404, TsePublicV2 http blocked MixedContent`

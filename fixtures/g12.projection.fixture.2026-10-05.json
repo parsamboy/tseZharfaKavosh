@@ -1,0 +1,14 @@
+{
+  "evidenceId": "E-025",
+  "gate": "G-12",
+  "test": "G12-PROJECTION-v2",
+  "version": "0.1.0-exactA-001",
+  "capturedAt": "2026-10-05T09:45:20.113Z",
+  "host": "old.tsetmc.com",
+  "parTree": "15131F",
+  "verdict": { "size": 1559, "sampleInsCodes": ["62444611500832644", "7693632359685850", "2981675816992995"] },
+  "capacity": { "limit": 4096, "setCost": 20267, "predicateCost": 420, "fitsSet": false, "fitsPredicate": true },
+  "predicateTest": { "first100HasFirst": true, "first100Has101": false, "notInSet": true },
+  "bestChoice": "B predicate exact fits (Set does not) — choose B predicate per spec §8.14 (no Bloom)",
+  "status": "candidate"
+}
