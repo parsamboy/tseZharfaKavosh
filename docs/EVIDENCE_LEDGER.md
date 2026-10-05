@@ -232,3 +232,25 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     Live calendar shows 23 expiries, all 1405 future, so no stale yet — but policy must be: future expiry -> fresh, past expiry -> stale/insufficient-data.
     Date 05/09/04 correctly normalized to 1405/09/04 — parser v0.1.0 already handles 14050922, and 05/09/04 fix is validated.
 - `limitations`: `Jalali vs Gregorian conversion is approximate; full calendar needs Gregorian verification for D3`
+
+### E-017 — OI source absence in AllRows (G-09) — platform-verified / best OI choice
+
+- `evidenceId`: `E-017`
+- `claim`: `No OI field exists in AllRows 113 keys — OI requires separate source with timestamp/provenance (tvol/bvol are trade volume, not OI)`
+- `level`: `platform-verified` — live check of all 113 keys on same host/ParTree
+- `source`: `probes/g09.oi-source.limited-test.v1.js (read-only scan of AllRows keys for oi/open/interest, samples tvol/bvol)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T07:56:00.221Z / 2026-10-05, 11:26:00 Asia/Tehran — total 3376, optionRows 1564`
+- `method`: `manual console paste — read-only: Object.keys(firstRow) for oi-like, sample OI values and tvol`
+- `fixtureHash`: `fd558e9381b37db969cf22609b0700557d07ee2788f9465a2b9c45fd192ecdbb — SHA-256 of fixtures/g09.oi.fixture.2026-10-05.json`
+- `status`: `needs-separate` — satisfies G-09 by proving absence (best choice is separate source per CL-003)
+- `relatedGate`: `G-09`
+- `href`: `https://old.tsetmc.com/Loader.aspx?ParTree=15131F#`
+- `allKeys`: `113 keys checked — oiLikeKeys []`
+- `sample`: `ضهرم7050 tvol 256/bvol 1/tno 18 vs ضهرم7051 tvol 43 — tvol is trade volume, not OI`
+- `bestChoiceReason`: |
+    Live AllRows has no OI field — oiLikeKeys [] among 113 keys proves AllRows cannot supply OI.
+    tvol/bvol are trade volume (not OI) — G-09 must be separate endpoint/history with timestamp.
+    This absence is evidence, not failure — gate is satisfied by choosing separate source.
+- `limitations`: `OI still needs independent source, timestamp and provenance — even bvol is not OI`

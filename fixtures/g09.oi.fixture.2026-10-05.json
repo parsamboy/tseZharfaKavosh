@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "gate": "G-09",
+    "evidenceId": "E-017",
+    "capturedAt": "2026-10-05T07:56:00.221Z / 2026-10-05, 11:26:00 Asia/Tehran",
+    "host": "old.tsetmc.com",
+    "parTree": "15131F",
+    "total": 3376,
+    "optionRows": 1564,
+    "note": "Best OI finding: no OI field in 113 AllRows keys — tvol/bvol are trade volume, not OI"
+  },
+  "oiCheck": { "allKeysCount": 113, "oiLikeKeys": [], "oiFieldFound": false, "total": 3376, "optionRows": 1564 },
+  "sampleOIValues": [
+    { "l18": "ضهرم7050", "inscode": "62444611500832644", "oi": {} },
+    { "l18": "ضهرم7051", "inscode": "7693632359685850", "oi": {} }
+  ],
+  "tvolCheck": [
+    { "l18": "ضهرم7050", "tvol": "256", "bvol": "1", "tno": "18" },
+    { "l18": "ضهرم7051", "tvol": "43", "bvol": "1", "tno": "4" }
+  ],
+  "bestChoice": {
+    "choice": "No OI field in AllRows 113 keys — separate OI source required (CL-003, G-09)",
+    "hasOI": false,
+    "needsSeparate": true,
+    "reason": "113 keys checked, oiLikeKeys [], tvol is trade volume (256) with bvol 1, not open interest — OI needs timestamp/provenance"
+  }
+}
