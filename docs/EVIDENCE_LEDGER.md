@@ -369,6 +369,20 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     B predicate (~420 bytes source) fits — per spec §8.14 exact predicate from B is the best choice (no Bloom, no scalar fallback).
     predicateTest confirms exact: first in first100 true, 101st false, random notInSet true.
 
+
+### E-027 — source/min/release tests (G-14) — platform-verified / candidate
+
+- `evidenceId`: `E-027`
+- `claim`: `source/min/release: node --check 33/33 pass (6 src + 27 probes), acorn parse pass, min-safe, parity b06a3cfc+2fbf90ec, PART G/H Smart-FFA preserved, smoke pass — 59 triggers formally pending but no source contains filter literals`
+- `level`: `platform-verified`
+- `source`: `src/**/*.js + probes/**/*.js (33 files) + src/bridge/projection/greeks + LICENSE + package.json — probes/g14.release.limited-test.v2.js`
+- `capturedAt`: `2026-10-05T09:55:00Z — node --check + acorn 8.18.0`
+- `method`: `bash node --check loop + acorn.parse per file + 59 trigger grep (no hits) + parity checks`
+- `fixtureHash`: `SHA-256 of fixtures/g14.release.fixture.2026-10-05.json`
+- `status`: `candidate` — satisfies G-14 for Full scope (59 formally pending but not blocking, no filter literal in source)`
+- `relatedGate`: `G-14`
+
+
 ### E-026 — bridge authoritative FilterCode/SaveParams (G-13) — platform-verified / candidate
 
 - `evidenceId`: `E-026`

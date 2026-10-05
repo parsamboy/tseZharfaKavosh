@@ -1,0 +1,17 @@
+{
+  "evidenceId": "E-027",
+  "gate": "G-14",
+  "test": "G14-RELEASE-v2",
+  "capturedAt": "2026-10-05T09:55:00.000Z",
+  "checks": {
+    "node --check": { "totalFiles": 33, "passed": 33, "failed": 0, "status": "pass" },
+    "acorn parse": { "status": "pass" },
+    "59 triggers": { "status": "pending", "note": "no source contains filter literals, formal scan pending" },
+    "parity": { "status": "pass", "evidence": "b06a3cfc + 2fbf90ec" },
+    "PART G/H": { "status": "pass", "license": "Smart-FFA-1.1" },
+    "min": { "status": "pass" },
+    "smoke": { "status": "pass" }
+  },
+  "status": "candidate",
+  "bestChoice": "G-14 candidate — 33/33 node --check pass, 59 formally pending but no block"
+}
