@@ -94,3 +94,32 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `notes`: |
     Platform-verified via direct owner capture. Corrects earlier architecture candidate that assumed AllRows is array — it is object-map on Loader.aspx. Scope is 3356→3358 entries with 113 fields each, but must not be presented as full-market universe without completeness proof (§10). All 113 fields present in all rows (missing=0) but unknown semantics for underscore-prefixed duplicates require separate parser gate G-04. Host correction old.tsetmc.com vs www must propagate to spec. RefreshBehavior now proven: +2 entries on reload, confirms live market scope.
 - `provenanceNote`: `owner-observed vs contract-verified distinguished per §1.3 — with supplemental refresh, status moves from candidate to confirmed per §5`
+
+### E-012 — option label parser and universe relation (G-04) — platform-verified / best grammar chosen
+
+- `evidenceId`: `E-012`
+- `claim`: `option instruments are distinguished by l18 prefix ض (call) / ط (put) together with l30 containing اختیارخ/اختیارف and strike-expiry pattern; parser v0.1.0 returns confirmed with underlying/strike/expiry`
+- `level`: `platform-verified` — live label samples from same host/ParTree as E-011, chosen as best grammar after testing heuristic
+- `source`: `probes/g04.label-samples.limited-test.v1.js (read-only, 3362 total, 800 ض, 2562 rest including ط puts) + src/optionParser.v0.1.0.js`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T07:28:02.336Z / 2026-10-05, 10:58:02 Asia/Tehran`
+- `method`: `manual console paste — read-only extraction of l18/l30/inscode/iid from window.mw.AllRows object-map, no filter change`
+- `fixtureHash`: `13b4bbaefc178ed5887a5e6e5bf38ba7b5559183e140cf03520e6fd8c216033d — SHA-256 of fixtures/g04.label.fixture.2026-10-05.json; parser SHA-256 13cedae494664b0f523cce76ec2b89cf2bb289471171cdee839ffb47dfef5a62`
+- `status`: `candidate` — parser passes 14/14 fixture cases (9 confirmed, 5 rejected) and handles both compact (14050726) and slash (1405/07/29) dates; relation fixture (underlying mapping) is still sample-only, full relation requires chain/calendar gates
+- `relatedGate`: `G-04`
+- `href`: `https://old.tsetmc.com/Loader.aspx?ParTree=15131F#`
+- `parserVersion`: `optionParser@0.1.0 — src/optionParser.v0.1.0.js`
+- `grammar`: `l18[0] in {ض, ط} AND l30 contains اختیارخ (call) or اختیارف (put) AND l30 contains '-<strike>-<date>' where date is 1405/07/29 or 14050726 and strike is last numeric before date; underlying is token after اختیارخ/ف`
+- `counts`: `total 3362, with_l18 3362, optionLike (heuristic ض) 800, stockLike 2562 — but stockLike samples proved to be ط puts (طبساما/طفرابورس), so true puts+ calls >800; numericRunStats oneRun 2246 (zعف cases), twoRuns 7 (l18 alone unreliable), so l30 is required`
+- `samples`: `ضهرم7050/اختيارخ اهرم-20000-1405/07/29, ضهمن7027/اختيارخ خبهمن-1600-1405/07/29, طبساما726/اختيارف بساما-9000-14050726, طفرابورس701/اختيارف فرابورس-4600-14050726 vs rejected فولاد/زعف0510`
+- `allRowsToUniverse`: `U_snapshot = 3362 rows, but only rows where parser returns confirmed are eligible for option computation; rejected/unknown remain in snapshot but not in option universe (§10)`
+- `limitations`: `heuristic ض-only undercounts — true option count is ض + ط (puts); cfield empty so underlying relation must use l30 token, not cfield; multiplier/OI/chain still need G-07..G-10; duplicate _* fields still unknown`
+- `fixture`: `fixtures/g04.label.fixture.2026-10-05.json (14 cases) + raw G04 SUMMARY JSON in ledger`
+- `testResult`: `14/14 passed — src/optionParser.v0.1.0.js correctly returns confirmed {kind, underlying, strike, expiry} for 6 ض calls + 3 ط puts, and rejected for stocks/commodities`
+- `bestChoiceReason`: |
+    Tested 3 grammar candidates on live data:
+    A) l18 startsWith ض only → misses ط puts (fails on طبساما 10 samples) — rejected.
+    B) l18 numeric runs ≥2 → fails (l18 ضهرم7050 has only 1 run, twoRuns only 7 of 3362) — rejected.
+    C) l18 prefix ض/ط + l30 اختیارخ/ف + dash-strike-date (chosen) → passes all 9 option samples and rejects 5 non-options, handles both slash and compact dates — selected as BEST.
+- `nextForG04`: `relation fixture: map option inscode -> underlying inscode via iid/l30 underlying name cross-check; needs chain gate but parser candidate sufficient to unblock G-05 snapshot`

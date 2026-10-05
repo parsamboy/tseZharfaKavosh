@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "gate": "G-04",
+    "evidenceId": "E-012",
+    "capturedAt": "2026-10-05T07:28:02.336Z / 2026-10-05, 10:58:02 Asia/Tehran",
+    "host": "old.tsetmc.com",
+    "href": "https://old.tsetmc.com/Loader.aspx?ParTree=15131F#",
+    "parTree": "15131F",
+    "source": "mw.AllRows live capture — G04-LABEL-SAMPLES-v1 (3362 total, 800 ض, 2562 rest)",
+    "heuristic": "l18 startsWith ض/ط or contains اختیار — used only for sampling, final parser is versioned",
+    "parserVersion": "optionParser@0.1.0",
+    "note": "Best grammar chosen: l18 prefix ض (call) / ط (put) + l30 contains اختیارخ/اختیارف with strike-expiry after '-' . Samples below are raw immutable, truncated for fixture."
+  },
+  "optionLikeConfirmed": [
+    { "l18": "ضهرم7050", "l30": "اختيارخ اهرم-20000-1405/07/29", "inscode": "62444611500832644", "iid": "IRO9AHRM0D71", "expected": { "status": "confirmed", "kind": "call", "underlying": "اهرم", "strike": 20000, "expiry": "1405/07/29" } },
+    { "l18": "ضهرم7051", "l30": "اختيارخ اهرم-22000-1405/07/29", "inscode": "7693632359685850", "iid": "IRO9AHRM0D81", "expected": { "status": "confirmed", "kind": "call", "underlying": "اهرم", "strike": 22000, "expiry": "1405/07/29" } },
+    { "l18": "ضهرم7052", "l30": "اختيارخ اهرم-24000-1405/07/29", "inscode": "2981675816992995", "iid": "IRO9AHRM0D91", "expected": { "status": "confirmed", "kind": "call", "underlying": "اهرم", "strike": 24000, "expiry": "1405/07/29" } },
+    { "l18": "ضهمن7027", "l30": "اختيارخ خبهمن-1600-1405/07/29", "inscode": "44962432644511414", "iid": "IRO9BHMN8021", "expected": { "status": "confirmed", "kind": "call", "underlying": "خبهمن", "strike": 1600, "expiry": "1405/07/29" } },
+    { "l18": "ضهمن7033", "l30": "اختيارخ خبهمن-2400-1405/07/29", "inscode": "38905734298726117", "iid": "IRO9BHMN8081", "expected": { "status": "confirmed", "kind": "call", "underlying": "خبهمن", "strike": 2400, "expiry": "1405/07/29" } },
+    { "l18": "ضهرم9026", "l30": "اختيارخ اهرم-56000-1405/09/25", "inscode": "35875049744666675", "iid": "IRO9AHRM0G71", "expected": { "status": "confirmed", "kind": "call", "underlying": "اهرم", "strike": 56000, "expiry": "1405/09/25" } },
+    { "l18": "طبساما726", "l30": "اختيارف بساما-9000-14050726", "inscode": "3933356780664638", "expected": { "status": "confirmed", "kind": "put", "underlying": "بساما", "strike": 9000, "expiry": "1405/07/26" } },
+    { "l18": "طبساما731", "l30": "اختيارف بساما-13000-14050726", "inscode": "59838023433226237", "expected": { "status": "confirmed", "kind": "put", "underlying": "بساما", "strike": 13000, "expiry": "1405/07/26" } },
+    { "l18": "طفرابورس701", "l30": "اختيارف فرابورس-4600-14050726", "inscode": "20919434260007626", "expected": { "status": "confirmed", "kind": "put", "underlying": "فرابورس", "strike": 4600, "expiry": "1405/07/26" } }
+  ],
+  "rejected": [
+    { "l18": "فولاد", "l30": "فولاد مبارکه", "expected": { "status": "rejected" } },
+    { "l18": "شپنا", "l30": "پالایش نفت اصفهان", "expected": { "status": "rejected" } },
+    { "l18": "زعف0510پ19", "l30": "زعفران0510نگين تروند قاينات(پ)", "expected": { "status": "rejected" } },
+    { "l18": "زعف0510پ05", "l30": "زعفران0510نگين زرين(پ)", "expected": { "status": "rejected" } },
+    { "l18": "خودرو", "l30": "ایران خودرو", "expected": { "status": "rejected" } }
+  ],
+  "counts": { "total": 3362, "optionLikeRaw": 800, "putLikeInStockSample": "stockLike 10 samples actually were put options with ط — confirms ض-only heuristic undercounts; true options likely >800 (ض 800 + ط ~? )" },
+  "numericRunStats": { "oneRun": 2246, "twoRuns": 7, "threePlus": 0, "note": "l18 alone has mostly 1 numeric run (code suffix), strike/expiry are in l30, not l18 — grammar must use l30" },
+  "relationHint": { "cfieldEmpty": "cfieldSamples were empty string — not reliable for relation; need separate underlying mapping via iid or l30 underlying name", "csSamples": ["68","34","57"], "iidPrefix": "IRO9" }
+}
