@@ -1,0 +1,20 @@
+{
+  "name": "tsezharfakavosh",
+  "version": "0.1.0.0",
+  "private": true,
+  "description": "Governance-only successor scaffold for the tseOptionZharfa lineage",
+  "license": "Smart-FFA-1.1",
+  "author": {
+    "name": "p75ad",
+    "url": "https://t.me/p75ad"
+  },
+  "homepage": "https://t.me/SmartOptionTSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/parsamboy/tseZharfaKavosh"
+  },
+  "devDependencies": {
+    "acorn": "8.18.0",
+    "acorn-walk": "8.3.5"
+  }
+}

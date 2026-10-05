@@ -1,0 +1,207 @@
+Smart-FFA-1.1
+Free Fork with Attribution and Optional Donation
+=====================================================
+
+Copyright (c) 1405 / 2026
+© ۱۴۰۵ — حقوق مؤلف محفوظ است
+All rights reserved except for the permissions expressly granted
+below.
+
+Author:        https://t.me/p75ad
+Project group: https://t.me/SmartOptionTSE
+Upstream:      tseOption_ExoticFilter v0.0.4.6
+Successor:     tseOptionZharfa v0.0.4.1
+Current:       tseZharfaKavosh v0.1.0.0
+
+
+SCOPE AND LINEAGE
+-----------------
+
+This license governs the successor release tseZharfaKavosh
+v0.1.0.0 and the project material authorized for that release by
+the rights holder. The project preserves the attribution and
+lineage of the upstream projects identified above.
+
+Historical upstream artifacts retain their original notices and
+lineage, including the inherited Smart-FFA-1.0 notice where it
+was issued. This successor notice does not erase, misrepresent,
+or retroactively rewrite those historical notices.
+
+
+PREAMBLE
+--------
+
+This license grants freedom to use, study, modify, and
+redistribute this software. It requires attribution to the
+original author. It permits, but does not require, optional
+donation to support continued development.
+
+The license is designed for projects that value both freedom
+and sustainability. Attribution is mandatory. Donation is not.
+
+
+PERMISSIONS
+----------
+
+You are free to:
+
+  - Use this software for any purpose, commercial or
+    non-commercial.
+  - Study the source code and understand how it works.
+  - Modify the source code to suit your needs.
+  - Redistribute the original or modified software.
+  - Fork the software and create derivative works.
+  - Sublicense the software under the same terms.
+  - Bundle this software with other software.
+  - Sell services based on this software.
+
+
+CONDITIONS
+----------
+
+When you fork, redistribute, or create a derivative work, you
+must:
+
+  1. Preserve the original author's name and address in the
+     header of every source file that derives from this
+     software.
+
+  2. Preserve the Smart-FFA license identification in the
+     header of every source file.
+
+  3. Preserve the fork/upstream lineage explicitly. A fork
+     must clearly state which project it is derived from.
+
+  4. Not remove, obscure, replace, or misrepresent the
+     upstream attribution.
+
+  5. Not present upstream donation channels as if they belong
+     to your own fork.
+
+  6. Not condition any feature of your fork or derivative on
+     receipt of donation.
+
+  7. Not track, store, or share information about who has or
+     has not donated.
+
+You may:
+
+  - Add your own author name and version details alongside
+    the upstream attribution.
+  - Add your own donation channels.
+  - Remove upstream donation channels from your fork.
+  - Combine upstream channels with your own, provided it is
+    clear which channel belongs to which maintainer.
+
+
+OPTIONAL DONATION
+-----------------
+
+This project may accept optional donations from users who wish
+to support its continued development.
+
+Donation is:
+
+  - Voluntary. Never required.
+  - Not a license fee.
+  - Not a subscription.
+  - Not a condition of use.
+  - Not a condition of forking.
+  - Not a condition of redistribution.
+  - Not a feature unlock.
+  - Not a royalty.
+  - Not tracked by the project.
+
+The project does not:
+
+  - Track who has donated.
+  - Store donation records.
+  - Condition any feature on donation status.
+  - Grant additional rights to donors.
+  - Remove any obligation from donors.
+  - Share donation information with third parties.
+
+Donation records, if any, are held solely by the payment
+processor chosen by the donor. The project does not have
+access to donor identity beyond what the processor publicly
+displays, unless the donor voluntarily shares it with the
+project.
+
+
+DONATION AND FORKS
+------------------
+
+A fork of this project may:
+
+  a) Keep the upstream donation channels as-is.
+  b) Remove the upstream donation channels entirely.
+  c) Add its own donation channels.
+  d) Combine upstream and own channels, provided the
+     distinction is clear.
+
+A fork must not:
+
+  a) Remove upstream attribution to substitute its own
+     donation channel.
+  b) Present upstream donation channels as if they belong to
+     the fork.
+  c) Condition any feature on donation.
+  d) Track donation status for any purpose that affects
+     feature availability, access, or priority.
+
+
+DISCLAIMER OF WARRANTY
+----------------------
+
+This software is provided "as is", without warranty of any
+kind, express or implied, including but not limited to the
+warranties of merchantability, fitness for a particular
+purpose, and non-infringement.
+
+In no event shall the authors or copyright holders be liable
+for any claim, damages, or other liability, whether in an
+action of contract, tort, or otherwise, arising from, out of,
+or in connection with the software or the use or other
+dealings in the software.
+
+
+ANALYTICAL TOOL DISCLAIMER
+--------------------------
+
+This tool is analytical and informational only. It does not
+guarantee profit. All trading decisions and their consequences
+are the sole responsibility of the user.
+
+The tool does not provide investment advice. It does not
+recommend buying or selling any security. It does not
+substitute for professional financial advice.
+
+Users are responsible for complying with all applicable laws
+and regulations in their jurisdiction.
+
+
+FINANCIAL MARKET RISK
+---------------------
+
+Trading in financial markets involves substantial risk of
+loss. Past performance does not guarantee future results.
+Options trading carries additional risks including but not
+limited to time decay, volatility risk, and assignment risk.
+
+The analytical models in this software (Greeks, implied
+volatility, GARCH, SVI, GEX, DEX, and others) are estimates
+based on mathematical models. They do not predict future
+market behavior. They are tools for analysis, not guarantees
+of outcome.
+
+
+END OF LICENSE
+
+For the full text of the optional donation clause, see
+DONATION.md in the project root.
+
+For the list of decided policies, see
+docs/DECISIONS.md.
+
+For the canonical architecture contract, see
+docs/ARCHITECTURE_CONTRACT_v6.0.md.
