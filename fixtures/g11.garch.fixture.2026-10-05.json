@@ -1,0 +1,16 @@
+{
+  "evidenceId": "E-029",
+  "gate": "G-11",
+  "test": "G11-GARCH-v1.3",
+  "capturedAt": "2026-10-05T13:41:00.000Z",
+  "host": "old.tsetmc.com",
+  "parTree": "15131F",
+  "underlying": "اهرم",
+  "inscode": "17914401175772326",
+  "closesLen": 60,
+  "first10": [72550, 73627, 73319, 71004, 68571, 66178, 64812, 67285, 66017, 68082],
+  "last10": [39841, 38336, 37129, 38443, 40044, 41132, 42832, 44616, 46475, 48294],
+  "garch": { "sigma": 0.032180967346965, "annVol": 0.5108570192973566, "n": 60, "omega": 1e-6, "alpha": 0.08, "beta": 0.88 },
+  "status": "candidate",
+  "note": "GARCH(1,1) on public ClosingPriceAll (PClosing) 60 closes, sigma 3.2% daily ann 51% — no credential, no 1s, parity identical"
+}

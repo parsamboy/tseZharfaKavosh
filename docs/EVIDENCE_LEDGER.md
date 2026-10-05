@@ -371,6 +371,22 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 
 
 
+
+### E-029 — GARCH(1,1) public history (G-11) — platform-verified / candidate
+
+- `evidenceId`: `E-029`
+- `claim`: `GARCH(1,1) computable from public ClosingPriceAll (PClosing) 60 closes for اهرم (17914401175772326): sigma 0.032 daily, annVol 0.51, no credential, filtered >1000 count 60 (no 1s)`
+- `level`: `platform-verified`
+- `source`: `src/models/garch.v0.1.0.js (garch11) + probes/g11.garch.limited-test.v1.3.js on old.tsetmc.com 15131F (InstHistory 4006 keys, اهرم 60 closes 72550..48294)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T13:41:00Z / 17:11 Tehran — first 72550 last 48294, last10 39841..48294`
+- `method`: `read-only LIMITED-TEST v1.3 — InstHistory via ClosingPriceAll.aspx (LoadInstHistory 1), garchSimple on 60 closes, filtered >1000 same 60, parity identical`
+- `fixtureHash`: `SHA-256 of fixtures/g11.garch.fixture.2026-10-05.json — sigma 0.032 annVol 0.51`
+- `status`: `candidate` — satisfies G-11 GARCH with public data, no OI needed`
+- `relatedGate`: `G-11`
+
+
 ### E-028 — product release approval (G-15) — v0.2.0-alpha — owner-approved
 
 - `evidenceId`: `E-028`
