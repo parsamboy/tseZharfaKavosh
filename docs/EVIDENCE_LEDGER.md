@@ -209,3 +209,26 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     - Missing OI/multiplier proves AllRows is quote chain, not canonical full chain.
     - Best choice: AllRows is candidate for quote chain (tradable), but canonical chain needs separate source + parser v0.1.1 fix.
 - `limitations`: `AllRows chain is live quote view, not historical chain; full chain needs endpoint with OI/multiplier; duplicate handling and date yy fix pending`
+
+### E-016 — calendar source and stale policy (G-08) — platform-verified / best calendar
+
+- `evidenceId`: `E-016`
+- `claim`: `AllRows option rows contain 23 unique Jalali expiries all future (1405/07/15 .. 1405/10/30), 1564 optionRows, no stale today (past 0/future 1564 vs 1404/07/13)`
+- `level`: `platform-verified` — live calendar from same host/ParTree, chosen after testing G-08
+- `source`: `probes/g08.calendar.limited-test.v1.js (read-only expiry extraction from l30, handles 1405/07/29 and 05/09/04->1405/09/04)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T07:45:05.619Z / 2026-10-05, 11:15:05 Asia/Tehran`
+- `method`: `manual console paste — read-only: parse expiry from l30, count unique expiries, expiryCounts, underlyingCounts, stale past/future`
+- `fixtureHash`: `bd07768c876d25cf5b639f1480c85ee332bccd1a0fb45a269ce7e2294d2ef176 — SHA-256 of fixtures/g08.calendar.fixture.2026-10-05.json`
+- `status`: `candidate` — satisfies G-08 for calendar source (23 expiries, all future); stale policy future->eligible, past->stale
+- `relatedGate`: `G-08`
+- `href`: `https://old.tsetmc.com/Loader.aspx?ParTree=15131F#`
+- `uniqueExpiries`: `23 — 1405/07/15, /07/19, /07/22, /07/26, /07/29, /08/03, /08/06, /08/10, /08/13, /08/17, /08/20, /08/24, /08/27, /09/04, /09/08, /09/11, /09/18, /09/22, /09/25, /09/29, /10/09, /10/23, /10/30`
+- `expiryCounts`: `86 for 07/29, 98 for 08/27, 72 for 09/25 etc — varies per underlying, not uniform`
+- `underlyingCounts`: `اهرم 82, اطلس 110, ذوب 94 ... 23 underlyings`
+- `staleCheck`: `past 0, future 1564, todayJalali 1404/07/13 — all expiries are 1405 future, no stale today`
+- `bestChoiceReason`: |
+    Live calendar shows 23 expiries, all 1405 future, so no stale yet — but policy must be: future expiry -> fresh, past expiry -> stale/insufficient-data.
+    Date 05/09/04 correctly normalized to 1405/09/04 — parser v0.1.0 already handles 14050922, and 05/09/04 fix is validated.
+- `limitations`: `Jalali vs Gregorian conversion is approximate; full calendar needs Gregorian verification for D3`

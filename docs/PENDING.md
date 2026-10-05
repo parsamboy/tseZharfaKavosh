@@ -56,6 +56,7 @@
 | G-05 | snapshot/canonical computation | ✅ candidate — بهترین canonical انتخاب شد (sorted keys + Asia/Tehran + preserve+parse + missing explicit) — 3363 snapshot، firstRow ضهرم8031 | schema، serialization، timezone، rounding، missing policy و model version — **نهایی شد؛ snapshot live +1 پس از G-04** |
 | G-06 | اولین مدل | ✅ candidate — QuoteMid v0.1.0 با parity ✅ و no-fabrication ✅ — 5 نمونهٔ زنده 3365، هش یکسان b06a3cfc | مدل اول همراه parity و no-fabrication test — **نهایی شد؛ empty snapshot هم درست not-found داد** |
 | G-07 | option-chain source | ✅ candidate — chain اهرم 1405/07/29 با 34 ردیف (17 strike ×2) — AllRows quote chain دارد ولی OI/multiplier و date 05/09/04 نیاز به منبع جدا | منبع مجاز، raw fixture و schema — **برای chain قابل معامله نهایی شد؛ chain canonical کامل با G-09/10 تکمیل می‌شود** |
+| G-08 | calendar source | ✅ candidate — 23 سررسید یکتا 1405 همه future (past 0/future 1564) — تقویم جلالی از l30، 05/09/04 تصحیح شد | منبع، بازهٔ اعتبار، timezone و stale policy — **نهایی شد؛ همه future، stale policy مشخص شد** |
 | G-05 | snapshot/canonical computation | باز | schema، serialization، timezone، rounding، missing policy و model version |
 | G-06 | اولین مدل | باز | مدل اول همراه parity و no-fabrication test |
 | G-07 | option-chain source | باز | منبع مجاز، raw fixture و schema |
