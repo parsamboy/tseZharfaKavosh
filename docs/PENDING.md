@@ -10,22 +10,17 @@
 
 ### P-DEC-001 — دامنهٔ دقیق Alpha
 
-وضعیت: **نیازمند تأیید صریح مالک**
+وضعیت: **✅ تصمیم گرفته شد — D-2026-10-05-001 (Full)**
 
-باید روشن شود Alpha از نظر قابلیت محصول دقیقاً چه چیزهایی را شامل می‌کند و چه چیزهایی صرفاً در successor باقی می‌مانند.
+مالک در 2026-10-05 صریحاً **Full scope** را انتخاب کرد (پرسش دامنه → گزینه full → تایید «بله»). این تصمیم در `docs/DECISIONS.md` به‌عنوان `D-2026-10-05-001` ثبت شد:
 
-فهرست پیشنهادیِ زیر هنوز مصوبه نیست:
+```text
+✅ D1 + D2 + D3 (همه deploymentها)
+✅ Greeks/IV + Spread + SVI+Surface کامل + GEX/DEX + Flow + GARCH + bridge خودکار
+⛔ هیچ ماژولی phased نیست
+```
 
-- D1؛
-- D2؛
-- Greeks؛
-- IV؛
-- GARCH؛
-- Spread؛
-- بخشی از SVI؛
-- عدم shipping اولیهٔ D3، GEX/DEX، Flow، Surface کامل و bridge خودکار.
-
-این فهرست فقط زمانی قابل ثبت است که مالک صریحاً آن را به‌عنوان **phased release scope** بپذیرد. حذف این قابلیت‌ها از Alpha نباید به‌عنوان حل محدودیت فنی یا کاهش دائمی دامنهٔ محصول معرفی شود. تا آن زمان، no-simplification rule برقرار است.
+P-DEC-001 از این فهرست **حذف و به تصمیم بسته** تبدیل شد؛ مرجع canonical آن `D-2026-10-05-001` است. هر تغییر بعدی نیاز به تصمیم جدید Class B دارد.
 
 ### P-DEC-002 — privacy و data-transfer policy
 
@@ -50,7 +45,7 @@
 | شناسه | Gate | وضعیت | خروجی لازم |
 |---|---|---|---|
 | G-01 | Governance پایه | ثبت شد؛ canonical approval در D-2026-10-04-003 | ساختار `docs/DECISIONS.md`، `docs/PENDING.md` و `docs/EVIDENCE_LEDGER.md` |
-| G-02 | تصمیم‌های بنیادین | عمدتاً بسته | D2 transport، runtime mapping، D3 topology و version policy ثبت شده؛ Alpha scope باز |
+| G-02 | تصمیم‌های بنیادین | ✅ **بسته شد** — Alpha scope Full در D-2026-10-05-001 | D2 transport، runtime mapping، D3 topology و version policy ثبت شده؛ Alpha scope Full |
 | G-03 | `mw.AllRows` | ✅ **confirmed** — platform-verified (E-011 2026-10-05 old.tsetmc.com/Loader.aspx 3356→3358 entries 113 fields + F5 supplemental 10:50) | provenance، host، realm، schema، scope، refresh behavior و fixture — **نهایی شد؛ refreshBehavior با +2 ردیف پس از F5 اثبات شد** |
 | G-04 | option/universe/parser | ✅ candidate — بهترین گرامر انتخاب شد (لبه ض/ط + اختیارخ/ف + strike-expiry در l30) — parser v0.1.0 + fixture 14 موردی، تست 14/14 ✅ | parser نسخه‌دار، label fixture و relation fixture — **برای تشخیص اختیار نهایی شد؛ relation کامل با G-07 تکمیل می‌شود** |
 | G-05 | snapshot/canonical computation | ✅ candidate — بهترین canonical انتخاب شد (sorted keys + Asia/Tehran + preserve+parse + missing explicit) — 3363 snapshot، firstRow ضهرم8031 | schema، serialization، timezone، rounding، missing policy و model version — **نهایی شد؛ snapshot live +1 پس از G-04** |
@@ -66,7 +61,7 @@
 | G-15 | product release approval | ⏳ open — canonical جدا تأیید شده ولی فنی نه؛ نیاز به همه Gateها candidate/confirmed | تأیید release محصول پس از gateهای فنی — **هنوز باز — پس از G-11..14** |
 | G-16 | SSE fallback policy | ✅ candidate — PART U §13 maxAttempts/pollInterval/maxFallbackDuration versioned | `maxAttempts`، `pollInterval`، `maxFallbackDuration` و trace — **policy در قرارداد، config versioned باقی‌مانده** |
 | G-17 | D3 authentication/discovery | ✅ candidate — Managed Container + OAuth2/OIDC per D-2026-10-03-003 | provider، OAuth 2.0/OIDC discovery، signature و verification policy — **topology ثابت، provider جدا** |
-| G-18 | Alpha scope approval | ⏳ open — P-DEC-001/002 همچنان نیاز به Class B مالک | تعیین اینکه D3 و ماژول‌های advanced در Alpha shipping هستند یا phased — **با P-DEC هم‌بسته** |
+| G-18 | Alpha scope approval | ✅ **closed via D-2026-10-05-001 — Full** — P-DEC-002 privacy همچنان باز | تعیین اینکه D3 و ماژول‌های advanced در Alpha shipping هستند یا phased — **Full تایید شد؛ privacy باقی‌مانده** |
 
 ---
 

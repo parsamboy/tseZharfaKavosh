@@ -397,3 +397,49 @@ Donation در successor چگونه مجاز باشد بدون آن‌که به �
 - release اولیه را production-ready اعلام نمی‌کند؛
 - مجوز انتقال یا تغییر silent در artifactهای تاریخی upstream را نمی‌دهد؛
 - مجوز اجرای live probe بدون ثبت approval و evidence نمی‌دهد.
+
+## D-2026-10-05-001: Alpha Scope — Full (D1+D2+D3 + All Models)
+
+- **Class:** B — product scope
+- **Date:** 2026-10-05
+- **Version:** `tseZharfaKavosh v0.1.0.0` / Architecture Contract v6.0 — post push 6e1356c
+- **Decision maker:** مالک پروژه
+- **Status:** accepted — replaces P-DEC-001 open
+
+### Question
+
+دامنهٔ دقیق Alpha چه باشد و کدام ماژول‌ها به successor بعدی phased شوند؟
+
+### Owner choice
+
+مالک صریحاً گزینهٔ **Full** را انتخاب کرد (پرسش «اول دامنه» → پاسخ «full» → تایید «بله» در 2026-10-05).
+
+### Chosen — Full scope (no phased deferral)
+
+```text
+✅ D1 Browser-Native (exact projection ParTree=15131F)
+✅ D2 Hybrid Node.js (HTTP/JSON+SSE)
+✅ D3 Managed Container Python (از روز اول)
+✅ Greeks/IV
+✅ Spread
+✅ SVI + VolSurface کامل
+✅ GEX/DEX
+✅ Flow
+✅ GARCH
+✅ bridge خودکار (ApplyBridge)
+⛔ هیچ ماژولی به فاز بعد موکول نمی‌شود
+```
+
+### Implications recorded
+
+- `G-09 OI` و `G-10 multiplier` باید **منبع مستقل** معرفی و probe شوند — بدون آن GEX/DEX/Flow ناممکن است (نیاز جدا در E-017/E-018 ثابت شد).
+- `G-11` سایر مدل‌ها همگی در Alpha باید parity + no-fabrication بدهند — نه فقط Spread.
+- `G-17 D3` provider و `G-13 bridge` دیگر phased نیستند و در همین Alpha باید حل شوند.
+- ترتیب dependency-driven پابرجا می‌ماند: `data → snapshot → models → projection → bridge → release` — میان‌بُر مجاز نیست.
+- این تصمیم `P-DEC-001` را می‌بندد؛ `P-DEC-002 privacy` همچنان باز است و پیش از هر انتقال D3 باید بسته شود.
+
+### Non-effects
+
+- این تصمیم privacy/data-transfer policy را تعیین نمی‌کند؛
+- provider و region و storage D3 را انتخاب نمی‌کند؛
+- خودکار بودن bridge مجوز دورزدن network policy نیست.
