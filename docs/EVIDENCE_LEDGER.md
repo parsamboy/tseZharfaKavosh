@@ -350,7 +350,6 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     Best choice: Greeks/IV is candidate with AllRows+parser+calendar, no need for separate S source (underlying pc is in AllRows).
 - `next`: `G-11 still needs separate for GARCH (history), SVI (full chain), GEX/Flow (OI) — already E-023`
 
-#
 ### E-025 — exact A projection v0.1.0 (G-12) — platform-verified / candidate
 
 - `evidenceId`: `E-025`
@@ -370,6 +369,21 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     B predicate (~420 bytes source) fits — per spec §8.14 exact predicate from B is the best choice (no Bloom, no scalar fallback).
     predicateTest confirms exact: first in first100 true, 101st false, random notInSet true.
 
+### E-026 — bridge authoritative FilterCode/SaveParams (G-13) — platform-verified / candidate
+
+- `evidenceId`: `E-026`
+- `claim`: `FilterCode authoritative property exists on old.tsetmc.com 15131F (has true but empty value len 0), SaveParams is setData(MarketWatchSettings), Settings.FilterNo 8, trace submit->done valid`
+- `level`: `platform-verified`
+- `source`: `src/bridge/applyBridge.v0.1.0.js (buildApplyRequest/confirmBridge/validateTrace) + probes/g13.bridge.limited-test.v2.js on old.tsetmc.com 15131F (FilterCode empty string, SaveParams function, FilterNo 8)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T09:49:54.864Z / 13:19 Tehran`
+- `method`: `read-only LIMITED-TEST v2 — typeof FilterCode string, SaveParams function toString, Settings.FilterNo, trace sample valid true`
+- `fixtureHash`: `SHA-256 5e49047f0d38ee422ff38a6cc4ac9ab2094c145c0d71b0b03dd0da82e1560937 of fixtures/g13.bridge.fixture.2026-10-05.json`
+- `status`: `candidate` — satisfies G-13 for bridge design (authoritative slot exists, SaveParams round-trip, trace valid); live ApplyBridge with non-empty FilterCode remains as next probe
+- `relatedGate`: `G-13`
+- `bestChoiceReason`: |
+    FilterCode property exists (has true) but value "" len 0 — proves authoritative slot exists even though no filter active now. SaveParams is function setData("MarketWatchSettings",JSON.stringify(mw.Settings)) — persistence via Settings. FilterNo 8 matches PENDING. Trace valid. Best choice: bridge candidate with round-trip, but needs live non-empty FilterCode for confirmation.
 
 ### E-023-supplemental — v4 public exhaustive test (2026-10-05 09:24)
 
