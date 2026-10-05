@@ -276,3 +276,35 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     Distinct yval varies (27 values) proves not all fields are constant — but z constant still needs independent provenance.
     Best choice: keep AllRows z as hint, but require separate multiplier source with provenance.
 - `limitations`: `multiplier still needs independent source even though z looks plausible; yval variance shows not uniform`
+
+### E-019..E-022 — remaining gates G-11..G-18 (local verification, best choices)
+
+- `evidenceId`: `E-019 (G-11)`
+- `claim`: `other models: Spread (pd1/po1) and Greeks/IV (pc+strike+expiry) are ready via G-04/G-05/G-06; GARCH/SVI/GEX/Flow/Surface need separate chain/OI/multiplier/history`
+- `level`: `project-policy/platform-verified` — local dependency matrix check via probes/g11.other-models.limited-test.v1.js
+- `source`: `probes/g11.other-models.limited-test.v1.js (ready: Greeks/IV, Spread; notReady: GARCH, SVI, GEX/DEX, Flow, VolSurface)`
+- `status`: `candidate/needs-separate`
+- `relatedGate`: `G-11`
+- `bestChoice`: `Spread is candidate (already G-06), Greeks/IV candidate via parser+calendar, others need G-07..G-10 separate`
+
+- `evidenceId`: `E-020 (G-12)`
+- `claim`: `exact A projection is row.inscode in E_k OR row predicate from B — no scalar fallback, capacity 1564 universe fits A with exact emitter`
+- `level`: `project-policy`
+- `source`: `probes/g12.projection.limited-test.v1.js (sourceSize 4896 vs 4KB limit, verdict 1564)`
+- `status`: `candidate`
+- `relatedGate`: `G-12`
+
+- `evidenceId`: `E-021 (G-13)`
+- `claim`: `bridge authoritative state is FilterCode/SaveParams — needs live ApplyBridge probe like G-03 but for persistence`
+- `level`: `project-policy`
+- `source`: `probes/g13.bridge.limited-test.v1.js`
+- `status`: `needs-probe`
+- `relatedGate`: `G-13`
+
+- `evidenceId`: `E-022 (G-14..G-18 bundle)`
+- `claim`: `G-14 node --check passed for 8 files + parity G-06, PART G/H preserved; G-15 release still open until all gates candidate; G-16 SSE fallback versioned per PART U §13; G-17 D3 Managed Container per D-2026-10-03-003; G-18 Alpha scope tied to P-DEC-001/002`
+- `level`: `project-policy/platform-verified`
+- `source`: `probes/g14.release.limited-test.v1.js + probes/g15-g18.limited-test.v1.js`
+- `status`: `candidate for G-14/G-16/G-17, open for G-15/G-18`
+- `relatedGate`: `G-14..G-18`
+- `notes`: `P-DEC-001/002 remain open — need explicit owner Class B for Alpha scope and privacy`

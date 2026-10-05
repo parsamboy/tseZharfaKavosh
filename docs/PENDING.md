@@ -59,20 +59,14 @@
 | G-08 | calendar source | ✅ candidate — 23 سررسید یکتا 1405 همه future (past 0/future 1564) — تقویم جلالی از l30، 05/09/04 تصحیح شد | منبع، بازهٔ اعتبار، timezone و stale policy — **نهایی شد؛ همه future، stale policy مشخص شد** |
 | G-09 | OI source | ✅ needs-separate — هیچ فیلد OI در 113 کلید AllRows نیست (oiLikeKeys []) — tvol حجم معامله است نه OI | field معتبر، timestamp و provenance — **نهایی شد؛ منبع جدا لازم است (CL-003)** |
 | G-10 | multiplier source | ✅ needs-separate — z=1000 ثابت برای همه اختیارها ولی per spec باید از منبع مستقل بیاید، نه استنتاج از z/bvol | منبع مستقل؛ عدم استنتاج از OI یا label — **نهایی شد؛ z ثابت ولی provenance جدا لازم است** |
-| G-05 | snapshot/canonical computation | باز | schema، serialization، timezone، rounding، missing policy و model version |
-| G-06 | اولین مدل | باز | مدل اول همراه parity و no-fabrication test |
-| G-07 | option-chain source | باز | منبع مجاز، raw fixture و schema |
-| G-08 | calendar source | باز | منبع، بازهٔ اعتبار، timezone و stale policy |
-| G-09 | OI source | باز | field معتبر، timestamp و provenance |
-| G-10 | multiplier source | باز | منبع مستقل؛ عدم استنتاج از OI یا label |
-| G-11 | سایر مدل‌ها | باز | dependency matrix، parity و no-fabrication برای هر مدل |
-| G-12 | exact A projection | باز | تعریف snapshot، emitter دقیق، capacity و cost evidence |
-| G-13 | bridge confirmation | باز | authoritative state، apply/persist probe و trace |
-| G-14 | source/min/release | باز | `node --check`، ۵۹ scan، parity، PART G/H و smoke |
-| G-15 | product release approval | باز؛ canonical contract جداگانه تأیید شده | تأیید release محصول پس از gateهای فنی |
-| G-16 | SSE fallback policy | باز | `maxAttempts`، `pollInterval`، `maxFallbackDuration` و trace |
-| G-17 | D3 authentication/discovery | باز | provider، OAuth 2.0/OIDC discovery، signature و verification policy |
-| G-18 | Alpha scope approval | باز | تعیین اینکه D3 و ماژول‌های advanced در Alpha shipping هستند یا phased |
+| G-11 | سایر مدل‌ها | ✅ candidate/needs-separate — Spread آماده (G-06) + Greeks/IV با parser+calendar آماده، GARCH/SVI/GEX/Flow/Surface نیاز به منبع جدا | dependency matrix، parity و no-fabrication برای هر مدل — **برای Spread/Greeks candidate، بقیه با G-07..10 جداست** |
+| G-12 | exact A projection | ✅ candidate — ظرفیت emitter با 1564 universe + 4KB A limit چک شد (4896 vs 4000) — exact predicate row.inscode in E_k | تعریف snapshot، emitter دقیق، capacity و cost evidence — **predicate دقیق تعیین شد؛ capacity برای 1564 نهایی شد** |
+| G-13 | bridge confirmation | ⏳ needs-probe — authoritative state FilterCode/SaveParams، trace submit→done — طراحی آماده، probe زنده لازم | authoritative state، apply/persist probe و trace — **طراحی candidate، اجرای probe پس از G-12** |
+| G-14 | source/min/release | ✅ candidate — node --check 8 فایل ✅، parity G-06 ✅، PART G/H حفظ شد، 59 trigger pending | `node --check`، ۵۹ scan، parity، PART G/H و smoke — **برای source/min parity candidate** |
+| G-15 | product release approval | ⏳ open — canonical جدا تأیید شده ولی فنی نه؛ نیاز به همه Gateها candidate/confirmed | تأیید release محصول پس از gateهای فنی — **هنوز باز — پس از G-11..14** |
+| G-16 | SSE fallback policy | ✅ candidate — PART U §13 maxAttempts/pollInterval/maxFallbackDuration versioned | `maxAttempts`، `pollInterval`، `maxFallbackDuration` و trace — **policy در قرارداد، config versioned باقی‌مانده** |
+| G-17 | D3 authentication/discovery | ✅ candidate — Managed Container + OAuth2/OIDC per D-2026-10-03-003 | provider، OAuth 2.0/OIDC discovery، signature و verification policy — **topology ثابت، provider جدا** |
+| G-18 | Alpha scope approval | ⏳ open — P-DEC-001/002 همچنان نیاز به Class B مالک | تعیین اینکه D3 و ماژول‌های advanced در Alpha shipping هستند یا phased — **با P-DEC هم‌بسته** |
 
 ---
 
