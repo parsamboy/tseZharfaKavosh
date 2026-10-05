@@ -316,14 +316,22 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `level`: `external-verified` — discovered via web_search + fetch of ali-derogar/option (2 months ago, TSETMC Options Data Pipeline using official api.tsetmc.com), confirmed by v2.2/v2.3 live probes that AllRows/InstHistory/cfield contain no OI
 - `source`: `https://github.com/ali-derogar/option — src/schema.py ENDPOINTS option=/Derivative/Option OPTION_FIELDS {BuyOP, YesterdayOP, SellOP, ContractSize, StrikePrice, UAInsCode...} + src/client.py TSETMC_BASE_URL=https://api.tsetmc.com + src/config.py flow=3 (ATI derivatives)`
 - `host`: `api.tsetmc.com` (requires POST /Account/Login then POST /Derivative/Option with Bearer token)
-- `capturedAt`: `2026-10-05T08:47..08:55Z Tehran — 4 live probes on old.tsetmc.com 15131F (3425 total, 1566 options) + v2.2 perf 14 resources + v2.3 InstHistory ClosingPriceAll confirms no OI`
-- `method`: `read-only LIMITED-TEST v2..v2.4 on old.tsetmc.com (AllRows 113 keys oiLike [], InstHistory empty/price history, MarketWatchPlus 5 polls, cfield empty, fieldMap hasOI false) + web_search tsev2 + fetch raw schema/client`
-- `status`: `candidate (separate authenticated source exists, needs credential probe E-023a/b)`
+- `capturedAt`: `2026-10-05T08:47..09:24Z Tehran — 4 live probes on old.tsetmc.com 15131F (3425 total, 1566 options) + v2.2 perf 14 resources + v2.3 InstHistory ClosingPriceAll confirms no OI + v4 public brute-force 11 endpoints all no-OI (see E-023-supplemental)`
+- `method`: `read-only LIMITED-TEST v2..v4 on old.tsetmc.com (AllRows 113 keys oiLike [], InstHistory empty/price history, MarketWatchPlus 5 polls, cfield empty, fieldMap hasOI false) + web_search tsev2 + fetch raw schema/client + v4 public same-origin fetch of 11 candidate OI endpoints (all 200 html/csv but hasOI false, /api/* 404, TsePublicV2 blocked Mixed Content)`
+- `status`: `candidate (separate authenticated source exists, needs credential probe E-023a/b) — public exhaustive test confirms NO unauthenticated alternative`
 - `relatedGate`: `G-09 + G-10` — satisfies spec v0.2.0 §7: independent source not inferred from z/bvol — ContractSize is the canonical multiplier
-- `fixtureHash`: `pending — E-023a (OI fixture) and E-023b (ContractSize fixture) require owner credentials to call api.tsetmc.com/Derivative/Option`
+- `fixtureHash`: `pending — E-023a (OI fixture) and E-023b (ContractSize fixture) require owner credentials to call api.tsetmc.com/Derivative/Option via Node (bypass CORS, arena timeout needs Tehran network)`
 - `bestChoiceReason`: |
     Live AllRows has 0 OI fields (113 keys, oiLike []), InstHistory is ClosingPriceAll (PClosing etc) not OI, InstStat numeric 50-89 unknown, cfield empty, MarketWatchPlus has no OI — proves separate source mandatory per spec §7.
     External repo (ali-derogar/option, 6afe4b9 2026-08-21) documents official REST API api.tsetmc.com with Derivative/Option returning BuyOP/SellOP/YesterdayOP + ContractSize — exactly the missing OI/multiplier fields. This is the ONLY documented TSETMC source for OI.
-    Best choice: accept api.tsetmc.com as G-09/G-10 separate candidate, but gate stays needs-credential until live probe with owner username/password returns fixture.
-- `next`: `owner to provide TSETMC_USERNAME/PASSWORD (or temporary token) for read-only probe v3: POST https://api.tsetmc.com/Derivative/Option body {flow:3} — capture BuyOP/SellOP/ContractSize for sample ضهرم7050 inscode 62444611500832644`
+    PUBLIC brute-force v4 (2026-10-05 09:24, 11 same-origin endpoints on old.tsetmc.com) all returned hasOI false (5x 200 html shell, ClientTypeAll flow=3 is client-type csv not OI, MarketWatchInit/Plus are AllRows csv with z=1000 not OI, /api/* 404) — proves NO public unauthenticated OI endpoint exists.
+    v3 auth browser fetch was blocked by CORS (No Access-Control-Allow-Origin) and sandbox curl timed out (30s) — proves credential probe must run Node https.request from user Tehran network, not browser/Arena.
+    Best choice: accept api.tsetmc.com as G-09/G-10 separate candidate, but gate stays needs-credential until live Node probe with owner username/password returns fixture.
+- `next`: `owner to provide TSETMC_USERNAME/PASSWORD for read-only Node probe v3: node probes/g09.oi-source.limited-test.v3.node.js on Tehran network — capture BuyOP/SellOP/ContractSize for sample ضهرم7050 inscode 62444611500832644`
 - `privacy`: `per D-2026-10-05-002 Option A — D3 cloud sync only with explicit per-job opt-in; OI probe will be local-first, no cloud upload, Bearer token kept in memory only`
+
+#### E-023-supplemental — v4 public exhaustive test (2026-10-05 09:24)
+
+- `tested`: `11 same-origin endpoints on old.tsetmc.com 15131F`
+- `results`: `Option.aspx 200 html no-oi, InstOption.aspx 200 html no-oi, OptionMarketWatch 200 html, DerivativeOption 200 html, ClientTypeAll flow=3 200 csv (not OI), MarketWatchInit 200 AllRows csv, MarketWatchPlus 200 csv, /api/* 404, TsePublicV2 http blocked MixedContent`
+- `conclusion`: `No public OI/multiplier endpoint — authenticated api.tsetmc.com is the only remaining candidate per §7`
