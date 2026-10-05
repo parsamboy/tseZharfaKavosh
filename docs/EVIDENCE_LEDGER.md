@@ -330,6 +330,26 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `next`: `owner to provide TSETMC_USERNAME/PASSWORD for read-only Node probe v3: node probes/g09.oi-source.limited-test.v3.node.js on Tehran network — capture BuyOP/SellOP/ContractSize for sample ضهرم7050 inscode 62444611500832644`
 - `privacy`: `per D-2026-10-05-002 Option A — D3 cloud sync only with explicit per-job opt-in; OI probe will be local-first, no cloud upload, Bearer token kept in memory only`
 
+
+### E-024 — Greeks/IV model v0.1.0 (G-11) — platform-verified / candidate
+
+- `evidenceId`: `E-024`
+- `claim`: `Greeks (BS) computable from AllRows + parser + underlying S: S=70260 (اهرم pc), K from l30 strike, T=30d (0.082y), r=0.30 sigma=0.40 — 5 samples deep ITM delta~1, parity identical, no-fabrication on missing S`
+- `level`: `platform-verified`
+- `source`: `src/models/greeks.v0.1.0.js (bsGreeks, normCDF) + probes/g11.greeks.limited-test.v1.1.js on old.tsetmc.com 15131F (5 live options, underlying اهرم 70260)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-05T09:33:19.027Z / 12:03 Tehran — S 70260, total underlying map debugged`
+- `method`: `read-only LIMITED-TEST v1.1 — underlying extraction fixed (اهرم not اختیارخ اهرم), S via brute l18==underlying, parity hash 2fbf90ec identical, missing S -> insufficient-data`
+- `fixtureHash`: `SHA-256 of fixtures/g11.greeks.fixture.2026-10-05.json — samples ضهرم7050 K20000 price 50747 delta 1`
+- `status`: `candidate` — satisfies G-11 for Greeks/IV (BS) with parity + no-fabrication; GARCH/SVI/GEX/Flow still needs separate history/OI
+- `relatedGate`: `G-11`
+- `bestChoiceReason`: |
+    v1 failed with S null for all 5 (underlying parsed as اختیارخ اهرم not اهرم) — status needs-S.
+    v1.1 robust parser (remove اختیار prefix, brute search l18==اهرم) finds S=70260 — 5 samples all compute: ضهرم7050 price 50747 delta 1 (deep ITM, S 70260 >> K 20000) vs mid 25951, parity 2fbf90ec identical, missing S -> insufficient-data proves no-fabrication.
+    Best choice: Greeks/IV is candidate with AllRows+parser+calendar, no need for separate S source (underlying pc is in AllRows).
+- `next`: `G-11 still needs separate for GARCH (history), SVI (full chain), GEX/Flow (OI) — already E-023`
+
 #### E-023-supplemental — v4 public exhaustive test (2026-10-05 09:24)
 
 - `tested`: `11 same-origin endpoints on old.tsetmc.com 15131F`

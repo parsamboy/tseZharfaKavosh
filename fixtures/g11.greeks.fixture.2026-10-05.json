@@ -1,0 +1,20 @@
+{
+  "evidenceId": "E-024",
+  "gate": "G-11",
+  "test": "G11-GREEKS-v1.1",
+  "capturedAt": "2026-10-05T09:33:19.027Z",
+  "host": "old.tsetmc.com",
+  "parTree": "15131F",
+  "params": { "r": 0.3, "sigma": 0.4, "T_days": 30, "T_years": 0.08219178 },
+  "underlying": "اهرم",
+  "underlying_S": 70260,
+  "samples": [
+    { "l18": "ضهرم7050", "inscode": "62444611500832644", "S": 70260, "K": 20000, "expiry": "1405/07/29", "kind": "call", "mid": 25951, "greeks": { "price": 50747.12, "delta": 1, "gamma": 2.06e-32, "vega": 3.34e-26 } },
+    { "l18": "ضهرم7051", "inscode": "7693632359685850", "S": 70260, "K": 22000, "expiry": "1405/07/29", "kind": "call", "mid": 25346, "greeks": { "price": 48795.83, "delta": 1 } },
+    { "l18": "ضهرم7056", "inscode": "29778185185510585", "S": 70260, "K": 34000, "expiry": "1405/07/29", "kind": "call", "mid": 18750, "greeks": { "price": 37088.1, "delta": 0.999999999979 } }
+  ],
+  "parity": { "run1Hash": "2fbf90ec", "run2Hash": "2fbf90ec", "identical": true },
+  "noFabrication": { "missingS": { "error": "insufficient-data" } },
+  "status": "candidate",
+  "note": "Greeks/IV with S from underlying pc (اهرم 70260), K from l30 strike, T 30d, r 0.30 sigma 0.40 — deep ITM so delta ~1, price > mid as expected for 30% rate"
+}
