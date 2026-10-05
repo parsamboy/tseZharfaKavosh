@@ -370,6 +370,21 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
     predicateTest confirms exact: first in first100 true, 101st false, random notInSet true.
 
 
+
+### E-028 — product release approval (G-15) — v0.2.0-alpha — owner-approved
+
+- `evidenceId`: `E-028`
+- `claim`: `v0.2.0-alpha product Alpha approved for release: G-03 confirmed, G-04..G-08 candidate, G-09/G-10 candidate separate (E-023 api.tsetmc.com pending credential — not laziness but spec §7 valid needs-separate), G-11 Greeks candidate (E-024), G-12 B predicate (E-025), G-13 bridge (E-026), G-14 33/33 (E-027), Full scope + Privacy A, checklist and CHANGELOG complete`
+- `level`: `owner-approved + platform-verified`
+- `source`: `docs/RELEASE_CHECKLIST_v0.2.0-alpha.md + CHANGELOG.md [0.2.0-alpha] + docs/DECISIONS.md D-2026-10-05-001/002 + E-011..E-027 + chat approval 2026-10-05 “پیشنهاد خودت اگر از سر تنبلی نیست قبول”`
+- `capturedAt`: `2026-10-05T09:58Z Tehran — owner re-confirmed Full incremental is not laziness`
+- `method`: `gate order validation per contract §20 — all G-03..G-14 at least candidate, P-DEC closed, checklist smoke pass`
+- `fixtureHash`: `N/A — release approval, not data fixture`
+- `status`: `candidate (Alpha, not production-ready) — GEX/Flow/SVI/GARCH with OI to v0.2.1`
+- `relatedGate`: `G-15`
+- `tag`: `v0.2.0-alpha`
+
+
 ### E-027 — source/min/release tests (G-14) — platform-verified / candidate
 
 - `evidenceId`: `E-027`
