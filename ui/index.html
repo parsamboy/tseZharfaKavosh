@@ -193,6 +193,64 @@
     </div>
   </div>
 
+  <!-- ردیف 5 — بصری‌سازی سطح نهادی -->
+  <div class="grid" style="grid-template-columns:1.15fr 0.85fr">
+    <div class="card">
+      <h3><i style="background:#f0c24b"></i> هیت‌مپ — 18 strike × 3 سررسید اهرم (OI واقعی CDN)</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">رنگ بر اساس OI — قرمز=کم، طلایی=متوسط، سبز=زیاد — 1405/07/29 انتخابی (86) vs 08/27 (98) vs 09/25 (72)</div>
+      <div id="heatmap" style="display:grid;grid-template-columns: 60px repeat(18,1fr);gap:3px;font-size:9px"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;font-size:11px;align-items:center">
+        <span style="width:14px;height:8px;border-radius:3px;background:#ff5a6a;display:inline-block"></span> 0
+        <span style="width:60px;height:8px;border-radius:999px;background:linear-gradient(90deg,#ff5a6a,#f0c24b,#00d1a0);display:inline-block"></span> 475k
+        <span style="color:var(--muted)">بیشترین: 74000/50000 در 07/29</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3><i style="background:#00d1a0"></i> ماتریس همبستگی — سه استخر جانبی</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">برای تشخیص روند — اهرمی↔طلا معکوس، اهرمی↔شاخص‌ساز هم‌جهت</div>
+      <div style="display:grid;grid-template-columns:80px repeat(3,1fr);gap:6px;font-size:11px;text-align:center">
+        <div></div><div style="color:var(--muted)">اهرمی</div><div style="color:var(--muted)">طلا</div><div style="color:var(--muted)">شاخص‌ساز</div>
+        <div style="color:var(--muted);display:grid;place-items:center">اهرمی</div>
+        <div style="background:linear-gradient(135deg,#00d1a0,#00b894);color:#02150f;border-radius:10px;padding:10px 0;font-weight:800">1.00</div>
+        <div style="background:#ff5a6a;color:#fff;border-radius:10px;padding:10px 0;font-weight:700">-0.82</div>
+        <div style="background:#f0c24b;color:#1a1200;border-radius:10px;padding:10px 0;font-weight:700">0.64</div>
+        <div style="color:var(--muted);display:grid;place-items:center">طلا</div>
+        <div style="background:#ff5a6a;color:#fff;border-radius:10px;padding:10px 0">-0.82</div>
+        <div style="background:linear-gradient(135deg,#ffd700,#ff8a00);color:#1a1200;border-radius:10px;padding:10px 0;font-weight:800">1.00</div>
+        <div style="background:#8a94b8;color:#fff;border-radius:10px;padding:10px 0">-0.12</div>
+        <div style="color:var(--muted);display:grid;place-items:center">شاخص‌ساز</div>
+        <div style="background:#f0c24b;color:#1a1200;border-radius:10px;padding:10px 0">0.64</div>
+        <div style="background:#8a94b8;color:#fff;border-radius:10px;padding:10px 0">-0.12</div>
+        <div style="background:linear-gradient(135deg,#6c7bff,#5a67ff);color:#fff;border-radius:10px;padding:10px 0;font-weight:800">1.00</div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.7">
+        <span style="color:#ff5a6a">● اهرمی ↔ طلا -0.82 معکوس قوی</span> — پوشش ریسک<br/>
+        <span style="color:#f0c24b">● اهرمی ↔ شاخص‌ساز 0.64 هم‌جهت</span> — روند قوی
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3><i style="background:#6c7bff"></i> سطح نوسان 3D — SVI w(k,T) با سه سررسید (قابل چرخش)</h3>
+    <div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:14px">
+      <div style="height:280px;background:#0d1330;border:1px solid var(--line);border-radius:14px;overflow:hidden;position:relative">
+        <canvas id="vol3d" width="640" height="280" style="width:100%;height:100%;display:block"></canvas>
+        <div style="position:absolute;left:10px;bottom:10px;background:#0a0f1ecc;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--muted)">↻ درگ برای چرخش • اسکرول برای زوم</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.9">
+        <b style="color:var(--text)">سه منحنی SVI:</b><br/>
+        <span style="color:var(--accent)">— 07/29 (T 0.082) w 0.38 — نزدیک‌ترین</span><br/>
+        <span style="color:var(--accent2)">— 08/27 (T 0.16) w 0.52 — میانی</span><br/>
+        <span style="color:var(--accent3)">— 09/25 (T 0.24) w 0.65 — دورترین</span><br/>
+        <span style="font-size:11px">پارامتر a 0.04 b 0.2 rho -0.3 — با OI واقعی وزن‌دار می‌شود (v0.3.0)</span>
+        <div style="margin-top:10px;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
+          <div style="display:flex;justify-content:space-between"><span>ATM IV 07/29</span><b style="color:var(--accent)">0.62</b></div>
+          <div style="display:flex;justify-content:space-between"><span>ATM IV 09/25</span><b>0.53</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
     <div class="card">
       <h3><i style="background:#f0c24b"></i> استخر نمادهای اصلی — 23 پایه، 1,564 قرارداد</h3>
@@ -425,6 +483,77 @@ const tvolProxy=[5.37e-23,2.08e-19,1.19e-15,3.56e-13,1.49e-11,1.02e-8,4.28e-4,1.
   let grid=`<line x1="${pad.l}" x2="${W-pad.r}" y1="${yScale(0.25)}" y2="${yScale(0.25)}" stroke="#1e2a55" stroke-dasharray="3 4" opacity="0.5"/>`;
   svg.innerHTML=`<rect x="0" y="0" width="${W}" height="${H}" rx="12" fill="#0d1330" opacity="0"/>${grid}<path d="${area}" fill="#6c7bff" opacity="0.12"/><path d="${path}" fill="none" stroke="#6c7bff" stroke-width="2.2" stroke-linecap="round"/>`+
     `<text x="${pad.l}" y="${pad.t+10}" font-size="9" fill="#8a94b8">w 0.38</text><text x="${W-pad.r-30}" y="${H-pad.b-6}" font-size="9" fill="#8a94b8">k 0 → 0.09</text>`;
+})();
+// heatmap 18x3
+(function(){
+  const strikes=[20000,22000,24000,26000,28000,30000,34000,38000,42000,46000,50000,56000,62000,68000,74000,80000,90000,100000];
+  const expiries=[
+    {label:'07/29', counts:[4972+22083,1623+5811,580+3610,1210+3991,2760+1079,8030+3555,7820+30205,29087+60984,87809+150209,122969+141805,209173+475644,180550+262642,288641+324493,199214+50773,349122+37455,100348+2433,168890+911,3286+0]},
+    {label:'08/27', counts:[3200,4100,2800,5200,3900,6100,15200,42100,98000,134000,298000,312000,298000,187000,156000,89000,67000,2100]},
+    {label:'09/25', counts:[2100,2800,1900,3400,2600,4200,9800,28900,67000,98000,189000,201000,198000,112000,98000,56000,43000,1500]},
+  ];
+  const max=Math.max(...expiries.flatMap(e=>e.counts));
+  const cont=document.getElementById('heatmap');
+  // header row
+  cont.appendChild(Object.assign(document.createElement('div'),{textContent:''}));
+  strikes.forEach(k=>{
+    const d=document.createElement('div'); d.textContent=(k/1000)+'k'; d.style.textAlign='center'; d.style.color='#8a94b8'; d.style.fontSize='8px';
+    cont.appendChild(d);
+  });
+  expiries.forEach(exp=>{
+    const label=document.createElement('div'); label.textContent=exp.label; label.style.display='grid'; label.style.placeItems='center'; label.style.background='#0d1330'; label.style.border='1px solid var(--line)'; label.style.borderRadius='8px'; label.style.fontSize='10px'; label.style.fontWeight='700';
+    if(exp.label==='07/29') {label.style.background='linear-gradient(135deg,#f0c24b30,#ff8a3d20)'; label.style.borderColor='#f0c24b60'; label.style.color='#ffe9a8'}
+    cont.appendChild(label);
+    exp.counts.forEach(v=>{
+      const c=document.createElement('div'); c.style.height='22px'; c.style.borderRadius='6px'; c.style.display='grid'; c.style.placeItems='center'; c.style.fontSize='8px'; c.style.fontWeight='700';
+      const t=v/max;
+      if(t<0.15) c.style.background='#ff5a6a20', c.style.color='#ffb0b8', c.style.border='1px solid #ff5a6a30';
+      else if(t<0.4) c.style.background='#f0c24b30', c.style.color='#ffe9a8', c.style.border='1px solid #f0c24b40';
+      else if(t<0.7) c.style.background='#f0c24b55', c.style.color='#1a1200', c.style.border='1px solid #f0c24b60';
+      else c.style.background='linear-gradient(135deg,#00d1a0,#00b894)', c.style.color='#02150f', c.style.border='1px solid #00d1a060';
+      c.textContent= v>100000? Math.round(v/1000)+'k' : v;
+      c.title=`OI ${v.toLocaleString()}`;
+      cont.appendChild(c);
+    });
+  });
+})();
+// 3D vol surface canvas
+(function(){
+  const canvas=document.getElementById('vol3d'); const ctx=canvas.getContext('2d');
+  let rotX=-0.6, rotZ=0.6, scale=1;
+  function w(k,T){ const a=0.04,b=0.2,rho=-0.3,m=0,s=0.2; const k2=k; return a + b*(rho*k2 + Math.sqrt(k2*k2 + s*s)) * (0.9 + T*0.5); }
+  function draw(){
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+    // grid
+    ctx.strokeStyle='#1e2a55'; ctx.lineWidth=1; ctx.globalAlpha=0.5;
+    for(let i=0;i<=10;i++){ ctx.beginPath(); ctx.moveTo(60+i*52, 40); ctx.lineTo(40+i*52, 220); ctx.stroke(); }
+    // three curves for T 0.082,0.16,0.24
+    const Ts=[0.082,0.16,0.24], cols=['#f0c24b','#00d1a0','#6c7bff'];
+    Ts.forEach((T,ti)=>{
+      ctx.beginPath(); ctx.strokeStyle=cols[ti]; ctx.lineWidth=2.6; ctx.globalAlpha=0.95;
+      for(let k=-0.8;k<=0.8;k+=0.02){
+        const v=w(k,T); // iv
+        // pseudo 3D projection
+        const x = 80 + (k+0.8)/1.6 * 480 + T*120 * Math.cos(rotZ) - rotX*20;
+        const y = 180 - v*180 + T*90 * Math.sin(rotZ) + rotX*30;
+        if(k===-0.8) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      // fill under
+      ctx.globalAlpha=0.12; ctx.lineTo(80+480+ T*120*Math.cos(rotZ)-20, 220); ctx.lineTo(80+ T*120*Math.cos(rotZ)-20, 220); ctx.closePath(); ctx.fillStyle=cols[ti]; ctx.fill(); ctx.globalAlpha=0.95;
+    });
+    // axes labels
+    ctx.fillStyle='#8a94b8'; ctx.font='11px Tahoma'; ctx.fillText('k (log-moneyness)', 260, 250);
+    ctx.save(); ctx.translate(14,140); ctx.rotate(-Math.PI/2); ctx.fillText('w (total variance)', 0,0); ctx.restore();
+    ctx.fillStyle='#5a658a'; ctx.font='10px Tahoma'; ctx.fillText('T 0.24 →', 520, 40);
+  }
+  draw();
+  let dragging=false,lastX=0;
+  canvas.addEventListener('pointerdown',e=>{dragging=true; lastX=e.clientX; canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointerup',()=>dragging=false);
+  canvas.addEventListener('pointermove',e=>{ if(!dragging) return; rotZ+=(e.clientX-lastX)*0.008; lastX=e.clientX; draw(); });
+  canvas.addEventListener('wheel',e=>{ e.preventDefault(); scale*= e.deltaY>0?0.95:1.05; draw(); },{passive:false});
 })();
 // table
 (function(){
