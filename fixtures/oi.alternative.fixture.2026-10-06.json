@@ -1,0 +1,19 @@
+{
+  "evidenceId": "E-034",
+  "gate": "G-09",
+  "test": "OI alternatives live when api.tsetmc.com assumed limited",
+  "capturedAt": "2026-10-06T06:43:26.610Z",
+  "host": "old.tsetmc.com",
+  "candidates": [
+    { "name": "OptionMarketWatch", "status": 200, "length": 1933, "hasOI": false, "sample": "loader HTML shell only" },
+    { "name": "MarketWatchPlus_opt", "status": 200, "length": 26, "hasOI": false, "sample": "266562,2060056,878957@@@@0" },
+    { "name": "InstHistory_sample", "status": 200, "length": 1933, "hasOI": false },
+    { "name": "ClientType", "status": 200, "length": 0, "hasOI": false },
+    { "name": "BestLimit", "status": 200, "length": 1933, "hasOI": false }
+  ],
+  "scrape": { "url": "/Loader.aspx?ParTree=15131M&i=62444611500832644", "status": 200, "length": 5254, "hasPositionWord": false, "found": false, "note": "shell only, OI loaded via JS not in initial HTML" },
+  "apiDirect": { "error": "CORS blocked from old.tsetmc.com + 405 — needs server-side credential" },
+  "best": null,
+  "status": "no-alt-found",
+  "recommendation": "No TSETMC public alt carries OI live — if api.tsetmc.com limited, use BrokerAdapter (Mofid/Agah) with same BuyOP/SellOP/ContractSize interface; keep GEX/Flow deferred without fabricate per E-033 ratio 23289"
+}

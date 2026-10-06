@@ -389,6 +389,21 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `relatedGate`: `G-16`
 
 
+
+### E-034 — OI alternatives live when api.tsetmc.com limited (G-09) — platform-verified / no-alt-found
+
+- `evidenceId`: `E-034`
+- `claim`: `If api.tsetmc.com limited, no TSETMC public alt carries OI live: OptionMarketWatch 200/1933 shell only, MarketWatchPlus 26 no OI, InstHistory 1933 shell, ClientType 0, BestLimit 1933 shell; scrape Loader.aspx ParTree=15131M 200/5254 shell only hasPositionWord false; api direct CORS blocked 405 — so broker adapter is real fallback`
+- `level`: `platform-verified`
+- `source`: `probes/oi.alternative.limited-test.live.v1.js + probes/oi.scrape.limited-test.live.v1.js on old.tsetmc.com 15131F (live 06:41-06:43Z) — 5 alt URLs + instrument page`
+- `host`: `old.tsetmc.com`
+- `capturedAt`: `2026-10-06T06:43:26.610Z / scrape 06:41:07Z — both via fetch with credentials include`
+- `method`: `read-only LIVE — fetch 5 alt endpoints + scrape one real option ضهرم7050 62444611500832644`
+- `fixtureHash`: `SHA-256 of fixtures/oi.alternative.fixture.2026-10-06.json`
+- `status`: `no-alt-found — validates brokerAdapter as fallback, keeps GEX/Flow deferred without fabricate (E-033)`
+- `relatedGate`: `G-09 / G-10`
+
+
 ### E-033 — GEX/Flow without OI live worth test (G-11) — platform-verified / approx misleading — deferred
 
 - `evidenceId`: `E-033`
