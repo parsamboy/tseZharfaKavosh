@@ -48,7 +48,7 @@
   .brand p{margin:0;color:var(--muted);font-size:11px}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap}
   .btn{appearance:none;border:0;background:linear-gradient(135deg,var(--accent),#ff9e2c);color:#0a0f1e;font-weight:800;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:12px}
-  .btn.ghost{background:#111a33;border:1px solid var(--line);color:var(--text)}
+  .btn.ghost{background:var(--panel);border:1px solid var(--line);color:var(--text)}
   .btn:active{transform:scale(.98)}
   /* میزکار — قانون مجاورت گشتالت */
   .desktop{position:relative;min-height:1200px}
@@ -61,21 +61,21 @@
   .window.focus{border-color:var(--focus);box-shadow:0 12px 40px #6c7bff30}
   .win-head{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 8px;background:linear-gradient(180deg,#1a254f,#111a33);border-bottom:1px solid var(--line);cursor:grab;user-select:none}
   .win-head:active{cursor:grabbing}
-  .win-drag{width:22px;height:22px;border-radius:6px;background:#0d1330;border:1px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--muted);cursor:grab}
+  .win-drag{width:22px;height:22px;border-radius:6px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--muted);cursor:grab}
   .win-title{font-size:12px;font-weight:700;color:#d6deff;display:flex;align-items:center;gap:6px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .win-title i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);flex:0 0 auto}
   .win-actions{display:flex;gap:4px}
-  .win-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);background:#0d1330;color:var(--muted);display:grid;place-items:center;cursor:pointer;font-size:12px;line-height:1}
+  .win-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:grid;place-items:center;cursor:pointer;font-size:12px;line-height:1}
   .win-btn:hover{background:#1a254f;color:var(--text)}
   .win-btn.close:hover{background:var(--danger);border-color:var(--danger);color:#fff}
   .win-body{padding:12px}
   .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .kpi{background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
   .kpi label{font-size:10px;color:var(--muted)} .kpi strong{font-size:15px;display:block}
-  .badge{padding:4px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);background:#0d1330}
+  .badge{padding:4px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);background:var(--panel)}
   .badge.ok{border-color:#00d1a055;background:#00d1a015;color:#b8ffe9}
   .badge.warn{border-color:#f0c24b55;background:#f0c24b15}
-  .bar{height:7px;border-radius:999px;background:#0d1330;overflow:hidden} .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--accent))}
+  .bar{height:7px;border-radius:999px;background:var(--panel);overflow:hidden} .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--accent))}
   .pill{padding:2px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
   .pill.call{background:#6c7bff18;border-color:#6c7bff40;color:#aeb6ff} .pill.put{background:#ff5a6a18;border-color:#ff5a6a40;color:#ffb0b8}
   /* داک پنهان‌ها — قانون بازشناسی (Recognition over Recall) */
@@ -101,7 +101,7 @@
     </div>
     <div class="toolbar">
       <button class="btn ghost" onclick="toggleTheme()" id="themeBtn">☀️ لایت</button>
-      <select id="templateSel" onchange="applyTemplate(this.value)" style="appearance:none;background:#111a33;border:1px solid var(--line);color:var(--text);padding:8px 32px 8px 12px;border-radius:10px;font-size:12px;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%, var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(12px) calc(50% - 2px),calc(16px) calc(50% - 2px);background-size:4px 4px,4px 4px;background-repeat:no-repeat">
+      <select id="templateSel" onchange="applyTemplate(this.value)" style="appearance:none;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px 32px 8px 12px;border-radius:10px;font-size:12px;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%, var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(12px) calc(50% - 2px),calc(16px) calc(50% - 2px);background-size:4px 4px,4px 4px;background-repeat:no-repeat">
         <option value="pro">🎯 حرفه‌ای (پیش‌فرض)</option>
         <option value="compact">📐 فشرده — شبکه‌ای</option>
         <option value="focus">🔍 تمرکز — GEX بزرگ</option>
@@ -146,10 +146,10 @@
       <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#f0c24b"></i> استخر نمادهای اصلی — 23 پایه</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('poolWin')">—</button><button class="win-btn close" onclick="hideWin('poolWin')">×</button></div></div>
       <div class="win-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
-          <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>اطلس</span><b>110</b></div>
-          <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>موج</span><b>96</b></div>
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>اطلس</span><b>110</b></div>
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>موج</span><b>96</b></div>
           <div style="background:linear-gradient(135deg,#f0c24b20,#ff8a3d18);border:1px solid #f0c24b40;border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span style="color:var(--accent)">اهرم ★</span><b style="color:var(--accent)">82</b></div>
-          <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>شستا</span><b>92</b></div>
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>شستا</span><b>92</b></div>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:8px">+15 نماد دیگر — کل 1,564 ردیف • انتخاب با قانون مجاورت گشتالت</div>
       </div>
@@ -162,7 +162,7 @@
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>اهرم 82</span><span style="color:var(--ok)">+2.86% ▲</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>موج 96</span><span style="color:var(--ok)">+1.9% ▲</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0"><span>توان 66</span><span style="color:var(--danger)">-0.4% ▼</span></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">GEX تجمیعی</span><b style="color:var(--accent)">4.8e9</b></div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">GEX تجمیعی</span><b style="color:var(--accent)">4.8e9</b></div>
       </div>
     </div>
 
@@ -172,7 +172,7 @@
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>طلا 68</span><span style="color:var(--ok)">+0.8% ▲</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>عیار 54</span><span style="color:var(--ok)">+1.1% ▲</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0"><span>زر/کهربا</span><span style="color:var(--muted)">~70</span></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">همبستگی دلار</span><b style="color:#ffd700">0.82</b></div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">همبستگی دلار</span><b style="color:#ffd700">0.82</b></div>
       </div>
     </div>
 
@@ -182,7 +182,7 @@
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>شستا 92</span><span style="color:var(--danger)">-0.6% ▼</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>فملی 76</span><span style="color:var(--ok)">+1.3% ▲</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0"><span>فولاد 80</span><span style="color:var(--muted)">ثابت</span></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">وزن شاخص</span><b style="color:#aeb6ff">38%</b></div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">وزن شاخص</span><b style="color:#aeb6ff">38%</b></div>
       </div>
     </div>
 
@@ -215,7 +215,7 @@
           <button class="btn ghost" id="wLog" onclick="setSviWeight('log')" style="flex:1;opacity:.6">log OI</button>
           <span class="badge warn" style="font-size:10px">با انتخاب کاربر</span>
         </div>
-        <canvas id="vol3d" width="640" height="220" style="width:100%;height:220px;display:block;background:#0d1330;border:1px solid var(--line);border-radius:10px"></canvas>
+        <canvas id="vol3d" width="640" height="220" style="width:100%;height:220px;display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px"></canvas>
         <div style="font-size:11px;color:var(--muted);margin-top:6px">پیش‌فرض OI×1000 (همان GEX) — کاربر می‌تواند وزن را تغییر دهد</div>
       </div>
     </div>
@@ -243,7 +243,7 @@
           <label style="font-size:11px;color:var(--muted)">رنگ اصلی سازمان (Accent)</label>
           <div style="display:flex;gap:8px;align-items:center">
             <input type="color" id="accentPick" value="#f0c24b" style="width:44px;height:36px;border-radius:8px;border:1px solid var(--line);padding:2px;background:var(--panel)">
-            <input type="text" id="accentText" value="#f0c24b" style="flex:1;background:#0d1330;border:1px solid var(--line);color:var(--text);padding:8px;border-radius:8px;font-family:monospace;font-size:12px">
+            <input type="text" id="accentText" value="#f0c24b" style="flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px;border-radius:8px;font-family:monospace;font-size:12px">
             <button class="btn ghost" style="padding:8px 10px" onclick="applyCustomAccent()">اعمال</button>
           </div>
           <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
@@ -262,7 +262,7 @@
             <button class="btn" style="flex:1" onclick="saveCustom()">💾 ذخیره تمپلیت سفارشی</button>
             <button class="btn ghost" onclick="resetCustom()">↺ بازنشانی</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px">این رنگ در همه پنجره‌ها، نمودار GEX و هیت‌مپ اعمال می‌شود و در <code>localStorage</code> می‌ماند — قابل تحویل به بورس به‌عنوان تم سازمانی.</div>
+          <div style="font-size:11px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px">این رنگ در همه پنجره‌ها، نمودار GEX و هیت‌مپ اعمال می‌شود و در <code>localStorage</code> می‌ماند — قابل تحویل به بورس به‌عنوان تم سازمانی.</div>
         </div>
       </div>
     </div>
@@ -275,7 +275,7 @@
           <button class="btn" id="btnExact" onclick="setFilter('exact')" style="flex:1;opacity:.6">Exact A — 20267 &gt;4096 جا نمی‌شود</button>
           <button class="btn" id="btnB" onclick="setFilter('b')" style="flex:1;background:linear-gradient(135deg,var(--ok),#00b894);color:#02150f">B predicate — 420 fits ✓ انتخابی</button>
         </div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between"><span style="color:var(--muted)">ظرفیت TSE:</span><span>4096</span><span style="color:var(--muted)">B:</span><b style="color:var(--ok)">420</b><span style="color:var(--muted)">Exact:</span><b style="color:var(--danger)">20267</b></div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between"><span style="color:var(--muted)">ظرفیت TSE:</span><span>4096</span><span style="color:var(--muted)">B:</span><b style="color:var(--ok)">420</b><span style="color:var(--muted)">Exact:</span><b style="color:var(--danger)">20267</b></div>
         <div style="font-size:11px;color:var(--muted);margin-top:6px">هر دو در دسترس است — کاربر انتخاب می‌کند، پیش‌فرض B (خوش‌بینانه‌ترین per §8.14)</div>
       </div>
     </div>
@@ -514,7 +514,7 @@ const gexVals=strikes.map(k=>byStrike[k]);
   cont.appendChild(Object.assign(document.createElement('div'),{textContent:''}));
   strikes.forEach(k=>{const d=document.createElement('div'); d.textContent=(k/1000)+'k'; d.style.textAlign='center'; d.style.color='#8a94b8'; d.style.fontSize='8px'; cont.appendChild(d);});
   expiries.forEach(exp=>{
-    const label=document.createElement('div'); label.textContent=exp.label; label.style.display='grid'; label.style.placeItems='center'; label.style.background='#0d1330'; label.style.border='1px solid var(--line)'; label.style.borderRadius='8px'; label.style.fontSize='10px'; if(exp.label==='07/29') label.style.background='linear-gradient(135deg,#f0c24b30,#ff8a3d20)';
+    const label=document.createElement('div'); label.textContent=exp.label; label.style.display='grid'; label.style.placeItems='center'; label.style.background='var(--panel)'; label.style.border='1px solid var(--line)'; label.style.borderRadius='8px'; label.style.fontSize='10px'; if(exp.label==='07/29') label.style.background='linear-gradient(135deg,#f0c24b30,#ff8a3d20)';
     cont.appendChild(label);
     exp.counts.forEach(v=>{
       const c=document.createElement('div'); c.style.height='22px'; c.style.borderRadius='6px'; c.style.display='grid'; c.style.placeItems='center'; c.style.fontSize='8px'; c.style.fontWeight='700';
@@ -526,7 +526,7 @@ const gexVals=strikes.map(k=>byStrike[k]);
 // gex chart
 (function(){
   const svg=document.getElementById('gexChart'); const W=360,H=200,pad={t:10,r:8,b:22,l:32};
-  const max=Math.max(...gexVals); let bg=`<rect x="0" y="0" width="${W}" height="${H}" rx="10" fill="#0d1330" opacity="0"/>`;
+  const max=Math.max(...gexVals); let bg=`<rect x="0" y="0" width="${W}" height="${H}" rx="10" fill="var(--panel)" opacity="0.0"/>`;
   let grid=[0,0.5,1].map(p=>`<line x1="${pad.l}" x2="${W-pad.r}" y1="${pad.t+(H-pad.t-pad.b)*p}" y2="${pad.t+(H-pad.t-pad.b)*p}" stroke="#1e2a55" stroke-dasharray="3 3"/>`).join('');
   const barW=(W-pad.l-pad.r)/strikes.length*0.6, gap=(W-pad.l-pad.r)/strikes.length;
   let bars=strikes.map((k,i)=>{ const v=gexVals[i]; const h=(Math.log10(v+1)/Math.log10(max+1))*(H-pad.t-pad.b); const x=pad.l+i*gap+(gap-barW)/2; const y=H-pad.b-h; return `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="3" fill="#f0c24b"/>`;}).join('');
