@@ -390,6 +390,34 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 
 
 
+
+### E-035 — OI chain CDN live 35/36 (G-09) — platform-verified / candidate
+
+- `evidenceId`: `E-035`
+- `claim`: `OI chain 36 اهرم 1405/07/29 via cdn.tsetmc.com GetInstrumentOptionByInstrumentID: 35/36 ok sum 3,201,962 zeros 1 (502 retry for 56981594284253648), sample 20000 call 4972 / put 22083, 56000 call 180550 / put 262642 — matches page 4,969 — no credential`
+- `level`: `platform-verified`
+- `source`: `src/transport/cdnOi.v0.1.0.js + probes/oi.chain.cdn.live.v1.js on old.tsetmc.com 15131F -> cdn.tsetmc.com/api/Instrument (live 07:40Z, S live, chain 36)`
+- `host`: `old.tsetmc.com -> cdn.tsetmc.com`
+- `capturedAt`: `2026-10-06T07:40:18.940Z — S from AllRows, OI via CDN`
+- `method`: `read-only LIVE — for each inscode: GetInstrumentInfo -> instrumentID -> GetInstrumentOptionByInstrumentID -> buyOP/sellOP/contractSize`
+- `fixtureHash`: `SHA-256 of fixtures/oi.chain.cdn.fixture.2026-10-06.json — 35/36 with 1x 502`
+- `status`: `candidate` — solves G-09/G-10 without api.tsetmc.com credential, per user “OI is on symbol page itself”`
+- `relatedGate`: `G-09 / G-10`
+
+### E-036 — GEX real with CDN OI (G-11) — platform-verified / candidate
+
+- `evidenceId`: `E-036`
+- `claim`: `GEX real with CDN OI: real 2.996e9 vs tvol 9.517e8 ratio 3.148, per-strike ratios 0.56..73.8 (e.g. 62000 4.43, 74000 3.59, 28000 73.8) — proves E-033 tvol proxy misleading, real OI via CDN gives correct GEX, Flow also derivable from same OI`
+- `level`: `platform-verified`
+- `source`: `probes/g11.gex.real.live.v1.js on old.tsetmc.com 15131F (S 72813, chain 36, gamma live, OI from E-035)`
+- `host`: `old.tsetmc.com`
+- `capturedAt`: `2026-10-06T07:44:52.946Z — S 72813 T 0.082 r 0.30 sigma 0.40`
+- `method`: `read-only LIVE — gamma*OI*1000*S vs gamma*tvol*1000*S`
+- `fixtureHash`: `SHA-256 of fixtures/g11.gex.real.fixture.2026-10-06.json`
+- `status`: `candidate` — GEX now candidate with real OI, no fabricate`
+- `relatedGate`: `G-11`
+
+
 ### E-034 — OI alternatives live when api.tsetmc.com limited (G-09) — platform-verified / no-alt-found
 
 - `evidenceId`: `E-034`
