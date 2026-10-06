@@ -85,7 +85,9 @@
         <option value="compact">📐 فشرده — شبکه‌ای</option>
         <option value="focus">🔍 تمرکز — GEX بزرگ</option>
         <option value="analyst">📊 تحلیل‌گر — هیت‌مپ بزرگ</option>
+        <option value="custom">🎨 سفارشی — سازمانی</option>
       </select>
+      <button class="btn ghost" onclick="openCustom()" title="ساخت تم سازمانی">🎨 سفارشی</button>
       <button class="btn ghost" onclick="layoutDefault()">↺ چیدمان</button>
       <button class="btn ghost" onclick="showAll()">◧ همه</button>
       <button class="btn" onclick="document.getElementById('chainWin').scrollIntoView({behavior:'smooth'})">زنجیره 36</button>
@@ -200,6 +202,38 @@
       <div class="win-body" style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>نماد</th><th>strike</th><th>نوع</th><th>OI</th><th>gamma</th><th>GEX</th></tr></thead><tbody id="tbody"></tbody></table></div>
     </div>
 
+    <!-- Custom Theme Builder — سازمانی -->
+    <div class="window" id="customWin" style="left:300px;top:200px;width:420px;display:none">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#ff8a3d"></i> تمپلیت سفارشی — سازمانی</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('customWin')">—</button><button class="win-btn close" onclick="hideWin('customWin')">×</button></div></div>
+      <div class="win-body">
+        <div style="display:grid;gap:10px">
+          <label style="font-size:11px;color:var(--muted)">رنگ اصلی سازمان (Accent)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="accentPick" value="#f0c24b" style="width:44px;height:36px;border-radius:8px;border:1px solid var(--line);padding:2px;background:var(--panel)">
+            <input type="text" id="accentText" value="#f0c24b" style="flex:1;background:#0d1330;border:1px solid var(--line);color:var(--text);padding:8px;border-radius:8px;font-family:monospace;font-size:12px">
+            <button class="btn ghost" style="padding:8px 10px" onclick="applyCustomAccent()">اعمال</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            <button onclick="setAccent('#f0c24b')" style="height:32px;border-radius:8px;border:1px solid #f0c24b;background:#f0c24b" title="طلایی بورس"></button>
+            <button onclick="setAccent('#00d1a0')" style="height:32px;border-radius:8px;border:1px solid #00d1a0;background:#00d1a0" title="فیروزه‌ای"></button>
+            <button onclick="setAccent('#6c7bff')" style="height:32px;border-radius:8px;border:1px solid #6c7bff;background:#6c7bff" title="آبی سازمانی"></button>
+            <button onclick="setAccent('#ff5a6a')" style="height:32px;border-radius:8px;border:1px solid #ff5a6a;background:#ff5a6a" title="قرمز"></button>
+            <button onclick="setAccent('#a78bfa')" style="height:32px;border-radius:8px;border:1px solid #a78bfa;background:#a78bfa" title="بنفش"></button>
+          </div>
+          <label style="font-size:11px;color:var(--muted)">حالت</label>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost" style="flex:1" onclick="setCustomMode('dark')">🌙 دارک سازمانی</button>
+            <button class="btn ghost" style="flex:1" onclick="setCustomMode('light')">☀️ لایت سازمانی</button>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" style="flex:1" onclick="saveCustom()">💾 ذخیره تمپلیت سفارشی</button>
+            <button class="btn ghost" onclick="resetCustom()">↺ بازنشانی</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px">این رنگ در همه پنجره‌ها، نمودار GEX و هیت‌مپ اعمال می‌شود و در <code>localStorage</code> می‌ماند — قابل تحویل به بورس به‌عنوان تم سازمانی.</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div class="dock" id="dock"></div>
@@ -269,6 +303,45 @@ function applyTemplate(name){
 (function restoreTemplate(){
   const t=localStorage.getItem('tseTemplate');
   if(t && templates[t]) document.getElementById('templateSel').value=t;
+})();
+function openCustom(){
+  const w=document.getElementById('customWin'); w.style.display='block'; w.classList.remove('hidden'); w.style.left='calc(50% - 210px)'; w.style.top='120px'; w.style.zIndex=++z;
+}
+function setAccent(c){
+  document.getElementById('accentPick').value=c;
+  document.getElementById('accentText').value=c;
+  document.documentElement.style.setProperty('--accent', c);
+}
+function applyCustomAccent(){
+  const c=document.getElementById('accentText').value || document.getElementById('accentPick').value;
+  document.documentElement.style.setProperty('--accent', c);
+  localStorage.setItem('tseAccent', c);
+}
+function setCustomMode(m){
+  if(m==='light') document.documentElement.classList.add('light'); else document.documentElement.classList.remove('light');
+  localStorage.setItem('tseTheme', m);
+  document.getElementById('themeBtn').textContent=m==='light'?'🌙 دارک':'☀️ لایت';
+}
+function saveCustom(){
+  const c=document.getElementById('accentText').value; const mode=document.documentElement.classList.contains('light')?'light':'dark';
+  localStorage.setItem('tseAccent', c); localStorage.setItem('tseTheme', mode);
+  // save as custom template
+  const pos={}; document.querySelectorAll('.window').forEach(w=>{ if(w.id==='customWin') return; pos[w.id]={l:w.style.left,t:w.style.top,w:w.style.width, hidden:w.classList.contains('hidden')};});
+  localStorage.setItem('tseCustomLayout', JSON.stringify(pos));
+  templates.custom=pos; // enable selector
+  alert('تمپلیت سفارشی ذخیره شد — در localStorage ماند و قابل تحویل به بورس است.');
+}
+function resetCustom(){
+  localStorage.removeItem('tseAccent'); localStorage.removeItem('tseCustomLayout');
+  document.documentElement.style.setProperty('--accent', '#f0c24b');
+  document.getElementById('accentPick').value='#f0c24b'; document.getElementById('accentText').value='#f0c24b';
+  applyTemplate('pro');
+}
+(function restoreAccent(){
+  const c=localStorage.getItem('tseAccent');
+  if(c){ document.documentElement.style.setProperty('--accent', c); const p=document.getElementById('accentPick'); if(p) p.value=c; const t=document.getElementById('accentText'); if(t) t.value=c; }
+  const custom=localStorage.getItem('tseCustomLayout');
+  if(custom){ try{ templates.custom=JSON.parse(custom); }catch(e){} }
 })();
 function layoutDefault(){
   const sel=document.getElementById('templateSel').value;
