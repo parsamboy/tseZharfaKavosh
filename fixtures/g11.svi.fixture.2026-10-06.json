@@ -1,0 +1,19 @@
+{
+  "evidenceId": "E-030",
+  "gate": "G-11",
+  "test": "G11-SVI-v1",
+  "version": "0.1.0-svi-001",
+  "capturedAt": "2026-10-06T06:02:48.950Z",
+  "host": "old.tsetmc.com",
+  "parTree": "15131F",
+  "chain": { "underlying": "اهرم", "expiry": "1405/07/29", "count": 36, "uniqueStrikes": 18, "strikes": [20000, 22000, 24000, 26000, 28000, 30000, 34000, 38000, 42000, 46000, 50000, 56000, 62000, 68000, 74000, 80000, 90000, 100000], "S": 72788 },
+  "samples": [
+    { "K": 20000, "k": "-1.3165", "svi": { "w": 0.3853049371589417, "iv": 0.620729359027702 } },
+    { "K": 46000, "k": "-0.4836", "svi": { "w": 0.17367296254141457, "iv": 0.4167408817735723 } },
+    { "K": 100000, "k": "0.2930", "svi": { "w": 0.09336636045660429, "iv": 0.3055590948680865 } }
+  ],
+  "status": "candidate",
+  "noFabrication": { "missingS": { "error": "insufficient-data" } },
+  "parity": { "identical": true },
+  "note": "SVI partial without OI (1-A): w(k) with DEFAULT params, chain 36 live (was 34), strikes 18, upgrade to full with OI weighting remembered"
+}

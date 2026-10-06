@@ -372,6 +372,22 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 
 
 
+
+### E-030 — SVI partial without OI (G-11) — platform-verified / candidate (1-A)
+
+- `evidenceId`: `E-030`
+- `claim`: `SVI w(k)=a+b(rho(k-m)+sqrt((k-m)^2+sigma^2)) evaluatable on live chain 36 (18 strikes 20000..100000) with S=72788 اهرم, T=0.082, DEFAULT params a0.04 b0.2 rho-0.3 m0 sigma0.2 — 3 samples w 0.38/0.17/0.09 iv 0.62/0.41/0.30, parity identical, missing S -> insufficient-data`
+- `level`: `platform-verified`
+- `source`: `src/models/svi.v0.1.0.js (sviTotalVariance/sviForStrike) + probes/g11.svi.limited-test.v1.js on old.tsetmc.com 15131F (chain 36, S 72788, 18 strikes)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-06T06:02:48.950Z / 09:32 Tehran — chain 36 (was 34 at 13:41), S 72788 (was 70260), CORS Baskets error irrelevant`
+- `method`: `read-only LIMITED-TEST v1 — chain filter اهرم 1405/07/29, k=ln(K/F), F=S*exp(rT), DEFAULT_SVI_PARAMS, parity identical, no-fabrication`
+- `fixtureHash`: `SHA-256 of fixtures/g11.svi.fixture.2026-10-06.json — w 0.38/0.17/0.09`
+- `status`: `candidate (partial without OI, upgrade to full with OI weighting remembered per DEFERRED_REVIEW)` — satisfies G-11 SVI partial per 1-A
+- `relatedGate`: `G-11`
+
+
 ### E-029 — GARCH(1,1) public history (G-11) — platform-verified / candidate
 
 - `evidenceId`: `E-029`
