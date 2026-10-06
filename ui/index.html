@@ -186,8 +186,17 @@
 
     <!-- 3D Vol -->
     <div class="window" id="vol3dWin" style="left:0;top:640px;width:700px">
-      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#6c7bff"></i> سطح نوسان 3D — SVI (درگ برای چرخش)</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('vol3dWin')">—</button><button class="win-btn close" onclick="hideWin('vol3dWin')">×</button></div></div>
-      <div class="win-body"><canvas id="vol3d" width="640" height="220" style="width:100%;height:220px;display:block;background:#0d1330;border:1px solid var(--line);border-radius:10px"></canvas></div>
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#6c7bff"></i> سطح نوسان 3D — SVI با انتخاب وزن‌دهی کاربر (D-2026-10-06-004 #2)</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('vol3dWin')">—</button><button class="win-btn close" onclick="hideWin('vol3dWin')">×</button></div></div>
+      <div class="win-body">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button class="btn" id="wDirect" onclick="setSviWeight('direct')" style="flex:1;background:linear-gradient(135deg,var(--accent),#ff9e2c);color:#02150f">OI×1000 ✓</button>
+          <button class="btn ghost" id="wSqrt" onclick="setSviWeight('sqrt')" style="flex:1;opacity:.6">√OI</button>
+          <button class="btn ghost" id="wLog" onclick="setSviWeight('log')" style="flex:1;opacity:.6">log OI</button>
+          <span class="badge warn" style="font-size:10px">با انتخاب کاربر</span>
+        </div>
+        <canvas id="vol3d" width="640" height="220" style="width:100%;height:220px;display:block;background:#0d1330;border:1px solid var(--line);border-radius:10px"></canvas>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">پیش‌فرض OI×1000 (همان GEX) — کاربر می‌تواند وزن را تغییر دهد</div>
+      </div>
     </div>
 
     <!-- GEX -->
@@ -198,8 +207,11 @@
 
     <!-- Chain -->
     <div class="window" id="chainWin" style="left:0;top:900px;width:1360px">
-      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i></i> زنجیره 36 — OI واقعی CDN (قابل فیلتر)</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('chainWin')">—</button><button class="win-btn close" onclick="hideWin('chainWin')">×</button></div></div>
-      <div class="win-body" style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>نماد</th><th>strike</th><th>نوع</th><th>OI</th><th>gamma</th><th>GEX</th></tr></thead><tbody id="tbody"></tbody></table></div>
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i></i> زنجیره 36 — OI واقعی CDN <span class="badge warn" style="margin-right:8px;font-size:10px">⚠ fallback — api مرجع، CDN بدون credential</span></div><div class="win-actions"><button class="win-btn" onclick="toggleMin('chainWin')">—</button><button class="win-btn close" onclick="hideWin('chainWin')">×</button></div></div>
+      <div class="win-body" style="max-height:300px;overflow:auto">
+        <div style="background:#f0c24b15;border:1px solid #f0c24b40;border-radius:8px;padding:6px 10px;font-size:11px;color:#ffe9a8;margin-bottom:8px">⚠ هشدار: منبع OI از <b>cdn.tsetmc.com</b> (fallback) است — مرجع canonical همچنان <b>api.tsetmc.com</b>، CDN جایگزین بدون credential (تطبیق صفحه 4,969 → 4,972) — D-2026-10-06-004 #1</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>نماد</th><th>strike</th><th>نوع</th><th>OI</th><th>gamma</th><th>GEX</th></tr></thead><tbody id="tbody"></tbody></table>
+      </div>
     </div>
 
     <!-- Custom Theme Builder — سازمانی -->
@@ -230,6 +242,43 @@
             <button class="btn ghost" onclick="resetCustom()">↺ بازنشانی</button>
           </div>
           <div style="font-size:11px;color:var(--muted);background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px">این رنگ در همه پنجره‌ها، نمودار GEX و هیت‌مپ اعمال می‌شود و در <code>localStorage</code> می‌ماند — قابل تحویل به بورس به‌عنوان تم سازمانی.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Engine Window — 3 هر دو حالت با انتخاب کاربر -->
+    <div class="window" id="filterWin" style="left:0;top:1180px;width:660px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#f0c24b"></i> انجین فیلتر — هر دو حالت با انتخاب کاربر (D-2026-10-06-004 #3)</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('filterWin')">—</button><button class="win-btn close" onclick="hideWin('filterWin')">×</button></div></div>
+      <div class="win-body">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="btn" id="btnExact" onclick="setFilter('exact')" style="flex:1;opacity:.6">Exact A — 20267 &gt;4096 جا نمی‌شود</button>
+          <button class="btn" id="btnB" onclick="setFilter('b')" style="flex:1;background:linear-gradient(135deg,var(--ok),#00b894);color:#02150f">B predicate — 420 fits ✓ انتخابی</button>
+        </div>
+        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between"><span style="color:var(--muted)">ظرفیت TSE:</span><span>4096</span><span style="color:var(--muted)">B:</span><b style="color:var(--ok)">420</b><span style="color:var(--muted)">Exact:</span><b style="color:var(--danger)">20267</b></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">هر دو در دسترس است — کاربر انتخاب می‌کند، پیش‌فرض B (خوش‌بینانه‌ترین per §8.14)</div>
+      </div>
+    </div>
+
+    <!-- Calendar & ClientType controls — 4 نمایش و کنترل خودکار با انتخاب کاربر -->
+    <div class="window" id="calCtrlWin" style="left:670px;top:1180px;width:680px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#00d1a0"></i> تقویم و پروفایل — نمایش و کنترل خودکار (D-2026-10-06-004 #4)</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('calCtrlWin')">—</button><button class="win-btn close" onclick="hideWin('calCtrlWin')">×</button></div></div>
+      <div class="win-body" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:11px;color:var(--muted)">تقویم — کنترل خودکار هر روز 04:00</label>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn ghost" id="autoCalOn" onclick="setAutoCal(true)" style="flex:1;background:var(--ok);color:#02150f;border-color:var(--ok)">● خودکار روشن</button>
+            <button class="btn ghost" id="autoCalOff" onclick="setAutoCal(false)" style="flex:1;opacity:.6">○ خاموش</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">نمایش 23 سررسید + چک stale خودکار 04:00 — با هشدار به کاربر</div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted)">حقیقی/حقوقی — با انتخاب کاربر</label>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn ghost" id="clientReal" onclick="setClient('real')" style="flex:1">حقیقی</button>
+            <button class="btn ghost" id="clientLegal" onclick="setClient('legal')" style="flex:1">حقوقی</button>
+            <button class="btn" id="clientBoth" onclick="setClient('both')" style="flex:1;background:linear-gradient(135deg,var(--accent),#ff9e2c);color:#02150f">هر دو ✓</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">پیش‌فرض هر دو — کاربر فیلتر می‌کند</div>
         </div>
       </div>
     </div>
@@ -342,6 +391,49 @@ function resetCustom(){
   if(c){ document.documentElement.style.setProperty('--accent', c); const p=document.getElementById('accentPick'); if(p) p.value=c; const t=document.getElementById('accentText'); if(t) t.value=c; }
   const custom=localStorage.getItem('tseCustomLayout');
   if(custom){ try{ templates.custom=JSON.parse(custom); }catch(e){} }
+})();
+// D-2026-10-06-004 — انتخاب‌های کاربر
+function setFilter(m){
+  localStorage.setItem('tseFilter', m);
+  document.getElementById('btnExact').style.opacity=m==='exact'?1:.6;
+  document.getElementById('btnExact').style.background=m==='exact'?'linear-gradient(135deg,var(--ok),#00b894)':'';
+  document.getElementById('btnB').style.opacity=m==='b'?1:.6;
+  document.getElementById('btnB').style.background=m==='b'?'linear-gradient(135deg,var(--ok),#00b894)':'';
+  document.getElementById('btnB').style.color=m==='b'?'#02150f':'';
+}
+function setSviWeight(w){
+  localStorage.setItem('tseSviWeight', w);
+  ['direct','sqrt','log'].forEach(k=>{
+    const b=document.getElementById(k==='direct'?'wDirect':k==='sqrt'?'wSqrt':'wLog');
+    if(!b) return;
+    b.style.opacity=k===w?1:.6;
+    b.style.background=k===w?'linear-gradient(135deg,var(--accent),#ff9e2c)':'';
+    b.style.color=k===w?'#02150f':'';
+  });
+  // در v0.3.0 وزن واقعی اعمال می‌شود — فعلاً فقط انتخاب ذخیره می‌شود
+}
+function setAutoCal(on){
+  localStorage.setItem('tseAutoCal', on?'1':'0');
+  document.getElementById('autoCalOn').style.opacity=on?1:.6;
+  document.getElementById('autoCalOn').style.background=on?'var(--ok)':'';
+  document.getElementById('autoCalOff').style.opacity=!on?1:.6;
+}
+function setClient(c){
+  localStorage.setItem('tseClient', c);
+  ['real','legal','both'].forEach(k=>{
+    const b=document.getElementById(k==='real'?'clientReal':k==='legal'?'clientLegal':'clientBoth');
+    if(!b) return;
+    const active=k===c;
+    b.style.opacity=active?1:.6;
+    b.style.background=active?'linear-gradient(135deg,var(--accent),#ff9e2c)':'';
+    b.style.color=active?'#02150f':'';
+  });
+}
+(function restoreChoices(){
+  setFilter(localStorage.getItem('tseFilter')||'b');
+  setSviWeight(localStorage.getItem('tseSviWeight')||'direct');
+  setAutoCal((localStorage.getItem('tseAutoCal')||'1')==='1');
+  setClient(localStorage.getItem('tseClient')||'both');
 })();
 function layoutDefault(){
   const sel=document.getElementById('templateSel').value;
