@@ -12,12 +12,21 @@
     --text:#e8ecff; --muted:#8e9ac0; --radius:16px;
   }
   :root.light{
-    --bg:#f1f4fb; --panel:#ffffff; --panel2:#f8f9ff; --line:#d8e0f0;
-    --text:#0f1a3a; --muted:#6b7aa0;
+    --bg:#f6f8fc; --panel:#ffffff; --panel2:#f1f5f9; --line:#e2e8f0;
+    --text:#0f172a; --muted:#64748b;
   }
-  :root.light body{ background:radial-gradient(1000px 500px at 15% -10%, #6c7bff12, transparent), var(--bg); }
+  :root.light body{ background:radial-gradient(900px 400px at 20% -10%, #6c7bff0d, transparent), radial-gradient(700px 300px at 90% 0%, #f0c24b0d, transparent), var(--bg); }
+  :root.light .window{ box-shadow:0 8px 32px #0f172a0d, 0 1px 0 #ffffff; border-color:#e2e8f0; }
+  :root.light .win-head{ background:linear-gradient(180deg,#ffffff,#f8fafc); border-bottom-color:#e2e8f0; }
+  :root.light .kpi, :root.light .card{ box-shadow:0 4px 20px #0f172a06; }
+  :root.light .badge{ background:#f1f5f9; }
+  :root.light .bar{ background:#e2e8f0; }
+  :root.light .dock{ background:#fffffff2; border-color:#e2e8f0; }
+  :root.light .win-drag{ background:#f1f5f9; }
+  :root.light .win-btn{ background:#f8fafc; }
   *{box-sizing:border-box}
-  body{margin:0;background:radial-gradient(1000px 500px at 15% -10%, #1e3a8a22, transparent), radial-gradient(800px 400px at 95% 0%, #00d1a018, transparent), var(--bg); color:var(--text); font-family: Vazirmatn, Tahoma, system-ui, sans-serif; line-height:1.6; overflow-x:hidden}
+  body{margin:0;background:radial-gradient(1000px 500px at 15% -10%, #1e3a8a22, transparent), radial-gradient(800px 400px at 95% 0%, #00d1a018, transparent), var(--bg); color:var(--text); font-family: Vazirmatn, Tahoma, system-ui, sans-serif; line-height:1.6; overflow-x:hidden; transition:background .3s, color .3s}
+  .window, .card, .kpi, .badge, .win-head{ transition:background .3s, border-color .3s, color .3s }
   .wrap{max-width:1360px;margin:0 auto;padding:18px 14px 90px}
   /* هدر — قانون شکل و زمینه (Figure-Ground) + سلسله مراتب بصری */
   header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#080d1ef0,#080d1e00);backdrop-filter:blur(8px);padding:10px 0 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
