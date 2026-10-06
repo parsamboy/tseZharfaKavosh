@@ -1,0 +1,15 @@
+{
+  "evidenceId": "E-033",
+  "gate": "G-11",
+  "test": "G11-GEX-LIVE-v3 — without OI worth test",
+  "capturedAt": "2026-10-06T06:27:12.853Z",
+  "host": "old.tsetmc.com",
+  "S": 72802,
+  "chain": 36,
+  "strikes": 18,
+  "tvolStats": { "sum": 379177, "zeros": 5, "nonZero": 31, "min": 0, "max": 55668 },
+  "results": { "gexTvol": 511567351.2407064, "gexOne": 21965.856671946352, "ratio": 23289.205, "dexTvol": 9290573448507.53, "dexOne": 824290259.44 },
+  "byStrikeSample": { "42000": { "tvolSum": 32235, "ratio": "16117.50" }, "62000": { "tvolSum": 77276, "ratio": "38638.00" }, "74000": { "tvolSum": 59221, "ratio": "29610.50" } },
+  "worth": "tvol changes GEX a lot — approx without OI is misleading — ratio 23289 — per-strike ratios 0..38638 — Flow zeros 5/36",
+  "status": "approx — misleading — deferred"
+}

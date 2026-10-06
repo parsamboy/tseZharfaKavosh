@@ -388,6 +388,21 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `status`: `candidate` — satisfies G-16 SSE fallback with live data (exactly per user “only live data”)`
 - `relatedGate`: `G-16`
 
+
+### E-033 — GEX/Flow without OI live worth test (G-11) — platform-verified / approx misleading — deferred
+
+- `evidenceId`: `E-033`
+- `claim`: `Live GEX without OI using tvol as proxy is misleading: gexTvol 5.11e8 vs gexOne 2.19e4 ratio 23289, per-strike ratios 0..38638 (e.g. 62000 38638, 74000 29610, 42000 16117), tvol zeros 5/36, so tvol cannot substitute OI; Flow without OI = tvol only, zeros mean no flow`
+- `level`: `platform-verified`
+- `source`: `src/models/gex.v0.1.0.js + probes/g11.gex.limited-test.live.v3.js on old.tsetmc.com 15131F (live S 72802, chain 36, strikes 18, tvol 379177)`
+- `host`: `old.tsetmc.com`
+- `capturedAt`: `2026-10-06T06:27:12.853Z / S 72802 T 0.082 r 0.30 sigma 0.40 gamma live`
+- `method`: `read-only LIVE — compare gamma* tvol*1000*S vs gamma*1*1000*S, skip zeros for tvol`
+- `fixtureHash`: `SHA-256 of fixtures/g11.gex.fixture.2026-10-06.json`
+- `status`: `approx — deferred` — per user “test worth without OI”, live shows tvol is not OI, so GEX/Flow stays deferred until real OI (BuyOP/SellOP) per D-2026-10-04`
+- `relatedGate`: `G-11 / G-09 G-10`
+
+
 ### E-032 — D3 auth OIDC discovery live (G-17) — platform-verified / candidate
 
 - `evidenceId`: `E-032`
