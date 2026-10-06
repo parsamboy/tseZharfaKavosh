@@ -480,3 +480,52 @@ D3 Cloud:           فقط با opt-in صریح و موردی هر job — بد�
 
 - این تصمیم provider، region یا retention را انتخاب نمی‌کند؛
 - این تصمیم D3 را از Alpha حذف نمی‌کند — فقط انتقال را مشروط می‌کند.
+# D-2026-10-06-004: Interface Architecture — 4 Remaining Ambiguities
+
+- **Class:** B — interface / data-source / filter
+- **Date:** 2026-10-06
+- **Version:** v0.2.2-alpha → v0.3.0 planning
+- **Decision maker:** مالک پروژه
+- **Status:** accepted — Owner choices 1-4 recorded
+
+## Question
+
+4 ابهام باقی‌مانده پس از تکمیل OI via CDN و انجین فیلتر خوب — هرکدام نیاز به انتخاب صریح داشت.
+
+## Owner Choices (2026-10-06)
+
+### 1. قرارداد CDN OI vs api.tsetmc.com
+**سوال:** cdn.tsetmc.com (GetInstrumentOptionByInstrumentID 36/36 بدون credential) را منبع رسمی G-09/G-10 کنیم یا api.tsetmc.com را مرجع نگه داریم؟
+
+**انتخاب مالک:** **گزینه 2 با هشدار به کاربر** — `api.tsetmc.com` مرجع canonical در spec v0.3.0 می‌ماند، `cdn.tsetmc.com` به‌عنوان **fallback رسمی بدون credential** ثبت می‌شود و در UI با هشدار «منبع CDN — تطبیق صفحه 4,969 → 4,972» نمایش داده می‌شود.
+
+**دلیل:** api تائیدشده با ali-derogar است ولی محدود؛ CDN همان دیتای صفحه خود نماد است و 36/36 live شد — بدون هشدار گمراه‌کننده است.
+
+### 2. وزن‌دهی SVI full
+**سوال:** SVI partial بدون وزن OI است (w 0.38) — برای full با OI چطور وزن دهیم؟ OI*1000 مستقیم یا sqrt/log؟
+
+**انتخاب مالک:** **با انتخاب کاربر** — UI به کاربر اجازه دهد بین `OI*1000` مستقیم، `sqrt(OI)` و `log(OI)` انتخاب کند؛ پیش‌فرض `OI*1000` (همان GEX).
+
+### 3. فیلتر 1559 vs B predicate
+**سوال:** exact A 20267 >4096 جا نمی‌شود، B predicate 420 fits خوب است — کدام نمایش داده شود؟
+
+**انتخاب مالک:** **هر دو حالت در دسترس باشد با انتخاب کاربر** — UI هر دو `exact` و `B predicate` را نشان دهد و کاربر یکی را برای اعمال انتخاب کند؛ پیش‌فرض `B`.
+
+### 4. تقویم و پروفایل حقیقی/حقوقی
+**سوال:** 23 سررسید 1405 همه آینده، و پروفایل حقیقی/حقوقی (22.6% vs 69.8%) — نمایش و کنترل خودکار؟
+
+**انتخاب مالک:** **نمایش سررسیدها و کنترل خودکار + حقیقی/حقوقی با انتخاب کاربر** — تقویم 23 سررسید نمایش داده شود و هر روز 04:00 stale چک خودکار شود؛ حقیقی/حقوقی هم با انتخاب کاربر فیلتر شود، نه اجباری.
+
+## Implementation
+
+- spec v0.3.0: G-09/G-10 هر دو منبع (api canonical + cdn fallback با هشدار) ثبت می‌شود
+- SVI full: selector در UI (3 گزینه وزن)
+- Filter: toggle exact/B در UI
+- Calendar: display 23 + auto check 04:00
+- ClientType: toggle حقیقی/حقوقی با انتخاب کاربر
+
+## Non-effects
+
+- انجین فیلتر دست نمی‌خورد — فقط نمایش دو حالت
+- SVI partial فعلی valid می‌ماند — full در v0.3.0
+- هیچ fabricate با OI انجام نمی‌شود
