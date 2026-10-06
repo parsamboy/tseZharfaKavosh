@@ -11,6 +11,11 @@
     --accent:#f0c24b; --ok:#00d1a0; --danger:#ff5a6a; --focus:#6c7bff;
     --text:#e8ecff; --muted:#8e9ac0; --radius:16px;
   }
+  :root.light{
+    --bg:#f1f4fb; --panel:#ffffff; --panel2:#f8f9ff; --line:#d8e0f0;
+    --text:#0f1a3a; --muted:#6b7aa0;
+  }
+  :root.light body{ background:radial-gradient(1000px 500px at 15% -10%, #6c7bff12, transparent), var(--bg); }
   *{box-sizing:border-box}
   body{margin:0;background:radial-gradient(1000px 500px at 15% -10%, #1e3a8a22, transparent), radial-gradient(800px 400px at 95% 0%, #00d1a018, transparent), var(--bg); color:var(--text); font-family: Vazirmatn, Tahoma, system-ui, sans-serif; line-height:1.6; overflow-x:hidden}
   .wrap{max-width:1360px;margin:0 auto;padding:18px 14px 90px}
@@ -74,8 +79,15 @@
       </div>
     </div>
     <div class="toolbar">
-      <button class="btn ghost" onclick="layoutDefault()">↺ چیدمان پیش‌فرض</button>
-      <button class="btn ghost" onclick="showAll()">◧ نمایش همه</button>
+      <button class="btn ghost" onclick="toggleTheme()" id="themeBtn">☀️ لایت</button>
+      <select id="templateSel" onchange="applyTemplate(this.value)" style="appearance:none;background:#111a33;border:1px solid var(--line);color:var(--text);padding:8px 32px 8px 12px;border-radius:10px;font-size:12px;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%, var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(12px) calc(50% - 2px),calc(16px) calc(50% - 2px);background-size:4px 4px,4px 4px;background-repeat:no-repeat">
+        <option value="pro">🎯 حرفه‌ای (پیش‌فرض)</option>
+        <option value="compact">📐 فشرده — شبکه‌ای</option>
+        <option value="focus">🔍 تمرکز — GEX بزرگ</option>
+        <option value="analyst">📊 تحلیل‌گر — هیت‌مپ بزرگ</option>
+      </select>
+      <button class="btn ghost" onclick="layoutDefault()">↺ چیدمان</button>
+      <button class="btn ghost" onclick="showAll()">◧ همه</button>
       <button class="btn" onclick="document.getElementById('chainWin').scrollIntoView({behavior:'smooth'})">زنجیره 36</button>
     </div>
   </header>
@@ -229,14 +241,38 @@ function showAll(){
   document.getElementById('dock').innerHTML='';
   saveLayout();
 }
-function layoutDefault(){
-  const pos={
-    kpiWin:{l:0,t:0,w:760}, poolWin:{l:780,t:0,w:560}, levWin:{l:0,t:220,w:360}, goldWin:{l:370,t:220,w:360}, infWin:{l:740,t:220,w:360},
-    heatWin:{l:0,t:420,w:700}, corrWin:{l:710,t:420,w:400}, vol3dWin:{l:0,t:640,w:700}, gexWin:{l:710,t:640,w:400}, chainWin:{l:0,t:900,w:1360}
-  };
-  Object.entries(pos).forEach(([id,p])=>{ const w=document.getElementById(id); if(w){w.style.left=p.l+'px'; w.style.top=p.t+'px'; w.style.width=p.w+'px'; w.classList.remove('hidden','minimized');}});
+function toggleTheme(){
+  const root=document.documentElement;
+  const isLight=root.classList.toggle('light');
+  localStorage.setItem('tseTheme', isLight?'light':'dark');
+  document.getElementById('themeBtn').textContent=isLight?'🌙 دارک':'☀️ لایت';
+  // روان‌شناسی: لایت = انرژی روز، دارک = تمرکز شب — انتخاب به کاربر حس کنترل می‌دهد (Autonomy)
+}
+(function restoreTheme(){
+  const t=localStorage.getItem('tseTheme');
+  if(t==='light'){ document.documentElement.classList.add('light'); document.getElementById('themeBtn').textContent='🌙 دارک'; }
+})();
+const templates={
+  pro:{ kpiWin:{l:0,t:0,w:760}, poolWin:{l:780,t:0,w:560}, levWin:{l:0,t:220,w:360}, goldWin:{l:370,t:220,w:360}, infWin:{l:740,t:220,w:360}, heatWin:{l:0,t:420,w:700}, corrWin:{l:710,t:420,w:400}, vol3dWin:{l:0,t:640,w:700}, gexWin:{l:710,t:640,w:400}, chainWin:{l:0,t:900,w:1360}},
+  compact:{ kpiWin:{l:0,t:0,w:440}, poolWin:{l:450,t:0,w:440}, levWin:{l:900,t:0,w:440}, goldWin:{l:0,t:180,w:440}, infWin:{l:450,t:180,w:440}, heatWin:{l:900,t:180,w:440}, corrWin:{l:0,t:360,w:440}, vol3dWin:{l:450,t:360,w:440}, gexWin:{l:900,t:360,w:440}, chainWin:{l:0,t:540,w:1360}},
+  focus:{ kpiWin:{l:0,t:0,w:500}, gexWin:{l:510,t:0,w:850}, heatWin:{l:0,t:220,w:850}, vol3dWin:{l:860,t:220,w:500}, levWin:{l:0,t:480,w:440}, goldWin:{l:450,t:480,w:440}, infWin:{l:900,t:480,w:440}, poolWin:{l:0,t:660,w:660}, corrWin:{l:670,t:660,w:660}, chainWin:{l:0,t:840,w:1360}},
+  analyst:{ heatWin:{l:0,t:0,w:900}, vol3dWin:{l:910,t:0,w:440}, corrWin:{l:0,t:300,w:440}, gexWin:{l:450,t:300,w:440}, kpiWin:{l:900,t:300,w:440}, poolWin:{l:0,t:520,w:440}, levWin:{l:450,t:520,w:440}, goldWin:{l:900,t:520,w:440}, infWin:{l:0,t:700,w:440}, chainWin:{l:450,t:700,w:900}},
+};
+function applyTemplate(name){
+  const pos=templates[name]||templates.pro;
+  Object.entries(pos).forEach(([id,p])=>{ const w=document.getElementById(id); if(w){ w.style.left=p.l+'px'; w.style.top=p.t+'px'; w.style.width=p.w+'px'; w.classList.remove('hidden','minimized'); }});
   document.getElementById('dock').innerHTML='';
+  localStorage.setItem('tseTemplate',name);
   saveLayout();
+  // هیوریستیک: بازخورد فوری + پیش‌بینی‌پذیری — کاربر می‌بیند تغییر آنی است
+}
+(function restoreTemplate(){
+  const t=localStorage.getItem('tseTemplate');
+  if(t && templates[t]) document.getElementById('templateSel').value=t;
+})();
+function layoutDefault(){
+  const sel=document.getElementById('templateSel').value;
+  applyTemplate(sel);
 }
 function saveLayout(){
   const data={}; document.querySelectorAll('.window').forEach(w=> data[w.id]={l:w.style.left,t:w.style.top,w:w.style.width, hidden:w.classList.contains('hidden'), min:w.classList.contains('minimized')});
