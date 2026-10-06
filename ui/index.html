@@ -3,60 +3,64 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>tseZharfaKavosh — داشبورد حرفه‌ای اختیار اهرم</title>
+<title>tseZharfaKavosh — داشبورد روان‌شناختی (قابل جابجایی)</title>
 <style>
+  /* روان‌شناسی نوین: کاهش بار شناختی (Miller 7±2)، قانون هی‌ک (Hick)، گشتالت، رنگ‌درمانی مالی */
   :root{
-    --bg:#0a0f1e; --panel:#111a33; --panel2:#151f3f; --line:#1e2a55;
-    --accent:#f0c24b; --accent2:#00d1a0; --accent3:#6c7bff;
-    --text:#e6e9f2; --muted:#8a94b8; --danger:#ff5a6a; --ok:#00d1a0;
-    --radius:18px;
+    --bg:#080d1e; --panel:#111a33; --panel2:#162044; --line:#1e2f66;
+    --accent:#f0c24b; --ok:#00d1a0; --danger:#ff5a6a; --focus:#6c7bff;
+    --text:#e8ecff; --muted:#8e9ac0; --radius:16px;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:radial-gradient(1200px 600px at 20% -10%, #1a2a6b33, transparent), radial-gradient(900px 500px at 90% 0%, #00d1a033, transparent), var(--bg); color:var(--text); font-family: Vazirmatn, Tahoma, system-ui, -apple-system, sans-serif; line-height:1.6}
-  a{color:var(--accent)}
-  .wrap{max-width:1280px;margin:0 auto;padding:28px 20px 40px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
-  .brand{display:flex;align-items:center;gap:14px}
-  .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ff8a3d);display:grid;place-items:center;font-weight:900;color:#0a0f1e;box-shadow:0 8px 30px #f0c24b40}
-  .brand h1{margin:0;font-size:18px;font-weight:800;letter-spacing:.2px}
-  .brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
-  .badges{display:flex;gap:8px;flex-wrap:wrap}
-  .badge{padding:6px 12px;border-radius:999px;background:#0f1a3a;border:1px solid var(--line);font-size:12px;display:flex;align-items:center;gap:6px}
+  body{margin:0;background:radial-gradient(1000px 500px at 15% -10%, #1e3a8a22, transparent), radial-gradient(800px 400px at 95% 0%, #00d1a018, transparent), var(--bg); color:var(--text); font-family: Vazirmatn, Tahoma, system-ui, sans-serif; line-height:1.6; overflow-x:hidden}
+  .wrap{max-width:1360px;margin:0 auto;padding:18px 14px 90px}
+  /* هدر — قانون شکل و زمینه (Figure-Ground) + سلسله مراتب بصری */
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#080d1ef0,#080d1e00);backdrop-filter:blur(8px);padding:10px 0 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ff8a3d);display:grid;place-items:center;font-weight:900;color:#0a0f1e;box-shadow:0 6px 24px #f0c24b40}
+  .brand h1{margin:0;font-size:16px;font-weight:800}
+  .brand p{margin:0;color:var(--muted);font-size:11px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{appearance:none;border:0;background:linear-gradient(135deg,var(--accent),#ff9e2c);color:#0a0f1e;font-weight:800;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:12px}
+  .btn.ghost{background:#111a33;border:1px solid var(--line);color:var(--text)}
+  .btn:active{transform:scale(.98)}
+  /* میزکار — قانون مجاورت گشتالت */
+  .desktop{position:relative;min-height:1200px}
+  /* پنجره روان‌شناختی: گوشه گرد = دوستانه (اثر نرمش)، سایه = عمق، انتقال آرام = کاهش اضطراب */
+  .window{position:absolute;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 40px #00000055, inset 0 1px 0 #ffffff08;overflow:hidden;transition:box-shadow .2s, border-color .2s, opacity .2s, transform .2s; min-width:280px}
+  .window.dragging{opacity:.92;box-shadow:0 20px 60px #00000070;z-index:10!important;transform:rotate(0.3deg) scale(1.01)}
+  .window.minimized{height:auto!important}
+  .window.minimized .win-body{display:none}
+  .window.hidden{display:none}
+  .window.focus{border-color:var(--focus);box-shadow:0 12px 40px #6c7bff30}
+  .win-head{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 8px;background:linear-gradient(180deg,#1a254f,#111a33);border-bottom:1px solid var(--line);cursor:grab;user-select:none}
+  .win-head:active{cursor:grabbing}
+  .win-drag{width:22px;height:22px;border-radius:6px;background:#0d1330;border:1px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--muted);cursor:grab}
+  .win-title{font-size:12px;font-weight:700;color:#d6deff;display:flex;align-items:center;gap:6px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .win-title i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);flex:0 0 auto}
+  .win-actions{display:flex;gap:4px}
+  .win-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);background:#0d1330;color:var(--muted);display:grid;place-items:center;cursor:pointer;font-size:12px;line-height:1}
+  .win-btn:hover{background:#1a254f;color:var(--text)}
+  .win-btn.close:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+  .win-body{padding:12px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .kpi{background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .kpi label{font-size:10px;color:var(--muted)} .kpi strong{font-size:15px;display:block}
+  .badge{padding:4px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);background:#0d1330}
   .badge.ok{border-color:#00d1a055;background:#00d1a015;color:#b8ffe9}
-  .badge.warn{border-color:#f0c24b55;background:#f0c24b15;color:#ffe9a8}
-  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:18px 0 16px}
-  @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
-  .kpi{background:linear-gradient(180deg,var(--panel),#0d1330);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;position:relative;overflow:hidden}
-  .kpi::after{content:"";position:absolute;inset:auto -20% -40% auto;width:120px;height:80px;background:radial-gradient(closest-side,var(--accent2),transparent);opacity:.08;pointer-events:none}
-  .kpi label{color:var(--muted);font-size:11px;letter-spacing:.6px}
-  .kpi strong{font-size:20px;display:block;margin-top:4px;letter-spacing:.3px}
-  .kpi span{font-size:11px;color:var(--muted)}
-  .kpi.accent{border-color:#f0c24b30}
-  .kpi.accent strong{color:var(--accent)}
-  .alert{display:flex;gap:12px;align-items:flex-start;background:#1a2347;border:1px solid #2a3a7a;border-radius:14px;padding:12px 14px;margin:14px 0;font-size:13px;color:#c8d0f0}
-  .alert b{color:var(--accent)}
-  .alert .icon{width:32px;height:32px;border-radius:10px;background:#f0c24b20;display:grid;place-items:center;flex:0 0 auto}
-  .grid{display:grid;grid-template-columns:1.25fr .9fr;gap:14px;margin-top:14px}
-  @media(max-width:980px){.grid{grid-template-columns:1fr}}
-  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;box-shadow:0 10px 40px #00000040}
-  .card h3{margin:0 0 10px;font-size:13px;letter-spacing:.4px;color:#d6deff;display:flex;align-items:center;gap:8px}
-  .card h3 i{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;box-shadow:0 0 10px var(--accent)}
-  .chartWrap{height:260px;position:relative}
-  .legend{display:flex;gap:10px;font-size:11px;color:var(--muted);margin-top:8px}
-  .legend span{width:10px;height:10px;border-radius:3px;display:inline-block;vertical-align:middle;margin-left:6px}
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
-  th{color:var(--muted);font-weight:600;text-align:right;padding:8px 8px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.4px}
-  td{padding:9px 8px;border-bottom:1px solid #1a254f}
-  tr:hover td{background:#ffffff06}
-  .pill{padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
-  .pill.call{background:#6c7bff1a;border-color:#6c7bff40;color:#aeb6ff}
-  .pill.put{background:#ff5a6a1a;border-color:#ff5a6a40;color:#ffb0b8}
-  .foot{margin-top:18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:12px}
-  .btn{appearance:none;border:0;background:linear-gradient(135deg,var(--accent),#ff9e2c);color:#0a0f1e;font-weight:800;padding:10px 14px;border-radius:12px;cursor:pointer}
-  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
-  .bar{height:8px;border-radius:999px;background:#0d1330;overflow:hidden}
-  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));}
+  .badge.warn{border-color:#f0c24b55;background:#f0c24b15}
+  .bar{height:7px;border-radius:999px;background:#0d1330;overflow:hidden} .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--accent))}
+  .pill{padding:2px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+  .pill.call{background:#6c7bff18;border-color:#6c7bff40;color:#aeb6ff} .pill.put{background:#ff5a6a18;border-color:#ff5a6a40;color:#ffb0b8}
+  /* داک پنهان‌ها — قانون بازشناسی (Recognition over Recall) */
+  .dock{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#0f1a3af0;border:1px solid var(--line);border-radius:999px;padding:6px 8px;display:flex;gap:6px;backdrop-filter:blur(10px);box-shadow:0 10px 30px #00000060;z-index:30;max-width:90vw;overflow:auto}
+  .dock:empty{display:none}
+  .dock button{appearance:none;border:0;background:#1a254f;color:var(--text);padding:6px 10px;border-radius:999px;font-size:11px;cursor:pointer;white-space:nowrap;border:1px solid var(--line)}
+  .dock button:hover{background:var(--focus);color:#fff}
+  /* راهنما روان‌شناسی */
+  .psy{position:fixed;top:70px;left:14px;background:#0f1a3a;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:11px;color:var(--muted);max-width:280px;z-index:15;box-shadow:0 10px 30px #00000040}
+  .psy b{color:var(--accent)}
+  @media(max-width:900px){.desktop{min-height:auto} .window{position:relative!important;left:auto!important;top:auto!important;width:100%!important;margin-bottom:12px} .psy{position:static;margin:10px 0}}
 </style>
 </head>
 <body>
@@ -65,506 +69,259 @@
     <div class="brand">
       <div class="logo">تژ</div>
       <div>
-        <h1>tseZharfaKavosh — ژرفاکاوش بورس</h1>
-        <p>نسخه v0.2.2-alpha • 2026-10-06 07:40 Tehran • شواهد E-035 (CDN 36/36) + E-036 (GEX 2.99e9)</p>
+        <h1>tseZharfaKavosh — داشبورد روان‌شناختی</h1>
+        <p>v0.2.2-alpha • هر پنجره قابل جابجایی (drag) و مخفی‌سازی — اصول Miller/Hick/Gestalt</p>
       </div>
     </div>
-    <div class="badges">
-      <span class="badge ok">● CDN OI زنده 36/36</span>
-      <span class="badge ok">● GEX واقعی 2.99e9</span>
-      <span class="badge warn">⚠ SVI partial (بدون وزن OI کامل)</span>
-      <span class="badge ok">● SSE fallback valid</span>
+    <div class="toolbar">
+      <button class="btn ghost" onclick="layoutDefault()">↺ چیدمان پیش‌فرض</button>
+      <button class="btn ghost" onclick="showAll()">◧ نمایش همه</button>
+      <button class="btn" onclick="document.getElementById('chainWin').scrollIntoView({behavior:'smooth'})">زنجیره 36</button>
     </div>
   </header>
 
-  <div class="kpis">
-    <div class="kpi accent"><label>قیمت اهرم (S)</label><strong>72,813</strong><span>آخرین معامله — old.tsetmc.com</span></div>
-    <div class="kpi"><label>زنجیره اختیار</label><strong>36</strong><span>18 strike × call/put — 1405/07/29</span></div>
-    <div class="kpi"><label>مجموع موقعیت باز</label><strong>3,343,767</strong><span>میانگین 92k — CDN (بی‌نیاز از api)</span></div>
-    <div class="kpi"><label>GEX واقعی</label><strong>2.99 ×10⁹</strong><span>ratio vs tvol 3.14 — E-036</span></div>
-    <div class="kpi"><label>قرارداد</label><strong>1000</strong><span>ContractSize — ثابت</span></div>
-    <div class="kpi"><label>وضعیت سامانه</label><strong style="color:var(--ok)">عملیاتی</strong><span>پوش 67ad159 • tag v0.2.2-alpha</span></div>
+  <div class="psy">
+    <b>چرا این طراحی آرام است؟</b><br/>
+    • بار شناختی کم: هر پنجره 5±2 آیتم (Miller)<br/>
+    • انتخاب کم: 2 دکمه اصلی (Hick)<br/>
+    • رنگ‌درمانی: طلایی=اعتماد، سبز=سود، آبی=آرامش<br/>
+    • گوشه گرد + سایه نرم = کاهش اضطراب<br/>
+    • <span style="color:var(--ok)">بکشید و رها کنید</span> — کنترل به کاربر (Fitts)
   </div>
 
-  <div class="alert">
-    <div class="icon">⚡</div>
-    <div>
-      <b>شناخت محدودیت‌های سامانه بورس — طراحی مقاوم:</b><br/>
-      <span style="color:var(--muted)">
-      • <b>AllRows فاقد OI</b> (113 فیلد بررسی شد) → fallback به <b>cdn.tsetmc.com/api/Instrument/GetInstrumentOptionByInstrumentID</b> (همون دیتای صفحهٔ خود نماد «موقعیت باز 4,969» — بدون credential، CORS *) •
-      • <b>SSE اصلی موجود نیست</b> (MIME text/html) → fallback به polling MarketWatchPlus count 4 با trace sse→polling→done •
-      • <b>MarketWatchPlus فاقد OI</b> → از tvol برای GEX استفاده نشد (E-033 ratio 23289 گمراه‌کننده) •
-      • <b>CDN گاه 502</b> (یک مورد 56981594...) → retry خودکار 141805 •
-      • <b>SVI بدون وزن OI</b> → v0.2.2 partial (w 0.38/0.17) — نسخه کامل با همین OI در v0.3.0
-      </span>
+  <div class="desktop" id="desktop">
+    <!-- KPI Window -->
+    <div class="window" id="kpiWin" style="left:0;top:0;width:760px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i></i> شاخص‌های کلیدی — S 72,813</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('kpiWin')" title="جمع کردن">—</button><button class="win-btn close" onclick="hideWin('kpiWin')" title="مخفی">×</button></div></div>
+      <div class="win-body">
+        <div class="kpis">
+          <div class="kpi"><label>قیمت اهرم</label><strong>72,813</strong><span style="font-size:11px;color:var(--muted)">old.tsetmc.com</span></div>
+          <div class="kpi"><label>زنجیره</label><strong>36</strong><span style="font-size:11px;color:var(--muted)">18 strike ×2</span></div>
+          <div class="kpi"><label>موقعیت باز</label><strong>3,343,767</strong><span style="font-size:11px;color:var(--muted)">CDN 36/36</span></div>
+          <div class="kpi"><label>GEX واقعی</label><strong>2.99e9</strong><span style="font-size:11px;color:var(--muted)">ratio 3.14</span></div>
+          <div class="kpi"><label>قرارداد</label><strong>1000</strong><span style="font-size:11px;color:var(--muted)">ثابت</span></div>
+          <div class="kpi" style="border-color:#00d1a040"><label>وضعیت</label><strong style="color:var(--ok)">عملیاتی</strong><span style="font-size:11px;color:var(--muted)">67ad159</span></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><span class="badge ok">CDN 36/36</span><span class="badge ok">GEX 2.99e9</span><span class="badge warn">SVI partial</span><span class="badge ok">SSE valid</span></div>
+      </div>
     </div>
+
+    <!-- Symbol Pool -->
+    <div class="window" id="poolWin" style="left:780px;top:0;width:560px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#f0c24b"></i> استخر نمادهای اصلی — 23 پایه</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('poolWin')">—</button><button class="win-btn close" onclick="hideWin('poolWin')">×</button></div></div>
+      <div class="win-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+          <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>اطلس</span><b>110</b></div>
+          <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>موج</span><b>96</b></div>
+          <div style="background:linear-gradient(135deg,#f0c24b20,#ff8a3d18);border:1px solid #f0c24b40;border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span style="color:var(--accent)">اهرم ★</span><b style="color:var(--accent)">82</b></div>
+          <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:space-between"><span>شستا</span><b>92</b></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">+15 نماد دیگر — کل 1,564 ردیف • انتخاب با قانون مجاورت گشتالت</div>
+      </div>
+    </div>
+
+    <!-- Side Pools -->
+    <div class="window" id="levWin" style="left:0;top:220px;width:360px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:var(--accent)"></i> اهرمی — پرریسک</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('levWin')">—</button><button class="win-btn close" onclick="hideWin('levWin')">×</button></div></div>
+      <div class="win-body" style="font-size:12px">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>اهرم 82</span><span style="color:var(--ok)">+2.86% ▲</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>موج 96</span><span style="color:var(--ok)">+1.9% ▲</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0"><span>توان 66</span><span style="color:var(--danger)">-0.4% ▼</span></div>
+        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">GEX تجمیعی</span><b style="color:var(--accent)">4.8e9</b></div>
+      </div>
+    </div>
+
+    <div class="window" id="goldWin" style="left:370px;top:220px;width:360px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#ffd700"></i> طلا — پناهگاه</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('goldWin')">—</button><button class="win-btn close" onclick="hideWin('goldWin')">×</button></div></div>
+      <div class="win-body" style="font-size:12px">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>طلا 68</span><span style="color:var(--ok)">+0.8% ▲</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>عیار 54</span><span style="color:var(--ok)">+1.1% ▲</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0"><span>زر/کهربا</span><span style="color:var(--muted)">~70</span></div>
+        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">همبستگی دلار</span><b style="color:#ffd700">0.82</b></div>
+      </div>
+    </div>
+
+    <div class="window" id="infWin" style="left:740px;top:220px;width:360px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#6c7bff"></i> شاخص‌ساز — اثرگذار</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('infWin')">—</button><button class="win-btn close" onclick="hideWin('infWin')">×</button></div></div>
+      <div class="win-body" style="font-size:12px">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>شستا 92</span><span style="color:var(--danger)">-0.6% ▼</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a254f"><span>فملی 76</span><span style="color:var(--ok)">+1.3% ▲</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0"><span>فولاد 80</span><span style="color:var(--muted)">ثابت</span></div>
+        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--muted)">وزن شاخص</span><b style="color:#aeb6ff">38%</b></div>
+      </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="window" id="heatWin" style="left:0;top:420px;width:700px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#f0c24b"></i> هیت‌مپ 18×3 — OI</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('heatWin')">—</button><button class="win-btn close" onclick="hideWin('heatWin')">×</button></div></div>
+      <div class="win-body"><div id="heatmap" style="display:grid;grid-template-columns:60px repeat(18,1fr);gap:3px;font-size:9px"></div></div>
+    </div>
+
+    <!-- Correlation -->
+    <div class="window" id="corrWin" style="left:710px;top:420px;width:400px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#00d1a0"></i> همبستگی 3 استخر</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('corrWin')">—</button><button class="win-btn close" onclick="hideWin('corrWin')">×</button></div></div>
+      <div class="win-body">
+        <div style="display:grid;grid-template-columns:80px repeat(3,1fr);gap:6px;font-size:11px;text-align:center">
+          <div></div><div style="color:var(--muted)">اهرمی</div><div style="color:var(--muted)">طلا</div><div style="color:var(--muted)">شاخص‌ساز</div>
+          <div style="color:var(--muted)">اهرمی</div><div style="background:linear-gradient(135deg,#00d1a0,#00b894);color:#02150f;border-radius:8px;padding:8px;font-weight:800">1.00</div><div style="background:#ff5a6a;color:#fff;border-radius:8px;padding:8px">-0.82</div><div style="background:#f0c24b;color:#1a1200;border-radius:8px;padding:8px">0.64</div>
+          <div style="color:var(--muted)">طلا</div><div style="background:#ff5a6a;color:#fff;border-radius:8px;padding:8px">-0.82</div><div style="background:linear-gradient(135deg,#ffd700,#ff8a00);color:#1a1200;border-radius:8px;padding:8px;font-weight:800">1.00</div><div style="background:#8a94b8;color:#fff;border-radius:8px;padding:8px">-0.12</div>
+          <div style="color:var(--muted)">شاخص‌ساز</div><div style="background:#f0c24b;color:#1a1200;border-radius:8px;padding:8px">0.64</div><div style="background:#8a94b8;color:#fff;border-radius:8px;padding:8px">-0.12</div><div style="background:linear-gradient(135deg,#6c7bff,#5a67ff);color:#fff;border-radius:8px;padding:8px;font-weight:800">1.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D Vol -->
+    <div class="window" id="vol3dWin" style="left:0;top:640px;width:700px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i style="background:#6c7bff"></i> سطح نوسان 3D — SVI (درگ برای چرخش)</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('vol3dWin')">—</button><button class="win-btn close" onclick="hideWin('vol3dWin')">×</button></div></div>
+      <div class="win-body"><canvas id="vol3d" width="640" height="220" style="width:100%;height:220px;display:block;background:#0d1330;border:1px solid var(--line);border-radius:10px"></canvas></div>
+    </div>
+
+    <!-- GEX -->
+    <div class="window" id="gexWin" style="left:710px;top:640px;width:400px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i></i> GEX بر حسب strike</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('gexWin')">—</button><button class="win-btn close" onclick="hideWin('gexWin')">×</button></div></div>
+      <div class="win-body"><svg id="gexChart" viewBox="0 0 360 200" width="100%" height="200"></svg></div>
+    </div>
+
+    <!-- Chain -->
+    <div class="window" id="chainWin" style="left:0;top:900px;width:1360px">
+      <div class="win-head"><div class="win-drag">⋮⋮</div><div class="win-title"><i></i> زنجیره 36 — OI واقعی CDN (قابل فیلتر)</div><div class="win-actions"><button class="win-btn" onclick="toggleMin('chainWin')">—</button><button class="win-btn close" onclick="hideWin('chainWin')">×</button></div></div>
+      <div class="win-body" style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>نماد</th><th>strike</th><th>نوع</th><th>OI</th><th>gamma</th><th>GEX</th></tr></thead><tbody id="tbody"></tbody></table></div>
+    </div>
+
   </div>
 
-  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
-    <div class="card" style="border-top:3px solid var(--accent)">
-      <h3><i style="background:var(--accent)"></i> استخر جانبی 1 — صندوق‌های اهرمی (روند پرریسک)</h3>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">برای تشخیص روند پرقدرت بازار — همبستگی بالا با شاخص</div>
-      <div style="display:grid;gap:6px">
-        <div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#f0c24b18,#ff8a3d10);border:1px solid #f0c24b30;border-radius:10px;padding:8px 10px">
-          <span style="display:flex;align-items:center;gap:6px"><span class="pill call" style="font-size:10px;padding:2px 6px">اهرم</span> 82 قرارداد</span><span style="color:var(--ok);font-size:11px">+2.86% ▲</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>موج — 96 قرارداد</span><span style="color:var(--ok);font-size:11px">+1.9% ▲</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>توان — 66 قرارداد</span><span style="color:var(--danger);font-size:11px">-0.4% ▼</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>شتاب / جهش</span><span style="font-size:11px;color:var(--muted)">~40 قرارداد</span>
-        </div>
-      </div>
-      <div style="margin-top:10px;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;justify-content:space-between;font-size:11px">
-        <span style="color:var(--muted)">GEX تجمیعی</span><span style="color:var(--accent)">2.99e9 (اهرم) + 1.8e9 (موج)</span>
-      </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--ok)">● روند: صعودی اهرمی — اطلاع‌رسانی: سیگنال ورود پرریسک</div>
-    </div>
-    <div class="card" style="border-top:3px solid #f0c24b">
-      <h3><i style="background:#f0c24b"></i> استخر جانبی 2 — صندوق‌های طلا (پناهگاه)</h3>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">برای تحلیل روند معکوس — وقتی اهرم منفی، طلا مثبت</div>
-      <div style="display:grid;gap:6px">
-        <div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#ffd70018,#ff8a0010);border:1px solid #ffd70030;border-radius:10px;padding:8px 10px">
-          <span style="display:flex;align-items:center;gap:6px"><span class="pill" style="background:#ffd70020;border-color:#ffd70040;color:#ffe58a;font-size:10px;padding:2px 6px">طلا</span> 68 قرارداد</span><span style="color:var(--ok);font-size:11px">+0.8% ▲</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>عیار — 54 قرارداد</span><span style="color:var(--ok);font-size:11px">+1.1% ▲</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>زر / کهربا</span><span style="font-size:11px;color:var(--muted)">~70 قرارداد</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>گوهر</span><span style="color:var(--danger);font-size:11px">-0.2% ▼</span>
-        </div>
-      </div>
-      <div style="margin-top:10px;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;justify-content:space-between;font-size:11px">
-        <span style="color:var(--muted)">همبستگی با دلار</span><span style="color:#ffd700">0.82</span>
-      </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--muted)"><span style="color:#ffd700">● روند: خنثی-صعودی</span> — اطلاع‌رسانی: پوشش ریسک در ریزش شاخص</div>
-    </div>
-    <div class="card" style="border-top:3px solid #6c7bff">
-      <h3><i style="background:#6c7bff"></i> استخر جانبی 3 — نمادهای اصلی اثرگذار (شاخص‌ساز)</h3>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">برای تحلیل روند کل بازار — وزن بالا در شاخص</div>
-      <div style="display:grid;gap:6px">
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>شستا — 92 قرارداد</span><span style="color:var(--danger);font-size:11px">-0.6% ▼</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>فملی — 76 قرارداد</span><span style="color:var(--ok);font-size:11px">+1.3% ▲</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>فولاد / شپنا</span><span style="font-size:11px;color:var(--muted)">~80 قرارداد</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <span>وبملت / خودرو</span><span style="font-size:11px;color:var(--muted)">77 قرارداد</span>
-        </div>
-      </div>
-      <div style="margin-top:10px;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;justify-content:space-between;font-size:11px">
-        <span style="color:var(--muted)">وزن در شاخص</span><span style="color:#aeb6ff">38%</span>
-      </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--danger)">● روند: اصلاح کوتاه‌مدت — تحلیل: مراقب فشار فروش شاخص‌سازها</div>
-    </div>
-  </div>
-
-  <div class="card" style="margin-top:14px;background:linear-gradient(135deg,#111a33,#1a2347);border:1px solid #2a3a7a">
-    <h3><i style="background:var(--accent2)"></i> تحلیل تجمیعی روند بازار — از سه استخر جانبی</h3>
-    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:14px">
-      <div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:11px">
-          <div style="background:#0d1330;border:1px solid #00d1a040;border-radius:12px;padding:10px"><div style="color:var(--ok)">اهرمی صعودی</div><b style="font-size:16px;color:var(--ok)">▲ 68%</b><div style="color:var(--muted)">سیگنال خرید</div></div>
-          <div style="background:#0d1330;border:1px solid #ffd70040;border-radius:12px;padding:10px"><div style="color:#ffd700">طلا خنثی</div><b style="font-size:16px;color:#ffd700">● 52%</b><div style="color:var(--muted)">پوشش</div></div>
-          <div style="background:#0d1330;border:1px solid #ff5a6a40;border-radius:12px;padding:10px"><div style="color:var(--danger)">شاخص‌ساز اصلاح</div><b style="font-size:16px;color:var(--danger)">▼ 44%</b><div style="color:var(--muted)">احتیاط</div></div>
-        </div>
-        <div style="margin-top:10px;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;display:flex;align-items:center;gap:10px">
-          <span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;box-shadow:0 0 8px var(--accent)"></span>
-          <b>برآیند: روند کوتاه‌مدت صعودی با احتیاط</b><span style="color:var(--muted);margin-right:auto">اطلاع‌رسانی فعال برای هر سه استخر</span>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.8">
-        <b style="color:var(--text)">چطور استفاده کنیم:</b><br/>
-        • اگر <b style="color:var(--accent)">اهرمی + شاخص‌ساز</b> هر دو صعودی → روند بازار قوی (ورود)<br/>
-        • اگر <b style="color:#ffd700">طلا صعودی</b> و اهرمی منفی → هشدار ریزش — پوشش با طلا<br/>
-        • اگر هر سه خنثی → بازار رنج — از <b>GEX</b> و <b>SVI</b> برای نوسان‌گیری استفاده کن<br/>
-        <span style="font-size:11px;color:var(--accent2);margin-top:6px;display:block">هر استخر هم اطلاع‌رسانی مستقل دارد هم تحلیل تجمیعی — قابل تنظیم برای آلارم تلگرام/ایمیل.</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ردیف 5 — بصری‌سازی سطح نهادی -->
-  <div class="grid" style="grid-template-columns:1.15fr 0.85fr">
-    <div class="card">
-      <h3><i style="background:#f0c24b"></i> هیت‌مپ — 18 strike × 3 سررسید اهرم (OI واقعی CDN)</h3>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">رنگ بر اساس OI — قرمز=کم، طلایی=متوسط، سبز=زیاد — 1405/07/29 انتخابی (86) vs 08/27 (98) vs 09/25 (72)</div>
-      <div id="heatmap" style="display:grid;grid-template-columns: 60px repeat(18,1fr);gap:3px;font-size:9px"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;font-size:11px;align-items:center">
-        <span style="width:14px;height:8px;border-radius:3px;background:#ff5a6a;display:inline-block"></span> 0
-        <span style="width:60px;height:8px;border-radius:999px;background:linear-gradient(90deg,#ff5a6a,#f0c24b,#00d1a0);display:inline-block"></span> 475k
-        <span style="color:var(--muted)">بیشترین: 74000/50000 در 07/29</span>
-      </div>
-    </div>
-    <div class="card">
-      <h3><i style="background:#00d1a0"></i> ماتریس همبستگی — سه استخر جانبی</h3>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">برای تشخیص روند — اهرمی↔طلا معکوس، اهرمی↔شاخص‌ساز هم‌جهت</div>
-      <div style="display:grid;grid-template-columns:80px repeat(3,1fr);gap:6px;font-size:11px;text-align:center">
-        <div></div><div style="color:var(--muted)">اهرمی</div><div style="color:var(--muted)">طلا</div><div style="color:var(--muted)">شاخص‌ساز</div>
-        <div style="color:var(--muted);display:grid;place-items:center">اهرمی</div>
-        <div style="background:linear-gradient(135deg,#00d1a0,#00b894);color:#02150f;border-radius:10px;padding:10px 0;font-weight:800">1.00</div>
-        <div style="background:#ff5a6a;color:#fff;border-radius:10px;padding:10px 0;font-weight:700">-0.82</div>
-        <div style="background:#f0c24b;color:#1a1200;border-radius:10px;padding:10px 0;font-weight:700">0.64</div>
-        <div style="color:var(--muted);display:grid;place-items:center">طلا</div>
-        <div style="background:#ff5a6a;color:#fff;border-radius:10px;padding:10px 0">-0.82</div>
-        <div style="background:linear-gradient(135deg,#ffd700,#ff8a00);color:#1a1200;border-radius:10px;padding:10px 0;font-weight:800">1.00</div>
-        <div style="background:#8a94b8;color:#fff;border-radius:10px;padding:10px 0">-0.12</div>
-        <div style="color:var(--muted);display:grid;place-items:center">شاخص‌ساز</div>
-        <div style="background:#f0c24b;color:#1a1200;border-radius:10px;padding:10px 0">0.64</div>
-        <div style="background:#8a94b8;color:#fff;border-radius:10px;padding:10px 0">-0.12</div>
-        <div style="background:linear-gradient(135deg,#6c7bff,#5a67ff);color:#fff;border-radius:10px;padding:10px 0;font-weight:800">1.00</div>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.7">
-        <span style="color:#ff5a6a">● اهرمی ↔ طلا -0.82 معکوس قوی</span> — پوشش ریسک<br/>
-        <span style="color:#f0c24b">● اهرمی ↔ شاخص‌ساز 0.64 هم‌جهت</span> — روند قوی
-      </div>
-    </div>
-  </div>
-
-  <div class="card" style="margin-top:14px">
-    <h3><i style="background:#6c7bff"></i> سطح نوسان 3D — SVI w(k,T) با سه سررسید (قابل چرخش)</h3>
-    <div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:14px">
-      <div style="height:280px;background:#0d1330;border:1px solid var(--line);border-radius:14px;overflow:hidden;position:relative">
-        <canvas id="vol3d" width="640" height="280" style="width:100%;height:100%;display:block"></canvas>
-        <div style="position:absolute;left:10px;bottom:10px;background:#0a0f1ecc;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--muted)">↻ درگ برای چرخش • اسکرول برای زوم</div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.9">
-        <b style="color:var(--text)">سه منحنی SVI:</b><br/>
-        <span style="color:var(--accent)">— 07/29 (T 0.082) w 0.38 — نزدیک‌ترین</span><br/>
-        <span style="color:var(--accent2)">— 08/27 (T 0.16) w 0.52 — میانی</span><br/>
-        <span style="color:var(--accent3)">— 09/25 (T 0.24) w 0.65 — دورترین</span><br/>
-        <span style="font-size:11px">پارامتر a 0.04 b 0.2 rho -0.3 — با OI واقعی وزن‌دار می‌شود (v0.3.0)</span>
-        <div style="margin-top:10px;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-          <div style="display:flex;justify-content:space-between"><span>ATM IV 07/29</span><b style="color:var(--accent)">0.62</b></div>
-          <div style="display:flex;justify-content:space-between"><span>ATM IV 09/25</span><b>0.53</b></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
-    <div class="card">
-      <h3><i style="background:#f0c24b"></i> استخر نمادهای اصلی — 23 پایه، 1,564 قرارداد</h3>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:12px;color:var(--muted)">کل بازار اختیار • به‌روز: 1404/07/13</span>
-        <span class="badge ok" style="font-size:11px">اهرم 82 قرارداد</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span>اطلس</span><b>110</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span>موج</span><b>96</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span>ذوب</span><b>94</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span>شستا</span><b>92</b></div>
-        <div style="background:linear-gradient(135deg,#f0c24b20,#ff8a3d18);border:1px solid #f0c24b40;border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span style="color:var(--accent)">اهرم ★ انتخابی</span><b style="color:var(--accent)">82</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span>خودرو</span><b>78</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span>وتجارت</span><b>78</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between"><span>فملی</span><b>76</b></div>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--muted)">+ 15 نماد دیگر (کاريس 22 تا خبهمن 77) — همه در AllRows 1,564 ردیف فعال</div>
-      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill call">پایه اهرمی</span><span class="pill" style="background:#00d1a015">صندوق قابل معامله</span><span class="pill">سهام</span></div>
-    </div>
-    <div class="card">
-      <h3><i style="background:#00d1a0"></i> تقویم کاری — 23 سررسید آتی (1405)</h3>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">امروز جلالی 1404/07/13 — همه 1,564 سررسید در آینده است (بدون stale) — E-016</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px">
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center"><div style="color:var(--muted)">07/15</div><b>54</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center"><div style="color:var(--muted)">07/22</div><b>103</b></div>
-        <div style="background:linear-gradient(135deg,#f0c24b30,#ff8a3d20);border:1px solid #f0c24b60;border-radius:10px;padding:8px;text-align:center"><div style="color:var(--accent)">07/29 ★</div><b style="color:var(--accent)">86</b><div style="font-size:9px;color:var(--accent)">انتخابی</div></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center"><div style="color:var(--muted)">08/27</div><b>98</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center"><div style="color:var(--muted)">09/04</div><b>114*</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center"><div style="color:var(--muted)">09/25</div><b>72</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center"><div style="color:var(--muted)">10/09</div><b>94</b></div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center"><div style="color:var(--muted)">10/30</div><b>22</b></div>
-      </div>
-      <div style="margin-top:10px;background:#0d1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;justify-content:space-between;font-size:11px">
-        <span style="color:var(--muted)">قانون stale:</span><span>آینده = مجاز، گذشته = stale (فعلاً 0 گذشته)</span>
-      </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px">* 05/09/04 به 1405/09/04 نرمال شد — parser v0.1.0</div>
-    </div>
-    <div class="card">
-      <h3><i style="background:#6c7bff"></i> پروفایل هدف کاربر</h3>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#6c7bff,#00d1a0);display:grid;place-items:center;font-weight:900">ح</div>
-        <div><b style="font-size:13px">معامله‌گر اختیار اهرمی</b><div style="font-size:11px;color:var(--muted)">ریسک‌پذیر • فعال بازار مشتقه • flow 3</div></div>
-        <span class="badge ok" style="margin-right:auto">حقیقی 77%</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px">
-          <div style="font-size:11px;color:var(--muted)">خرید حقیقی</div><b style="font-size:16px">22.6% × 12 نفر</b><div class="bar" style="margin-top:6px"><i style="width:22%"></i></div>
-        </div>
-        <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px">
-          <div style="font-size:11px;color:var(--muted)">فروش حقوقی</div><b style="font-size:16px">69.8% × 37 نفر</b><div class="bar" style="margin-top:6px"><i style="width:69%;background:linear-gradient(90deg,#ff5a6a,#ff8a3d)"></i></div>
-        </div>
-      </div>
-      <div style="background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:11px">
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">نوع صندوق:</span><span>سهامی اهرمی</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">حجم 5 روز:</span><span>379</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">هدف:</span><span style="color:var(--accent2)">پوشش ریسک + نوسان‌گیری</span></div>
-      </div>
-      <div style="margin-top:8px;display:flex;gap:6px"><span class="pill" style="background:#00d1a015">DPS/EPS</span><span class="pill">حقیقی/حقوقی</span><span class="pill call">greeks زنده</span></div>
-    </div>
-  </div>
-
-  <div class="grid">
-    <div class="card">
-      <h3><i></i> گامای اکسپوژر (GEX) بر حسب strike — واقعی با OI از CDN</h3>
-      <div class="chartWrap"><svg id="gexChart" viewBox="0 0 560 260" width="100%" height="100%" preserveAspectRatio="none"></svg></div>
-      <div class="legend"><span style="background:var(--accent)"></span> GEX واقعی (CDN OI) <span style="background:#ffffff30;margin-right:14px"></span> پروکسی tvol (گمراه‌کننده 3.14×)</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">بیشترین GEX: 74000 (1.33e9) و 68000 (5.9e8) — قلهٔ گاما نزدیک قیمت فعلی 72k است.</div>
-    </div>
-    <div class="card">
-      <h3><i style="background:var(--accent2)"></i> موقعیت باز (OI) بر حسب strike</h3>
-      <div class="chartWrap"><svg id="oiChart" viewBox="0 0 360 260" width="100%" height="100%"></svg></div>
-      <div class="legend"><span style="background:var(--accent2)"></span> مجموع OI هر strike (call+put)</div>
-      <div style="margin-top:10px;display:grid;gap:8px">
-        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">50000</span><div class="bar" style="flex:1;margin:0 10px"><i style="width:92%"></i></div><b>684,817</b></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">62000</span><div class="bar" style="flex:1;margin:0 10px"><i style="width:88%;background:var(--accent)"></i></div><b>613,134</b></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">74000</span><div class="bar" style="flex:1;margin:0 10px"><i style="width:58%"></i></div><b>386,577</b></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid" style="grid-template-columns:1fr 1fr">
-    <div class="card">
-      <h3><i style="background:var(--accent3)"></i> لبخند نوسان ضمنی (SVI) — partial v0.1.0</h3>
-      <div class="chartWrap"><svg id="sviChart" viewBox="0 0 360 200" width="100%" height="100%"></svg></div>
-      <div style="font-size:11px;color:var(--muted)">پارامتر: a 0.04 b 0.2 rho -0.3 m 0 sigma 0.2 — w 0.38 / 0.17 / 0.09 — iv 0.62/0.41/0.30 — بدون وزن OI (E-030) — نسخه کامل با OI همین CDN در v0.3.0</div>
-    </div>
-    <div class="card">
-      <h3><i style="background:#ff8a3d"></i> وضعیت اتصال و احراز هویت</h3>
-      <div style="display:grid;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
-          <div><b style="font-size:13px">SSE → Polling fallback</b><div style="font-size:11px;color:var(--muted)">EventSource MIME خطا → MarketWatchPlus polling count 4 — trace valid — E-031</div></div><span class="badge ok">valid</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
-          <div><b style="font-size:13px">D3 OIDC discovery</b><div style="font-size:11px;color:var(--muted)">accounts.google.com/.well-known 200 hasKeys — E-032</div></div><span class="badge ok">200 OK</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1330;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
-          <div><b style="font-size:13px">CDN OI Provider</b><div style="font-size:11px;color:var(--muted)">cdn.tsetmc.com 36/36 بدون credential — retry 141805 — E-035</div></div><span class="badge ok">36/36</span>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button class="btn" onclick="document.getElementById('chain').scrollIntoView({behavior:'smooth'})">دیدن زنجیره 36</button>
-          <button class="btn ghost" onclick="window.open('https://github.com/parsamboy/tseZharfaKavosh/releases/tag/v0.2.2-alpha','_blank')">گیت‌هاب Tag</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card" id="chain" style="margin-top:14px">
-    <h3><i></i> زنجیره کامل 36 اختیار اهرم — 1405/07/29 — با OI واقعی از CDN (زنده)</h3>
-    <div style="overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:12px">
-      <table>
-        <thead><tr><th>نماد</th><th>strike</th><th>نوع</th><th>OI (موقعیت باز)</th><th>gamma</th><th>سهم GEX</th><th>وضعیت</th></tr></thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:10px;font-size:11px;color:var(--muted)">
-      <span>منبع: cdn.tsetmc.com/api/Instrument — بدون api.tsetmc.com — تطبیق صفحه 4,969 → CDN 4,972</span>
-      <span style="margin-right:auto">بروزرسانی: 2026-10-06 07:40 Tehran</span>
-    </div>
-  </div>
-
-  <div class="foot">
-    <span>© tseZharfaKavosh v0.2.2-alpha — Smart-FFA-1.1 — شواهد E-029..E-036 — پوش 67ad159 — بدون fabricate</span>
-    <span>طراحی مقاوم برای محدودیت‌های TSETMC: fallback CDN + polling + retry + partial SVI</span>
-  </div>
+  <div class="dock" id="dock"></div>
 </div>
 
 <script>
-// data from E-035/E-036 live
+// روان‌شناسی: کنترل به کاربر + بازخورد فوری + کاهش اضطراب با انیمیشن نرم
+const windows = document.querySelectorAll('.window');
+let z=10;
+windows.forEach(w=>{
+  w.addEventListener('pointerdown',()=>{ w.style.zIndex=++z; w.classList.add('focus'); setTimeout(()=>w.classList.remove('focus'),600); });
+  const head=w.querySelector('.win-head');
+  let sx,sy,ox,oy,drag=false;
+  head.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.win-btn')) return;
+    drag=true; w.classList.add('dragging');
+    const r=w.getBoundingClientRect(); const pr=w.parentElement.getBoundingClientRect();
+    sx=e.clientX; sy=e.clientY; ox=r.left-pr.left; oy=r.top-pr.top;
+    head.setPointerCapture(e.pointerId);
+  });
+  head.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    w.style.left=(ox+dx)+'px'; w.style.top=(oy+dy)+'px';
+  });
+  head.addEventListener('pointerup',()=>{ drag=false; w.classList.remove('dragging'); saveLayout(); });
+});
+function hideWin(id){
+  const w=document.getElementById(id); w.classList.add('hidden');
+  const btn=document.createElement('button'); btn.textContent=w.querySelector('.win-title').textContent.trim().slice(0,16); btn.onclick=()=>{w.classList.remove('hidden'); btn.remove(); saveLayout();};
+  document.getElementById('dock').appendChild(btn);
+  saveLayout();
+}
+function toggleMin(id){
+  const w=document.getElementById(id); w.classList.toggle('minimized');
+}
+function showAll(){
+  document.querySelectorAll('.window.hidden').forEach(w=>w.classList.remove('hidden'));
+  document.getElementById('dock').innerHTML='';
+  saveLayout();
+}
+function layoutDefault(){
+  const pos={
+    kpiWin:{l:0,t:0,w:760}, poolWin:{l:780,t:0,w:560}, levWin:{l:0,t:220,w:360}, goldWin:{l:370,t:220,w:360}, infWin:{l:740,t:220,w:360},
+    heatWin:{l:0,t:420,w:700}, corrWin:{l:710,t:420,w:400}, vol3dWin:{l:0,t:640,w:700}, gexWin:{l:710,t:640,w:400}, chainWin:{l:0,t:900,w:1360}
+  };
+  Object.entries(pos).forEach(([id,p])=>{ const w=document.getElementById(id); if(w){w.style.left=p.l+'px'; w.style.top=p.t+'px'; w.style.width=p.w+'px'; w.classList.remove('hidden','minimized');}});
+  document.getElementById('dock').innerHTML='';
+  saveLayout();
+}
+function saveLayout(){
+  const data={}; document.querySelectorAll('.window').forEach(w=> data[w.id]={l:w.style.left,t:w.style.top,w:w.style.width, hidden:w.classList.contains('hidden'), min:w.classList.contains('minimized')});
+  localStorage.setItem('tseLayout',JSON.stringify(data));
+}
+(function restore(){
+  try{ const d=JSON.parse(localStorage.getItem('tseLayout')||'{}'); Object.entries(d).forEach(([id,p])=>{ const w=document.getElementById(id); if(!w) return; if(p.l) w.style.left=p.l; if(p.t) w.style.top=p.t; if(p.w) w.style.width=p.w; if(p.hidden) hideWin(id); if(p.min) w.classList.add('minimized');}); }catch(e){}
+})();
+
+// Data for charts (same as before)
 const rows=[
-  {l18:'ضهرم7050',strike:20000,kind:'call',oi:4972,gamma:5.84e-34},
-  {l18:'طهرم7050',strike:20000,kind:'put',oi:22083,gamma:5.84e-34},
-  {l18:'ضهرم7051',strike:22000,kind:'call',oi:1623,gamma:6.05e-30},
-  {l18:'طهرم7051',strike:22000,kind:'put',oi:5811,gamma:6.05e-30},
-  {l18:'ضهرم7052',strike:24000,kind:'call',oi:580,gamma:1.53e-26},
-  {l18:'طهرم7052',strike:24000,kind:'put',oi:3610,gamma:1.53e-26},
-  {l18:'ضهرم7053',strike:26000,kind:'call',oi:1210,gamma:1.88e-23},
-  {l18:'طهرم7053',strike:26000,kind:'put',oi:3991,gamma:1.88e-23},
-  {l18:'ضهرم7054',strike:28000,kind:'call',oi:2760,gamma:6.65e-21},
-  {l18:'طهرم7054',strike:28000,kind:'put',oi:1079,gamma:6.65e-21},
-  {l18:'ضهرم7055',strike:30000,kind:'call',oi:8030,gamma:7.83e-19},
-  {l18:'طهرم7055',strike:30000,kind:'put',oi:3555,gamma:7.83e-19},
-  {l18:'ضهرم7056',strike:34000,kind:'call',oi:7820,gamma:7.42e-16},
-  {l18:'طهرم7056',strike:34000,kind:'put',oi:30205,gamma:7.42e-16},
-  {l18:'ضهرم7057',strike:38000,kind:'call',oi:29087,gamma:1.03e-13},
-  {l18:'طهرم7057',strike:38000,kind:'put',oi:60984,gamma:1.03e-13},
-  {l18:'ضهرم7058',strike:42000,kind:'call',oi:87809,gamma:3.02e-12},
-  {l18:'طهرم7058',strike:42000,kind:'put',oi:150209,gamma:3.02e-12},
-  {l18:'ضهرم7059',strike:46000,kind:'call',oi:122969,gamma:5.09e-09},
-  {l18:'طهرم7059',strike:46000,kind:'put',oi:141805,gamma:5.09e-09},
-  {l18:'ضهرم7060',strike:50000,kind:'call',oi:209173,gamma:4.78e-08},
-  {l18:'طهرم7060',strike:50000,kind:'put',oi:475644,gamma:4.78e-08},
-  {l18:'ضهرم7061',strike:56000,kind:'call',oi:180550,gamma:1.12e-06},
-  {l18:'طهرم7061',strike:56000,kind:'put',oi:262642,gamma:1.12e-06},
-  {l18:'ضهرم7062',strike:62000,kind:'call',oi:288641,gamma:8.93e-06},
-  {l18:'طهرم7062',strike:62000,kind:'put',oi:324493,gamma:8.93e-06},
-  {l18:'ضهرم7063',strike:68000,kind:'call',oi:199214,gamma:2.69e-05},
-  {l18:'طهرم7063',strike:68000,kind:'put',oi:50773,gamma:2.69e-05},
-  {l18:'ضهرم7064',strike:74000,kind:'call',oi:349122,gamma:3.68e-05},
-  {l18:'طهرم7064',strike:74000,kind:'put',oi:37455,gamma:3.68e-05},
-  {l18:'ضهرم7065',strike:80000,kind:'call',oi:100348,gamma:3.02e-05},
-  {l18:'طهرم7065',strike:80000,kind:'put',oi:2433,gamma:3.02e-05},
-  {l18:'ضهرم7066',strike:90000,kind:'call',oi:168890,gamma:1.27e-05},
-  {l18:'طهرم7066',strike:90000,kind:'put',oi:911,gamma:1.27e-05},
-  {l18:'ضهرم7067',strike:100000,kind:'call',oi:3286,gamma:3.74e-06},
-  {l18:'طهرم7067',strike:100000,kind:'put',oi:0,gamma:3.74e-06},
+  {l18:'ضهرم7050',strike:20000,kind:'call',oi:4972,gamma:5.84e-34},{l18:'طهرم7050',strike:20000,kind:'put',oi:22083,gamma:5.84e-34},
+  {l18:'ضهرم7051',strike:22000,kind:'call',oi:1623,gamma:6.05e-30},{l18:'طهرم7051',strike:22000,kind:'put',oi:5811,gamma:6.05e-30},
+  {l18:'ضهرم7052',strike:24000,kind:'call',oi:580,gamma:1.53e-26},{l18:'طهرم7052',strike:24000,kind:'put',oi:3610,gamma:1.53e-26},
+  {l18:'ضهرم7053',strike:26000,kind:'call',oi:1210,gamma:1.88e-23},{l18:'طهرم7053',strike:26000,kind:'put',oi:3991,gamma:1.88e-23},
+  {l18:'ضهرم7054',strike:28000,kind:'call',oi:2760,gamma:6.65e-21},{l18:'طهرم7054',strike:28000,kind:'put',oi:1079,gamma:6.65e-21},
+  {l18:'ضهرم7055',strike:30000,kind:'call',oi:8030,gamma:7.83e-19},{l18:'طهرم7055',strike:30000,kind:'put',oi:3555,gamma:7.83e-19},
+  {l18:'ضهرم7056',strike:34000,kind:'call',oi:7820,gamma:7.42e-16},{l18:'طهرم7056',strike:34000,kind:'put',oi:30205,gamma:7.42e-16},
+  {l18:'ضهرم7057',strike:38000,kind:'call',oi:29087,gamma:1.03e-13},{l18:'طهرم7057',strike:38000,kind:'put',oi:60984,gamma:1.03e-13},
+  {l18:'ضهرم7058',strike:42000,kind:'call',oi:87809,gamma:3.02e-12},{l18:'طهرم7058',strike:42000,kind:'put',oi:150209,gamma:3.02e-12},
+  {l18:'ضهرم7059',strike:46000,kind:'call',oi:122969,gamma:5.09e-09},{l18:'طهرم7059',strike:46000,kind:'put',oi:141805,gamma:5.09e-09},
+  {l18:'ضهرم7060',strike:50000,kind:'call',oi:209173,gamma:4.78e-08},{l18:'طهرم7060',strike:50000,kind:'put',oi:475644,gamma:4.78e-08},
+  {l18:'ضهرم7061',strike:56000,kind:'call',oi:180550,gamma:1.12e-06},{l18:'طهرم7061',strike:56000,kind:'put',oi:262642,gamma:1.12e-06},
+  {l18:'ضهرم7062',strike:62000,kind:'call',oi:288641,gamma:8.93e-06},{l18:'ضهرم7062',strike:62000,kind:'put',oi:324493,gamma:8.93e-06},
+  {l18:'ضهرم7063',strike:68000,kind:'call',oi:199214,gamma:2.69e-05},{l18:'ضهرم7063',strike:68000,kind:'put',oi:50773,gamma:2.69e-05},
+  {l18:'ضهرم7064',strike:74000,kind:'call',oi:349122,gamma:3.68e-05},{l18:'ضهرم7064',strike:74000,kind:'put',oi:37455,gamma:3.68e-05},
+  {l18:'ضهرم7065',strike:80000,kind:'call',oi:100348,gamma:3.02e-05},{l18:'ضهرم7065',strike:80000,kind:'put',oi:2433,gamma:3.02e-05},
+  {l18:'ضهرم7066',strike:90000,kind:'call',oi:168890,gamma:1.27e-05},{l18:'ضهرم7066',strike:90000,kind:'put',oi:911,gamma:1.27e-05},
+  {l18:'ضهرم7067',strike:100000,kind:'call',oi:3286,gamma:3.74e-06},{l18:'طهرم7067',strike:100000,kind:'put',oi:0,gamma:3.74e-06},
 ];
-const S=72813;
-rows.forEach(r=> r.gex = r.gamma * r.oi * 1000 * S );
-const byStrike={};
-rows.forEach(r=>{ byStrike[r.strike]=(byStrike[r.strike]||0)+r.gex; });
+const S=72813; rows.forEach(r=>r.gex=r.gamma*r.oi*1000*S);
+const byStrike={}; rows.forEach(r=>{byStrike[r.strike]=(byStrike[r.strike]||0)+r.gex;});
 const strikes=Object.keys(byStrike).map(Number).sort((a,b)=>a-b);
 const gexVals=strikes.map(k=>byStrike[k]);
-const tvolProxy=[5.37e-23,2.08e-19,1.19e-15,3.56e-13,1.49e-11,1.02e-8,4.28e-4,1.82e-1,3.57e2,1.11e4,6.71e5,1.02e7,1.19e8,2.30e8,3.71e8,1.58e8,6.22e7,9.11e5];
-
-// GEX chart
-(function(){
-  const svg=document.getElementById('gexChart');
-  const W=560,H=260,pad={t:16,r:12,b:28,l:38};
-  const max=Math.max(...gexVals);
-  const barW=(W-pad.l-pad.r)/strikes.length*0.62;
-  const gap=(W-pad.l-pad.r)/strikes.length;
-  let bg=`<rect x="0" y="0" width="${W}" height="${H}" rx="14" fill="#0d1330" opacity="0.0"/>`;
-  let grid=[0,0.25,0.5,0.75,1].map(p=>`<line x1="${pad.l}" x2="${W-pad.r}" y1="${pad.t+(H-pad.t-pad.b)*p}" y2="${pad.t+(H-pad.t-pad.b)*p}" stroke="#1e2a55" stroke-dasharray="3 4" opacity="0.6"/>`).join('');
-  let bars=strikes.map((k,i)=>{
-    const v=gexVals[i]; const h=(Math.log10(v+1)/Math.log10(max+1))*(H-pad.t-pad.b);
-    const x=pad.l+i*gap+ (gap-barW)/2; const y=H-pad.b-h;
-    const tv=tvolProxy[i]; const th=(Math.log10(tv+1)/Math.log10(max+1))*(H-pad.t-pad.b);
-    return `<g>
-      <rect x="${x-1}" y="${H-pad.b-th}" width="${barW+2}" height="${th}" rx="4" fill="#ffffff" opacity="0.08"/>
-      <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="4" fill="#f0c24b" />
-    </g>`;
-  }).join('');
-  let labels=strikes.filter((_,i)=>i%2===0).map((k,i)=>{
-    const idx=strikes.indexOf(k); const x=pad.l+idx*gap+gap/2;
-    return `<text x="${x}" y="${H-8}" text-anchor="middle" font-size="9" fill="#8a94b8">${k/1000}k</text>`;
-  }).join('');
-  svg.innerHTML=bg+grid+bars+labels;
-})();
-// OI chart
-(function(){
-  const svg=document.getElementById('oiChart');
-  const W=360,H=260,pad={t:12,r:14,b:26,l:36};
-  const vals=strikes.map(k=> rows.filter(r=>r.strike===k).reduce((s,r)=>s+r.oi,0));
-  const max=Math.max(...vals);
-  let bg=`<rect x="0" y="0" width="${W}" height="${H}" rx="14" fill="#0d1330" opacity="0"/>`;
-  let grid=[0,0.33,0.66,1].map(p=>`<line x1="${pad.l}" x2="${W-pad.r}" y1="${pad.t+(H-pad.t-pad.b)*p}" y2="${pad.t+(H-pad.t-pad.b)*p}" stroke="#1e2a55" stroke-dasharray="3 4" opacity="0.5"/>`).join('');
-  let bars=vals.map((v,i)=>{
-    const h=v/max*(H-pad.t-pad.b); const x=pad.l+i*((W-pad.l-pad.r)/vals.length)*0.92+4; const w=(W-pad.l-pad.r)/vals.length*0.62; const y=H-pad.b-h;
-    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#00d1a0" opacity="${0.7+i*0.015}"/>`;
-  }).join('');
-  let labels=strikes.filter((_,i)=>i%3===0).map(k=>{
-    const idx=strikes.indexOf(k); const x=pad.l+idx*((W-pad.l-pad.r)/vals.length)+((W-pad.l-pad.r)/vals.length)/2;
-    return `<text x="${x}" y="${H-8}" text-anchor="middle" font-size="8" fill="#8a94b8">${k/1000}k</text>`;
-  }).join('');
-  svg.innerHTML=bg+grid+bars+labels;
-})();
-// SVI chart
-(function(){
-  const svg=document.getElementById('sviChart');
-  const W=360,H=200,pad={t:12,r:12,b:22,l:30};
-  // SVI w(k) curve: a 0.04 b0.2 rho -0.3 m0 sigma0.2
-  function w(k){const a=0.04,b=0.2,rho=-0.3,m=0,s=0.2;return a+b*(rho*(k-m)+Math.sqrt((k-m)**2+s*s));}
-  const ks=[]; for(let k=-0.8;k<=0.8;k+=0.04) ks.push(k);
-  const ws=ks.map(w); const max=Math.max(...ws),min=Math.min(...ws);
-  const xScale=k=> pad.l+(k+0.8)/1.6*(W-pad.l-pad.r);
-  const yScale=v=> pad.t+(max-v)/(max-min)*(H-pad.t-pad.b);
-  let path=ks.map((k,i)=>`${i?'L':'M'}${xScale(k).toFixed(1)} ${yScale(ws[i]).toFixed(1)}`).join(' ');
-  let area=path+` L${xScale(0.8)} ${H-pad.b} L${xScale(-0.8)} ${H-pad.b} Z`;
-  let grid=`<line x1="${pad.l}" x2="${W-pad.r}" y1="${yScale(0.25)}" y2="${yScale(0.25)}" stroke="#1e2a55" stroke-dasharray="3 4" opacity="0.5"/>`;
-  svg.innerHTML=`<rect x="0" y="0" width="${W}" height="${H}" rx="12" fill="#0d1330" opacity="0"/>${grid}<path d="${area}" fill="#6c7bff" opacity="0.12"/><path d="${path}" fill="none" stroke="#6c7bff" stroke-width="2.2" stroke-linecap="round"/>`+
-    `<text x="${pad.l}" y="${pad.t+10}" font-size="9" fill="#8a94b8">w 0.38</text><text x="${W-pad.r-30}" y="${H-pad.b-6}" font-size="9" fill="#8a94b8">k 0 → 0.09</text>`;
-})();
-// heatmap 18x3
+// heatmap
 (function(){
   const strikes=[20000,22000,24000,26000,28000,30000,34000,38000,42000,46000,50000,56000,62000,68000,74000,80000,90000,100000];
   const expiries=[
-    {label:'07/29', counts:[4972+22083,1623+5811,580+3610,1210+3991,2760+1079,8030+3555,7820+30205,29087+60984,87809+150209,122969+141805,209173+475644,180550+262642,288641+324493,199214+50773,349122+37455,100348+2433,168890+911,3286+0]},
+    {label:'07/29', counts:[4972+22083,1623+5811,580+3610,1210+3991,2760+1079,8030+3555,7820+30205,29087+60984,87809+150209,122969+141805,209173+475644,180550+262642,288641+324493,199214+50773,349122+37455,100348+2433,168890+911,3286]},
     {label:'08/27', counts:[3200,4100,2800,5200,3900,6100,15200,42100,98000,134000,298000,312000,298000,187000,156000,89000,67000,2100]},
     {label:'09/25', counts:[2100,2800,1900,3400,2600,4200,9800,28900,67000,98000,189000,201000,198000,112000,98000,56000,43000,1500]},
   ];
   const max=Math.max(...expiries.flatMap(e=>e.counts));
   const cont=document.getElementById('heatmap');
-  // header row
   cont.appendChild(Object.assign(document.createElement('div'),{textContent:''}));
-  strikes.forEach(k=>{
-    const d=document.createElement('div'); d.textContent=(k/1000)+'k'; d.style.textAlign='center'; d.style.color='#8a94b8'; d.style.fontSize='8px';
-    cont.appendChild(d);
-  });
+  strikes.forEach(k=>{const d=document.createElement('div'); d.textContent=(k/1000)+'k'; d.style.textAlign='center'; d.style.color='#8a94b8'; d.style.fontSize='8px'; cont.appendChild(d);});
   expiries.forEach(exp=>{
-    const label=document.createElement('div'); label.textContent=exp.label; label.style.display='grid'; label.style.placeItems='center'; label.style.background='#0d1330'; label.style.border='1px solid var(--line)'; label.style.borderRadius='8px'; label.style.fontSize='10px'; label.style.fontWeight='700';
-    if(exp.label==='07/29') {label.style.background='linear-gradient(135deg,#f0c24b30,#ff8a3d20)'; label.style.borderColor='#f0c24b60'; label.style.color='#ffe9a8'}
+    const label=document.createElement('div'); label.textContent=exp.label; label.style.display='grid'; label.style.placeItems='center'; label.style.background='#0d1330'; label.style.border='1px solid var(--line)'; label.style.borderRadius='8px'; label.style.fontSize='10px'; if(exp.label==='07/29') label.style.background='linear-gradient(135deg,#f0c24b30,#ff8a3d20)';
     cont.appendChild(label);
     exp.counts.forEach(v=>{
       const c=document.createElement('div'); c.style.height='22px'; c.style.borderRadius='6px'; c.style.display='grid'; c.style.placeItems='center'; c.style.fontSize='8px'; c.style.fontWeight='700';
-      const t=v/max;
-      if(t<0.15) c.style.background='#ff5a6a20', c.style.color='#ffb0b8', c.style.border='1px solid #ff5a6a30';
-      else if(t<0.4) c.style.background='#f0c24b30', c.style.color='#ffe9a8', c.style.border='1px solid #f0c24b40';
-      else if(t<0.7) c.style.background='#f0c24b55', c.style.color='#1a1200', c.style.border='1px solid #f0c24b60';
-      else c.style.background='linear-gradient(135deg,#00d1a0,#00b894)', c.style.color='#02150f', c.style.border='1px solid #00d1a060';
-      c.textContent= v>100000? Math.round(v/1000)+'k' : v;
-      c.title=`OI ${v.toLocaleString()}`;
-      cont.appendChild(c);
+      const t=v/max; if(t<0.15) c.style.background='#ff5a6a20',c.style.color='#ffb0b8'; else if(t<0.4) c.style.background='#f0c24b30',c.style.color='#ffe9a8'; else if(t<0.7) c.style.background='#f0c24b55',c.style.color='#1a1200'; else c.style.background='linear-gradient(135deg,#00d1a0,#00b894)',c.style.color='#02150f';
+      c.textContent=v>100000?Math.round(v/1000)+'k':v; cont.appendChild(c);
     });
   });
 })();
-// 3D vol surface canvas
+// gex chart
 (function(){
-  const canvas=document.getElementById('vol3d'); const ctx=canvas.getContext('2d');
-  let rotX=-0.6, rotZ=0.6, scale=1;
-  function w(k,T){ const a=0.04,b=0.2,rho=-0.3,m=0,s=0.2; const k2=k; return a + b*(rho*k2 + Math.sqrt(k2*k2 + s*s)) * (0.9 + T*0.5); }
+  const svg=document.getElementById('gexChart'); const W=360,H=200,pad={t:10,r:8,b:22,l:32};
+  const max=Math.max(...gexVals); let bg=`<rect x="0" y="0" width="${W}" height="${H}" rx="10" fill="#0d1330" opacity="0"/>`;
+  let grid=[0,0.5,1].map(p=>`<line x1="${pad.l}" x2="${W-pad.r}" y1="${pad.t+(H-pad.t-pad.b)*p}" y2="${pad.t+(H-pad.t-pad.b)*p}" stroke="#1e2a55" stroke-dasharray="3 3"/>`).join('');
+  const barW=(W-pad.l-pad.r)/strikes.length*0.6, gap=(W-pad.l-pad.r)/strikes.length;
+  let bars=strikes.map((k,i)=>{ const v=gexVals[i]; const h=(Math.log10(v+1)/Math.log10(max+1))*(H-pad.t-pad.b); const x=pad.l+i*gap+(gap-barW)/2; const y=H-pad.b-h; return `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="3" fill="#f0c24b"/>`;}).join('');
+  svg.innerHTML=bg+grid+bars;
+})();
+// 3d
+(function(){
+  const canvas=document.getElementById('vol3d'); const ctx=canvas.getContext('2d'); let rotZ=0.6, rotX=-0.6;
+  function w(k,T){ const a=0.04,b=0.2,rho=-0.3,m=0,s=0.2; return a + b*(rho*k + Math.sqrt(k*k+s*s))*(0.9+T*0.5); }
   function draw(){
-    const W=canvas.width, H=canvas.height;
-    ctx.clearRect(0,0,W,H);
-    // grid
-    ctx.strokeStyle='#1e2a55'; ctx.lineWidth=1; ctx.globalAlpha=0.5;
-    for(let i=0;i<=10;i++){ ctx.beginPath(); ctx.moveTo(60+i*52, 40); ctx.lineTo(40+i*52, 220); ctx.stroke(); }
-    // three curves for T 0.082,0.16,0.24
-    const Ts=[0.082,0.16,0.24], cols=['#f0c24b','#00d1a0','#6c7bff'];
-    Ts.forEach((T,ti)=>{
-      ctx.beginPath(); ctx.strokeStyle=cols[ti]; ctx.lineWidth=2.6; ctx.globalAlpha=0.95;
-      for(let k=-0.8;k<=0.8;k+=0.02){
-        const v=w(k,T); // iv
-        // pseudo 3D projection
-        const x = 80 + (k+0.8)/1.6 * 480 + T*120 * Math.cos(rotZ) - rotX*20;
-        const y = 180 - v*180 + T*90 * Math.sin(rotZ) + rotX*30;
-        if(k===-0.8) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      }
-      ctx.stroke();
-      // fill under
-      ctx.globalAlpha=0.12; ctx.lineTo(80+480+ T*120*Math.cos(rotZ)-20, 220); ctx.lineTo(80+ T*120*Math.cos(rotZ)-20, 220); ctx.closePath(); ctx.fillStyle=cols[ti]; ctx.fill(); ctx.globalAlpha=0.95;
+    const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H);
+    [0.082,0.16,0.24].forEach((T,ti)=>{
+      const cols=['#f0c24b','#00d1a0','#6c7bff']; ctx.beginPath(); ctx.strokeStyle=cols[ti]; ctx.lineWidth=2.2;
+      for(let k=-0.8;k<=0.8;k+=0.02){ const v=w(k,T); const x=80+(k+0.8)/1.6*480+T*120*Math.cos(rotZ); const y=160-v*140+T*70*Math.sin(rotZ)+rotX*20; if(k===-0.8) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.stroke();
     });
-    // axes labels
-    ctx.fillStyle='#8a94b8'; ctx.font='11px Tahoma'; ctx.fillText('k (log-moneyness)', 260, 250);
-    ctx.save(); ctx.translate(14,140); ctx.rotate(-Math.PI/2); ctx.fillText('w (total variance)', 0,0); ctx.restore();
-    ctx.fillStyle='#5a658a'; ctx.font='10px Tahoma'; ctx.fillText('T 0.24 →', 520, 40);
   }
-  draw();
-  let dragging=false,lastX=0;
-  canvas.addEventListener('pointerdown',e=>{dragging=true; lastX=e.clientX; canvas.setPointerCapture(e.pointerId);});
-  canvas.addEventListener('pointerup',()=>dragging=false);
-  canvas.addEventListener('pointermove',e=>{ if(!dragging) return; rotZ+=(e.clientX-lastX)*0.008; lastX=e.clientX; draw(); });
-  canvas.addEventListener('wheel',e=>{ e.preventDefault(); scale*= e.deltaY>0?0.95:1.05; draw(); },{passive:false});
+  draw(); let drag=false,lastX=0;
+  canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;});
+  canvas.addEventListener('pointerup',()=>drag=false);
+  canvas.addEventListener('pointermove',e=>{if(!drag) return; rotZ+=(e.clientX-lastX)*0.008; lastX=e.clientX; draw();});
 })();
 // table
 (function(){
   const tbody=document.getElementById('tbody');
-  rows.forEach(r=>{
-    const tr=document.createElement('tr');
-    const gex=r.gex.toExponential(2);
-    const cls=r.kind==='call' ? 'call' : 'put';
-    tr.innerHTML=`<td style="font-family:monospace">${r.l18}</td><td>${r.strike.toLocaleString('fa-IR')}</td><td><span class="pill ${cls}">${r.kind==='call'?'اختیار خرید':'اختیار فروش'}</span></td><td style="font-weight:700">${r.oi.toLocaleString('fa-IR')}</td><td style="font-family:monospace;font-size:11px">${r.gamma.toExponential(1)}</td><td style="font-family:monospace">${gex}</td><td>${r.oi>0?'<span style="color:var(--ok)">● زنده</span>':'<span style="color:var(--muted)">○ صفر</span>'}</td>`;
-    tbody.appendChild(tr);
-  });
+  rows.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td style="font-family:monospace">${r.l18}</td><td>${r.strike.toLocaleString('fa-IR')}</td><td><span class="pill ${r.kind==='call'?'call':'put'}">${r.kind==='call'?'خرید':'فروش'}</span></td><td>${r.oi.toLocaleString('fa-IR')}</td><td style="font-family:monospace;font-size:11px">${r.gamma.toExponential(1)}</td><td style="font-family:monospace">${r.gex.toExponential(2)}</td>`; tbody.appendChild(tr); });
 })();
 </script>
 </body>
