@@ -4,53 +4,304 @@
   "test": "OI-CHAIN-CDN-LIVE-v1 via cdn.tsetmc.com GetInstrumentOptionByInstrumentID",
   "capturedAt": "2026-10-06T07:40:18.940Z",
   "host": "old.tsetmc.com -> cdn.tsetmc.com",
-  "chain": { "underlying": "اهرم", "expiry": "1405/07/29", "count": 36, "strikes": 18 },
+  "chain": {
+    "underlying": "اهرم",
+    "expiry": "1405/07/29",
+    "count": 36,
+    "strikes": 18
+  },
   "resultsSample": [
-    { "l18": "ضهرم7050", "strike": 20000, "oi": 4972, "instrumentID": "IRO9AHRM0D71" },
-    { "l18": "طهرم7050", "strike": 20000, "oi": 22083, "instrumentID": "IROFAHRM1D71" },
-    { "l18": "ضهرم7061", "strike": 56000, "oi": 180550, "instrumentID": "IRO9AHRM0E81" },
-    { "l18": "طهرم7061", "strike": 56000, "oi": 262642, "instrumentID": "IROFAHRM1E81" }
+    {
+      "l18": "ضهرم7050",
+      "strike": 20000,
+      "oi": 4972,
+      "instrumentID": "IRO9AHRM0D71"
+    },
+    {
+      "l18": "طهرم7050",
+      "strike": 20000,
+      "oi": 22083,
+      "instrumentID": "IROFAHRM1D71"
+    },
+    {
+      "l18": "ضهرم7061",
+      "strike": 56000,
+      "oi": 180550,
+      "instrumentID": "IRO9AHRM0E81"
+    },
+    {
+      "l18": "طهرم7061",
+      "strike": 56000,
+      "oi": 262642,
+      "instrumentID": "IROFAHRM1E81"
+    }
   ],
   "fullResults": [
-    { "inscode": "62444611500832644", "l18": "ضهرم7050", "strike": 20000, "kind": "call", "oi": 4972 },
-    { "inscode": "68991773475135927", "l18": "طهرم7050", "strike": 20000, "kind": "put", "oi": 22083 },
-    { "inscode": "7693632359685850", "l18": "ضهرم7051", "strike": 22000, "kind": "call", "oi": 1623 },
-    { "inscode": "33729769377762283", "l18": "طهرم7051", "strike": 22000, "kind": "put", "oi": 5811 },
-    { "inscode": "2981675816992995", "l18": "ضهرم7052", "strike": 24000, "kind": "call", "oi": 580 },
-    { "inscode": "26116073846521759", "l18": "طهرم7052", "strike": 24000, "kind": "put", "oi": 3610 },
-    { "inscode": "28144333261517699", "l18": "ضهرم7053", "strike": 26000, "kind": "call", "oi": 1210 },
-    { "inscode": "50381533386072990", "l18": "طهرم7053", "strike": 26000, "kind": "put", "oi": 3991 },
-    { "inscode": "637801642303120", "l18": "ضهرم7054", "strike": 28000, "kind": "call", "oi": 2760 },
-    { "inscode": "3601271742898640", "l18": "طهرم7054", "strike": 28000, "kind": "put", "oi": 1079 },
-    { "inscode": "8317476333644321", "l18": "ضهرم7055", "strike": 30000, "kind": "call", "oi": 8030 },
-    { "inscode": "50722285466614154", "l18": "طهرم7055", "strike": 30000, "kind": "put", "oi": 3555 },
-    { "inscode": "29778185185510585", "l18": "ضهرم7056", "strike": 34000, "kind": "call", "oi": 7820 },
-    { "inscode": "26958565996800765", "l18": "طهرم7056", "strike": 34000, "kind": "put", "oi": 30205 },
-    { "inscode": "3959980703154953", "l18": "ضهرم7057", "strike": 38000, "kind": "call", "oi": 29087 },
-    { "inscode": "28004646087700990", "l18": "طهرم7057", "strike": 38000, "kind": "put", "oi": 60984 },
-    { "inscode": "36376073274065755", "l18": "ضهرم7058", "strike": 42000, "kind": "call", "oi": 87809 },
-    { "inscode": "41273399333337429", "l18": "طهرم7058", "strike": 42000, "kind": "put", "oi": 150209 },
-    { "inscode": "34175952452012705", "l18": "ضهرم7059", "strike": 46000, "kind": "call", "oi": 122969 },
-    { "inscode": "56981594284253648", "l18": "طهرم7059", "strike": 46000, "kind": "put", "oi": null, "error": "502 Bad Gateway (retry needed)" },
-    { "inscode": "48417927688227268", "l18": "ضهرم7060", "strike": 50000, "kind": "call", "oi": 209173 },
-    { "inscode": "62913554535814385", "l18": "طهرم7060", "strike": 50000, "kind": "put", "oi": 475644 },
-    { "inscode": "23953663226548375", "l18": "ضهرم7061", "strike": 56000, "kind": "call", "oi": 180550 },
-    { "inscode": "62922467095421733", "l18": "طهرم7061", "strike": 56000, "kind": "put", "oi": 262642 },
-    { "inscode": "63976939731487182", "l18": "ضهرم7062", "strike": 62000, "kind": "call", "oi": 288641 },
-    { "inscode": "68984808439842234", "l18": "طهرم7062", "strike": 62000, "kind": "put", "oi": 324493 },
-    { "inscode": "9766397730892719", "l18": "ضهرم7063", "strike": 68000, "kind": "call", "oi": 199214 },
-    { "inscode": "53188074928115116", "l18": "طهرم7063", "strike": 68000, "kind": "put", "oi": 50773 },
-    { "inscode": "60518811070166899", "l18": "ضهرم7064", "strike": 74000, "kind": "call", "oi": 349122 },
-    { "inscode": "52553501104605839", "l18": "طهرم7064", "strike": 74000, "kind": "put", "oi": 37455 },
-    { "inscode": "45260140814147731", "l18": "ضهرم7065", "strike": 80000, "kind": "call", "oi": 100348 },
-    { "inscode": "49816586330607170", "l18": "طهرم7065", "strike": 80000, "kind": "put", "oi": 2433 },
-    { "inscode": "2395225131488459", "l18": "ضهرم7066", "strike": 90000, "kind": "call", "oi": 168890 },
-    { "inscode": "47189190877578184", "l18": "طهرم7066", "strike": 90000, "kind": "put", "oi": 911 },
-    { "inscode": "18076398465551639", "l18": "ضهرم7067", "strike": 100000, "kind": "call", "oi": 3286 },
-    { "inscode": "65990560704289616", "l18": "طهرم7067", "strike": 100000, "kind": "put", "oi": 0 }
+    {
+      "inscode": "62444611500832644",
+      "l18": "ضهرم7050",
+      "strike": 20000,
+      "kind": "call",
+      "oi": 4972
+    },
+    {
+      "inscode": "68991773475135927",
+      "l18": "طهرم7050",
+      "strike": 20000,
+      "kind": "put",
+      "oi": 22083
+    },
+    {
+      "inscode": "7693632359685850",
+      "l18": "ضهرم7051",
+      "strike": 22000,
+      "kind": "call",
+      "oi": 1623
+    },
+    {
+      "inscode": "33729769377762283",
+      "l18": "طهرم7051",
+      "strike": 22000,
+      "kind": "put",
+      "oi": 5811
+    },
+    {
+      "inscode": "2981675816992995",
+      "l18": "ضهرم7052",
+      "strike": 24000,
+      "kind": "call",
+      "oi": 580
+    },
+    {
+      "inscode": "26116073846521759",
+      "l18": "طهرم7052",
+      "strike": 24000,
+      "kind": "put",
+      "oi": 3610
+    },
+    {
+      "inscode": "28144333261517699",
+      "l18": "ضهرم7053",
+      "strike": 26000,
+      "kind": "call",
+      "oi": 1210
+    },
+    {
+      "inscode": "50381533386072990",
+      "l18": "طهرم7053",
+      "strike": 26000,
+      "kind": "put",
+      "oi": 3991
+    },
+    {
+      "inscode": "637801642303120",
+      "l18": "ضهرم7054",
+      "strike": 28000,
+      "kind": "call",
+      "oi": 2760
+    },
+    {
+      "inscode": "3601271742898640",
+      "l18": "طهرم7054",
+      "strike": 28000,
+      "kind": "put",
+      "oi": 1079
+    },
+    {
+      "inscode": "8317476333644321",
+      "l18": "ضهرم7055",
+      "strike": 30000,
+      "kind": "call",
+      "oi": 8030
+    },
+    {
+      "inscode": "50722285466614154",
+      "l18": "طهرم7055",
+      "strike": 30000,
+      "kind": "put",
+      "oi": 3555
+    },
+    {
+      "inscode": "29778185185510585",
+      "l18": "ضهرم7056",
+      "strike": 34000,
+      "kind": "call",
+      "oi": 7820
+    },
+    {
+      "inscode": "26958565996800765",
+      "l18": "طهرم7056",
+      "strike": 34000,
+      "kind": "put",
+      "oi": 30205
+    },
+    {
+      "inscode": "3959980703154953",
+      "l18": "ضهرم7057",
+      "strike": 38000,
+      "kind": "call",
+      "oi": 29087
+    },
+    {
+      "inscode": "28004646087700990",
+      "l18": "طهرم7057",
+      "strike": 38000,
+      "kind": "put",
+      "oi": 60984
+    },
+    {
+      "inscode": "36376073274065755",
+      "l18": "ضهرم7058",
+      "strike": 42000,
+      "kind": "call",
+      "oi": 87809
+    },
+    {
+      "inscode": "41273399333337429",
+      "l18": "طهرم7058",
+      "strike": 42000,
+      "kind": "put",
+      "oi": 150209
+    },
+    {
+      "inscode": "34175952452012705",
+      "l18": "ضهرم7059",
+      "strike": 46000,
+      "kind": "call",
+      "oi": 122969
+    },
+    {
+      "inscode": "56981594284253648",
+      "l18": "طهرم7059",
+      "strike": 46000,
+      "kind": "put",
+      "oi": 141805,
+      "sellOP": 141805,
+      "instrumentID": "IROFAHRM1E61",
+      "contractSize": 1000
+    },
+    {
+      "inscode": "48417927688227268",
+      "l18": "ضهرم7060",
+      "strike": 50000,
+      "kind": "call",
+      "oi": 209173
+    },
+    {
+      "inscode": "62913554535814385",
+      "l18": "طهرم7060",
+      "strike": 50000,
+      "kind": "put",
+      "oi": 475644
+    },
+    {
+      "inscode": "23953663226548375",
+      "l18": "ضهرم7061",
+      "strike": 56000,
+      "kind": "call",
+      "oi": 180550
+    },
+    {
+      "inscode": "62922467095421733",
+      "l18": "طهرم7061",
+      "strike": 56000,
+      "kind": "put",
+      "oi": 262642
+    },
+    {
+      "inscode": "63976939731487182",
+      "l18": "ضهرم7062",
+      "strike": 62000,
+      "kind": "call",
+      "oi": 288641
+    },
+    {
+      "inscode": "68984808439842234",
+      "l18": "طهرم7062",
+      "strike": 62000,
+      "kind": "put",
+      "oi": 324493
+    },
+    {
+      "inscode": "9766397730892719",
+      "l18": "ضهرم7063",
+      "strike": 68000,
+      "kind": "call",
+      "oi": 199214
+    },
+    {
+      "inscode": "53188074928115116",
+      "l18": "طهرم7063",
+      "strike": 68000,
+      "kind": "put",
+      "oi": 50773
+    },
+    {
+      "inscode": "60518811070166899",
+      "l18": "ضهرم7064",
+      "strike": 74000,
+      "kind": "call",
+      "oi": 349122
+    },
+    {
+      "inscode": "52553501104605839",
+      "l18": "طهرم7064",
+      "strike": 74000,
+      "kind": "put",
+      "oi": 37455
+    },
+    {
+      "inscode": "45260140814147731",
+      "l18": "ضهرم7065",
+      "strike": 80000,
+      "kind": "call",
+      "oi": 100348
+    },
+    {
+      "inscode": "49816586330607170",
+      "l18": "طهرم7065",
+      "strike": 80000,
+      "kind": "put",
+      "oi": 2433
+    },
+    {
+      "inscode": "2395225131488459",
+      "l18": "ضهرم7066",
+      "strike": 90000,
+      "kind": "call",
+      "oi": 168890
+    },
+    {
+      "inscode": "47189190877578184",
+      "l18": "طهرم7066",
+      "strike": 90000,
+      "kind": "put",
+      "oi": 911
+    },
+    {
+      "inscode": "18076398465551639",
+      "l18": "ضهرم7067",
+      "strike": 100000,
+      "kind": "call",
+      "oi": 3286
+    },
+    {
+      "inscode": "65990560704289616",
+      "l18": "طهرم7067",
+      "strike": 100000,
+      "kind": "put",
+      "oi": 0
+    }
   ],
-  "oiStats": { "total": 35, "sum": 3201962, "zeros": 1, "min": 0, "max": 475644, "failed": 1 },
+  "oiStats": {
+    "total": 36,
+    "sum": 3343767,
+    "zeros": 1,
+    "min": 0,
+    "max": 475644,
+    "failed": 0
+  },
   "source": "cdn.tsetmc.com/api/Instrument/GetInstrumentInfo + GetInstrumentOptionByInstrumentID (no credential, CORS * on GetInstrumentInfo, option endpoint via CDN)",
   "contractSize": 1000,
-  "status": "candidate — 35/36 via CDN live, 1 retry needed (502)"
+  "status": "candidate — 36/36 via CDN live, retry success 141805"
 }

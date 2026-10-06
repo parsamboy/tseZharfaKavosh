@@ -7,9 +7,30 @@
   "S": 72813,
   "chain": 36,
   "strikes": 18,
-  "gex": { "real": 2996044740.2763987, "tvol": 951720078.4864241, "one": 21963.998, "ratioRealVsTvol": 3.148, "ratioRealVsOne": 136407.07 },
-  "byStrikeSample": { "62000": { "real": "5.25e+8", "tvol": "1.19e+8", "ratio": "4.43" }, "74000": { "real": "1.33e+9", "tvol": "3.71e+8", "ratio": "3.59" } },
-  "oiStats": { "sum": 3201962, "tvolSum": 724591 },
+  "gex": {
+    "real": 2996097302.151593,
+    "tvol": 951720078.4864241,
+    "one": 21963.998,
+    "ratioRealVsTvol": 3.148,
+    "ratioRealVsOne": 136407.07,
+    "realFormatted": "2.996e+09"
+  },
+  "byStrikeSample": {
+    "62000": {
+      "real": "5.25e+8",
+      "tvol": "1.19e+8",
+      "ratio": "4.43"
+    },
+    "74000": {
+      "real": "1.33e+9",
+      "tvol": "3.71e+8",
+      "ratio": "3.59"
+    }
+  },
+  "oiStats": {
+    "sum": 3343767,
+    "tvolSum": 724591
+  },
   "worth": "Real OI GEX 2.996e9 vs tvol 9.5e8 ratio 3.148 — tvol proxy misleading per strike up to 73x — real CDN OI needed and now works without api.tsetmc.com",
-  "status": "candidate — real OI via CDN"
+  "status": "candidate — 36/36 via CDN (retry 141805) — real OI complete"
 }

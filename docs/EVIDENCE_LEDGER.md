@@ -394,7 +394,7 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 ### E-035 — OI chain CDN live 35/36 (G-09) — platform-verified / candidate
 
 - `evidenceId`: `E-035`
-- `claim`: `OI chain 36 اهرم 1405/07/29 via cdn.tsetmc.com GetInstrumentOptionByInstrumentID: 35/36 ok sum 3,201,962 zeros 1 (502 retry for 56981594284253648), sample 20000 call 4972 / put 22083, 56000 call 180550 / put 262642 — matches page 4,969 — no credential`
+- `claim`: `OI chain 36 اهرم 1405/07/29 via cdn.tsetmc.com GetInstrumentOptionByInstrumentID: 36/36 ok sum 3,343,767 (retry 56981594284253648 buyOP 141805 success) — 35/36 was 3,201,962, now complete, sample 20000 call 4972 / put 22083, 56000 call 180550 / put 262642 — matches page 4,969 — no credential`
 - `level`: `platform-verified`
 - `source`: `src/transport/cdnOi.v0.1.0.js + probes/oi.chain.cdn.live.v1.js on old.tsetmc.com 15131F -> cdn.tsetmc.com/api/Instrument (live 07:40Z, S live, chain 36)`
 - `host`: `old.tsetmc.com -> cdn.tsetmc.com`
