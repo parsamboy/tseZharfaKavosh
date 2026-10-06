@@ -24,6 +24,18 @@
   :root.light .dock{ background:#fffffff2; border-color:#e2e8f0; }
   :root.light .win-drag{ background:#f1f5f9; }
   :root.light .win-btn{ background:#f8fafc; }
+  :root.neon{
+    --bg:#050a1f; --panel:#0a1030; --panel2:#0f1840; --line:#1a2a6a;
+    --text:#e0f0ff; --muted:#7a8ac0;
+    --accent:#00f0ff; --ok:#00ff88; --danger:#ff3b9a; --focus:#a78bfa;
+  }
+  :root.neon body{ background:radial-gradient(900px 500px at 20% -10%, #00f0ff18, transparent), radial-gradient(800px 400px at 90% 0%, #ff3b9a12, transparent), radial-gradient(600px 300px at 50% 50%, #a78bfa0d, transparent), var(--bg); }
+  :root.neon .window{ box-shadow:0 0 0 1px #00f0ff18, 0 12px 40px #00000060, 0 0 30px #00f0ff08; border-color:#1e3a8a; }
+  :root.neon .win-head{ background:linear-gradient(180deg,#0f1840,#0a1030); border-bottom-color:#1e3a8a; }
+  :root.neon .logo{ background:linear-gradient(135deg,#00f0ff,#a78bfa); box-shadow:0 0 20px #00f0ff60; }
+  :root.neon .badge.ok{ border-color:#00ff8860; background:#00ff8815; color:#b8ffe0; }
+  :root.neon .kpi.accent{ border-color:#00f0ff40; }
+  :root.neon .kpi.accent strong{ color:var(--accent); text-shadow:0 0 10px #00f0ff80; }
   *{box-sizing:border-box}
   body{margin:0;background:radial-gradient(1000px 500px at 15% -10%, #1e3a8a22, transparent), radial-gradient(800px 400px at 95% 0%, #00d1a018, transparent), var(--bg); color:var(--text); font-family: Vazirmatn, Tahoma, system-ui, sans-serif; line-height:1.6; overflow-x:hidden; transition:background .3s, color .3s}
   .window, .card, .kpi, .badge, .win-head{ transition:background .3s, border-color .3s, color .3s }
@@ -335,14 +347,22 @@ function showAll(){
 }
 function toggleTheme(){
   const root=document.documentElement;
-  const isLight=root.classList.toggle('light');
-  localStorage.setItem('tseTheme', isLight?'light':'dark');
-  document.getElementById('themeBtn').textContent=isLight?'🌙 دارک':'☀️ لایت';
-  // روان‌شناسی: لایت = انرژی روز، دارک = تمرکز شب — انتخاب به کاربر حس کنترل می‌دهد (Autonomy)
+  const cur=root.classList.contains('light') ? 'light' : root.classList.contains('neon') ? 'neon' : 'dark';
+  const next = cur==='dark' ? 'light' : cur==='light' ? 'neon' : 'dark';
+  root.classList.remove('light','neon');
+  if(next!=='dark') root.classList.add(next);
+  localStorage.setItem('tseTheme', next);
+  const labels={dark:'☀️ لایت', light:'💎 نئون', neon:'🌙 دارک'};
+  document.getElementById('themeBtn').textContent=labels[next];
 }
 (function restoreTheme(){
-  const t=localStorage.getItem('tseTheme');
-  if(t==='light'){ document.documentElement.classList.add('light'); document.getElementById('themeBtn').textContent='🌙 دارک'; }
+  const t=localStorage.getItem('tseTheme') || 'dark';
+  const root=document.documentElement;
+  if(t==='light') root.classList.add('light');
+  else if(t==='neon') root.classList.add('neon');
+  const labels={dark:'☀️ لایت', light:'💎 نئون', neon:'🌙 دارک'};
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent=labels[t]||'☀️ لایت';
 })();
 const templates={
   pro:{ kpiWin:{l:0,t:0,w:760}, poolWin:{l:780,t:0,w:560}, levWin:{l:0,t:220,w:360}, goldWin:{l:370,t:220,w:360}, infWin:{l:740,t:220,w:360}, heatWin:{l:0,t:420,w:700}, corrWin:{l:710,t:420,w:400}, vol3dWin:{l:0,t:640,w:700}, gexWin:{l:710,t:640,w:400}, chainWin:{l:0,t:900,w:1360}},
