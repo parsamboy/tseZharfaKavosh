@@ -1,0 +1,13 @@
+{
+  "evidenceId": "E-031",
+  "gate": "G-16",
+  "test": "G16-SSE-LIVE-v1",
+  "capturedAt": "2026-10-06T06:13:00.391Z",
+  "host": "old.tsetmc.com",
+  "parTree": "15131F",
+  "sse": { "attempted": true, "failed": true, "error": "onerror (expected) — MIME text/html not text/event-stream" },
+  "polling": { "attempted": true, "gotData": true, "status": 200, "count": 4, "sample": "277392,2062173,769185@05/07/14 09:42:33,S,7971858.28..." },
+  "fallback": { "valid": true, "trace": [{ "state": "sse" }, { "state": "polling" }, { "state": "done" }] },
+  "status": "candidate",
+  "bestChoice": "SSE failed as expected, polling got live MarketWatchPlus data — fallback valid"
+}

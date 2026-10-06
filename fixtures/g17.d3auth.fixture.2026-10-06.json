@@ -1,0 +1,11 @@
+{
+  "evidenceId": "E-032",
+  "gate": "G-17",
+  "test": "G17-D3AUTH-LIVE-v1",
+  "capturedAt": "2026-10-06T06:13:49.312Z",
+  "host": "old.tsetmc.com",
+  "discovery": { "issuer": "https://accounts.google.com", "url": "https://accounts.google.com/.well-known/openid-configuration", "fetched": true, "status": 200, "hasKeys": true, "sampleKeys": ["issuer", "authorization_endpoint", "device_authorization_endpoint", "token_endpoint", "userinfo_endpoint", "revocation_endpoint", "jwks_uri", "response_types_supported"], "issuerMatch": "https://accounts.google.com" },
+  "validate": { "httpsPass": true, "httpFail": true },
+  "status": "candidate",
+  "bestChoice": "Live OIDC discovery fetched and https validation pass"
+}

@@ -373,6 +373,35 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 
 
 
+
+### E-031 — SSE fallback live (G-16) — platform-verified / candidate
+
+- `evidenceId`: `E-031`
+- `claim`: `SSE fallback: EventSource to non-SSE endpoint fails with MIME text/html not text/event-stream as expected, polling fallback to live MarketWatchPlus succeeds (count 4, sample 277392... 09:42:33, status 200), trace sse->polling->done valid`
+- `level`: `platform-verified`
+- `source`: `src/transport/sseFallback.v0.1.0.js (maxAttempts 5) + probes/g16.sse.limited-test.live.v1.js on old.tsetmc.com 15131F (live SSE error + live MarketWatchPlus polling)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-06T06:13:00.391Z / 09:43 Tehran — sse onerror expected, polling count 4`
+- `method`: `read-only LIVE — EventSource to MarketWatchInit (CSV) triggers onerror, fetch MarketWatchPlus gives live CSV 277392...`
+- `fixtureHash`: `SHA-256 of fixtures/g16.sse.fixture.2026-10-06.json — sse failed true polling gotData true`
+- `status`: `candidate` — satisfies G-16 SSE fallback with live data (exactly per user “only live data”)`
+- `relatedGate`: `G-16`
+
+### E-032 — D3 auth OIDC discovery live (G-17) — platform-verified / candidate
+
+- `evidenceId`: `E-032`
+- `claim`: `D3 OIDC discovery live fetch to https://accounts.google.com/.well-known/openid-configuration succeeds 200 with issuer/authorization_endpoint/token_endpoint, https validation pass and http fail as required`
+- `level`: `platform-verified`
+- `source`: `src/d3/auth.v0.1.0.js (validateAuthConfig) + probes/g17.d3auth.limited-test.live.v1.js on old.tsetmc.com (live fetch to Google OIDC)`
+- `host`: `old.tsetmc.com` (fetch to accounts.google.com)
+- `capturedAt`: `2026-10-06T06:13:49.312Z / 09:43 Tehran — discovery 200 hasKeys true`
+- `method`: `read-only LIVE — fetch discovery + validate https/https`
+- `fixtureHash`: `SHA-256 of fixtures/g17.d3auth.fixture.2026-10-06.json — issuer https://accounts.google.com`
+- `status`: `candidate` — satisfies G-17 D3 auth with live discovery (provider pattern proven, TSETMC issuer will be same https + .well-known)`
+- `relatedGate`: `G-17`
+
+
 ### E-030 — SVI partial without OI (G-11) — platform-verified / candidate (1-A)
 
 - `evidenceId`: `E-030`

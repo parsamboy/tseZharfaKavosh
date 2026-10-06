@@ -57,8 +57,8 @@ P-DEC-002 از این فهرست **حذف و به تصمیم بسته** تبدی
 | G-13 | bridge confirmation | ✅ **candidate — FilterCode has true (empty len 0) + SaveParams setData + FilterNo 8 + trace valid — E-026** | authoritative state، apply/persist probe و trace — **authoritative slot وجود دارد، SaveParams round-trip ثابت شد** |
 | G-14 | source/min/release | ✅ **candidate — node --check 33/33 ✅ + acorn pass + parity ✅ + PART G/H ✅ + 59 formally pending — E-027** | `node --check`، ۵۹ scan، parity، PART G/H و smoke — **33 فایل pass، 59 no literal** |
 | G-15 | product release approval | ✅ **candidate — v0.2.0-alpha approved — E-028** — G-03 confirmed + G-04..G-14 candidate (E-023 pending credential noted as spec-valid, not laziness) | تأیید release محصول پس از gateهای فنی — **Alpha تایید شد، GEX/Flow به v0.2.1** |
-| G-16 | SSE fallback policy | ✅ candidate — PART U §13 maxAttempts/pollInterval/maxFallbackDuration versioned | `maxAttempts`، `pollInterval`، `maxFallbackDuration` و trace — **policy در قرارداد، config versioned باقی‌مانده** |
-| G-17 | D3 authentication/discovery | ✅ candidate — Managed Container + OAuth2/OIDC per D-2026-10-03-003 | provider، OAuth 2.0/OIDC discovery، signature و verification policy — **topology ثابت، provider جدا** |
+| G-16 | SSE fallback policy | ✅ **candidate live — SSE onerror expected + polling live count 4 — E-031** — maxAttempts 5/poll 2000/max 30000 | `maxAttempts`، `pollInterval`، `maxFallbackDuration` و trace — **live SSE→polling fallback valid** |
+| G-17 | D3 authentication/discovery | ✅ **candidate live — OIDC discovery 200 hasKeys true — E-032** — Managed Container + OAuth2/OIDC | provider، OAuth 2.0/OIDC discovery، signature و verification policy — **live discovery fetched** |
 | G-18 | Alpha scope approval | ✅ **closed via D-2026-10-05-001 — Full** — P-DEC-002 privacy همچنان باز | تعیین اینکه D3 و ماژول‌های advanced در Alpha shipping هستند یا phased — **Full تایید شد؛ privacy باقی‌مانده** |
 
 ---
