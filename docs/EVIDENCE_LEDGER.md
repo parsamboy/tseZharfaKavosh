@@ -529,6 +529,7 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `method`: `read-only LIMITED-TEST v2 — typeof FilterCode string, SaveParams function toString, Settings.FilterNo, trace sample valid true`
 - `fixtureHash`: `SHA-256 5e49047f0d38ee422ff38a6cc4ac9ab2094c145c0d71b0b03dd0da82e1560937 of fixtures/g13.bridge.fixture.2026-10-05.json`
 - `status`: `candidate` — satisfies G-13 for bridge design (authoritative slot exists, SaveParams round-trip, trace valid); live ApplyBridge with non-empty FilterCode remains as next probe
+- `officialProbeV3`: `probes/g13.bridge.official.v3.js` — gate `G-13`, evidenceId `E-026` — official probe for the missing piece (non-empty FilterCode apply + SaveParams round-trip + trace validate + rollback + restoredSlot). Status becomes `candidate-confirmed` only after a successful live run (roundTrip.confirmed && trace.valid && rollback.restored) and owner review; gate stays `candidate` until then. Canary from B-validation remains retired.
 - `relatedGate`: `G-13`
 - `bestChoiceReason`: |
     FilterCode property exists (has true) but value "" len 0 — proves authoritative slot exists even though no filter active now. SaveParams is function setData("MarketWatchSettings",JSON.stringify(mw.Settings)) — persistence via Settings. FilterNo 8 matches PENDING. Trace valid. Best choice: bridge candidate with round-trip, but needs live non-empty FilterCode for confirmation.
