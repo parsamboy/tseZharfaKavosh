@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "test": "G13-BRIDGE-v3",
+    "gate": "G-13",
+    "evidenceId": "E-026",
+    "version": "0.1.0-bridge-001",
+    "host": "old.tsetmc.com",
+    "parTree": "15131F",
+    "capturedAt": "2026-10-15T20:00:18.741Z",
+    "method": "official probe v3 — read + apply non-empty FilterCode + SaveParams round-trip + trace validate + rollback + restoredSlot"
+  },
+  "initial": {
+    "filterCode": { "has": true, "len": 0, "preview": "" },
+    "saveParamsType": "function",
+    "filterNo": 1,
+    "settingsSnapshot": "{\"UpdateSpeed\":1000,\"ColorChangeSpeed\":7000,\"ColorChangeEnable\":1,\"ViewMode\":0,\"Market\":0,\"BasketNo\":-1,\"FilterNo\":1,\"SectorNo\":\"\",\"sortField\":\"tno\",\"sortDirection\":-1,\"ActiveTemplate\":2,\"Baskets\":[],\"Filters\":[{\"FilterCode\":\"\",\"FilterName\":\"فیلتر شماره 0\"},{\"FilterCode\":\"\",\"FilterName\":\"فیلتر شماره 1\"}],\"GroupBySector\":1,\"LightBackground\":1,\"BigNumberSymbol\":0,\"ShowHousingFacilities\":0,\"ShowSaham\":1,\"ShowPayeFarabourse\":0,\"ShowHaghTaghaddom\":0,\"ShowOraghMosharekat\":0,\"ShowEkhtiarForoush\":1}"
+  },
+  "apply": {
+    "sent": "G13-PROBE-1792094418741",
+    "persisted": true,
+    "persistError": null
+  },
+  "roundTrip": {
+    "observed": "G13-PROBE-1792094418741",
+    "observedLen": 23,
+    "confirmed": true,
+    "confirmBridge": {
+      "confirmed": true,
+      "sent": "G13-PROBE-1792094418741",
+      "observed": "G13-PROBE-1792094418741"
+    }
+  },
+  "trace": {
+    "states": ["submit", "accepted", "running", "done"],
+    "valid": true
+  },
+  "rollback": {
+    "restored": true,
+    "error": null
+  },
+  "restoredSlot": {
+    "before": "",
+    "after": "",
+    "restored": true
+  },
+  "status": "candidate-confirmed",
+  "bestChoice": "ApplyBridge with non-empty FilterCode round-trips and rolls back cleanly — owner may promote E-026 to confirmed after review"
+}
