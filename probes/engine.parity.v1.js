@@ -56,13 +56,20 @@ function makeRows(n) {
       base.l18 = (kind === 'call' ? 'ض' : 'ط') + 'هرم' + strike;
       base.l30 = (kind === 'call' ? 'اختیارخ ' : 'اختیارف ') + u + '-' + strike + '-1405/' +
         String(jm).padStart(2, '0') + '/' + String(jd).padStart(2, '0');
-      base.pl = S; base.pc = strike;
+      // REALISTIC option-row price fields: pl is the OPTION's own last price,
+      // pc its previous close, plc the change, pcp/plp the percentage variants.
+      // (The v9 probe assumed pl was the UNDERLYING's price, which is exactly the
+      // mapping error the round-trip test exposes.)
       const g = G.bsGreeks({ S, K: strike, T, r: R, sigma: TRUE_SIGMA, kind });
       const premium = Math.max(1, g.price);
+      const last = premium * (1 + ((i % 7) - 3) * 0.01);   // noisy last trade
+      base.pl = last;
+      base.pc = premium * 0.98;
+      base.plc = last - base.pc;                            // change, if plc means change
+      base.pcp = ((last - base.pc) / base.pc) * 100;
+      base.plp = base.pcp;
       // bid/ask book around the fair premium (G-11 style market price)
       base.pd1 = premium * 0.995; base.po1 = premium * 1.005;
-      base.plc = premium * (1 + ((i % 7) - 3) * 0.01);
-      base.pcp = premium * 0.98; base.plp = premium * 1.01;
     } else {
       // stock rows carry the bare underlying symbol as l18 (what the G-11 style
       // underlying map keys on) and its real spot as the price
@@ -323,12 +330,37 @@ section('7. A generated filter body — parity + capacity');
 section('7b. funnel input mapping');
 {
   // default mapping is the G-11 style: underlying map + bid/ask mid, r=0.30
-  const b = newEngine();
-  const rep = b.run(rows, 's1', 'c1');
-  check('default mapping computes option rows', rep.published === true && rep.computed > 0, 'computed=' + rep.computed);
-  check('default funnelConfig is G-11 style',
-    b.funnelConfig.marketPriceFrom === 'bidAskMid' && b.funnelConfig.underlyingFrom === 'underlyingMap' && b.funnelConfig.r === 0.30,
-    JSON.stringify({ mp: b.funnelConfig.marketPriceFrom, u: b.funnelConfig.underlyingFrom, r: b.funnelConfig.r }));
+  const bDefault = newEngine();
+  const repDefault = bDefault.run(rows, 's1', 'c1');
+  check('default mapping computes option rows', repDefault.published === true && repDefault.computed > 0, 'computed=' + repDefault.computed);
+  // engine used for the IV round-trip proof: filter ON, no delta/gamma.
+  // run() once so the underlying map is built before computeFunnel is called.
+  // owner mapping (q2): marketPrice = pl, S from the underlying map
+  const b = newEngine({ funnelConfig: { ivFilterEnabled: true } });
+  b.run(rows, 's1', 'c1');
+  check('owner decisions applied: marketPrice=pl, ivFilter off, no delta/gamma',
+    bDefault.funnelConfig.marketPriceFrom === 'pl' && bDefault.funnelConfig.ivFilterEnabled === false && bDefault.funnelConfig.useDeltaGamma === false,
+    JSON.stringify({ mp: b.funnelConfig.marketPriceFrom, iv: b.funnelConfig.ivFilterEnabled, dg: b.funnelConfig.useDeltaGamma }));
+  check('IV filter disabled => every confirmed option passes (fail-open)',
+    (function () {
+      let passCount = 0, optCount = 0;
+      for (let i = 0; i < rows.length; i++) {
+        if (!/^[\u0636\u0637]/.test(rows[i].l18)) continue;
+        optCount++;
+        const fr = bDefault.computeFunnel(rows[i], OP.parseOptionLabel(rows[i]));
+        if (fr.status === 'ok' && fr.pass === true && fr.reason === 'iv-filter-disabled-open-bug') passCount++;
+      }
+      return optCount > 0 && passCount === optCount;
+    })(), 'all options pass while the IV bug is open');
+  check('IV filter disabled still echoes the IV + atBoundary diagnostic',
+    (function () {
+      for (let i = 0; i < rows.length; i++) {
+        if (!/^[\u0636\u0637]/.test(rows[i].l18)) continue;
+        const fr = bDefault.computeFunnel(rows[i], OP.parseOptionLabel(rows[i]));
+        if (fr.status === 'ok' && fr.iv !== null && fr.atBoundary === false) return true;
+      }
+      return false;
+    })(), 'diagnostic available while filtering is off');
   check('underlying map built from non-option rows', Object.keys(b.state.underlyingMap).length >= 1,
     'entries=' + Object.keys(b.state.underlyingMap).length);
 
@@ -338,12 +370,21 @@ section('7b. funnel input mapping');
   const fres = b.computeFunnel(optRow, parsed);
   check('funnel echoes its inputs (auditability)', fres.status === 'ok' && fres.inputs && fres.inputs.marketPrice > 0 && fres.inputs.S > 0,
     fres.status + ' S=' + (fres.inputs && fres.inputs.S) + ' mp=' + (fres.inputs && fres.inputs.marketPrice));
-  check('bidAskMid is the midpoint of pd1/po1', Math.abs(fres.inputs.marketPrice - (optRow.pd1 + optRow.po1) / 2) < 1e-9);
+  const bMid = newEngine({ funnelConfig: { ivFilterEnabled: true, marketPriceFrom: 'bidAskMid' } });
+  bMid.run(rows, 'sMid', 'cMid');
+  const fresMid = bMid.computeFunnel(optRow, parsed);
+  check('bidAskMid is the midpoint of pd1/po1', fresMid.status === 'ok' &&
+    Math.abs(fresMid.inputs.marketPrice - (optRow.pd1 + optRow.po1) / 2) < 1e-9,
+    fresMid.status + ' mp=' + (fresMid.inputs && fresMid.inputs.marketPrice));
 
   // shallow book -> insufficient-data, never a fabricated price
   const shallow = Object.assign({}, optRow, { pd1: '', po1: '' });
-  const rShallow = b.computeFunnel(shallow, parsed);
+  const rShallow = bMid.computeFunnel(shallow, parsed);
   check('missing bid/ask -> insufficient-data (no fabrication)', rShallow.status === 'insufficient-data', rShallow.reason);
+  // with the IV filter OFF the price is not needed at all (fail-open)
+  const rShallowOff = b.computeFunnel(shallow, parsed);
+  check('IV filter OFF tolerates a missing book (fail-open)', rShallowOff.status === 'ok' && rShallowOff.pass === true,
+    rShallowOff.status + ' ' + (rShallowOff.reason || ''));
 
   // underlying miss -> insufficient-data (never a fabricated S)
   const orphan = Object.assign({}, optRow, { l30: '\u0627\u062e\u062a\u06cc\u0627\u0631\u062e \u0646ا\u0645ع\u062a\u0628\u0631-70000-1405/07/29' });
@@ -365,7 +406,26 @@ section('7b. funnel input mapping');
   const ivAtBound = rt.filter(function (x) { return x <= 0.0100001 || x >= 2.9999999; }).length;
   check('G-11 mapping recovers the true IV (round-trip)', Math.abs(ivMean - TRUE_SIGMA) < 0.05,
     'mean=' + ivMean.toFixed(4) + ' expected~' + TRUE_SIGMA + ' n=' + rt.length);
-  check('G-11 mapping yields interior solutions, not boundary pins', ivAtBound === 0, 'atBoundary=' + ivAtBound);
+  // a couple of deep-OTM rows with a noisy last trade can still pin; the point is
+  // that the rate is near zero, not the 90% the v9 mapping shows
+  check('G-11 mapping yields interior solutions (near-zero boundary rate)',
+    ivAtBound / rt.length <= 0.05, 'atBoundary=' + ivAtBound + '/' + rt.length);
+  // with the IV filter ENABLED, the pass criteria are IV-range only (owner q5)
+  const bOn = newEngine({ funnelConfig: { ivFilterEnabled: true } });
+  const repOn = bOn.run(rows, 'sOn', 'cOn');
+  const passBits = (function () {
+    let p = 0, f = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (!/^[\u0636\u0637]/.test(rows[i].l18)) continue;
+      const fr = bOn.computeFunnel(rows[i], OP.parseOptionLabel(rows[i]));
+      if (fr.pass) p++; else f++;
+    }
+    return { pass: p, fail: f };
+  })();
+  check('IV filter ON: pass = IV inside (0.01, 1.0) only', passBits.pass + passBits.fail > 0 && passBits.pass > 0,
+    'pass=' + passBits.pass + ' fail=' + passBits.fail + ' (pl as market price)');
+  check('IV filter ON publishes a real projection', repOn.published === true);
+
   // legacy v9 mapping must reproduce the old behaviour (S=row.pl, marketPrice=row.plc, r=0.2)
   const b9 = newEngine({ legacyV9Mapping: true });
   const rep9 = b9.run(rows, 's9', 'c9');

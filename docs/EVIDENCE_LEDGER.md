@@ -649,3 +649,17 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `status`: `candidate` — mapping is configurable and the G-11 default is now proven correct by round-trip; owner decision still required before live use`
 - `relatedGate`: `G-11 (other models) + G-12 (exact A projection) + G-07 (chain source, for the underlying relation)`
 - `notes`: `(a) The r inconsistency inside this repo is now explicit: probe G-11 used 0.30, probe v9 used 0.2 - both recorded, neither approved. (b) E-011 explicitly leaves field semantics unknown, so plc/pl/plc meaning is an open question the live diagnostic probe settles. (c) The 61-rule PrepareFilterCode test against our 430-byte body is still pending. (d) minify remains NOT retired.`
+### E-044 — Owner decisions applied; parity suite 94/94 (2026-10-17)
+
+- `evidenceId`: `E-044`
+- `claim`: `The owner's six decision answers were applied to DEFAULT_FUNNEL_CONFIG and the parity suite was re-verified. q1: 77% IV-at-cap classified as an OPEN BUG -> ivFilterEnabled:false, so no IV-based hiding happens until the live diagnostic probe runs; IV is still solved and echoed (iv + atBoundary) for diagnostics and reason is 'iv-filter-disabled-open-bug'. q2: marketPriceFrom:'pl' (replacing bidAskMid). q5: useDeltaGamma:false -> pass = IV solved and inside (ivMin, ivMax); deltaMin/gammaMin stay in config but are unused. q6: minify candidate remains NOT retired. q3 (S source) and q4 (r) answers arrived garbled with no selected option -> code keeps the round-trip-proven provisional values underlyingFrom:'underlyingMap' and r:0.30, both flagged as owner-decision-pending.`
+- `level`: `local-verified (node, real repo code)`
+- `source`: `src/engine/bEngine.v0.1.0.js, probes/engine.parity.v1.js (94 assertions), node 22.22.3`
+- `host`: `local (no network)`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-17T13:00Z — 2026-10-17T13:40Z`
+- `method`: `node probes/engine.parity.v1.js after applying the owner decisions; synthetic option rows made realistic (pl = the option's own last price, pc = previous close, plc = pl - pc), because the old synthetic data carried the v9 assumption that pl was the underlying price`
+- `fixtureHash`: `N/A — local implementation + test run`
+- `status`: `verified-locally — owner decisions applied; q3/q4 pending clarification before live use`
+- `relatedGate`: `G-11 (other models) + G-12 (exact A projection) + G-14 (source/min/release)`
+- `notes`: `(a) With the owner mapping (marketPrice = pl + S from the underlying map + IV filter ON) pass=984/fail=0 on 984 synthetic option rows. (b) IV round-trip under the owner mapping: mean 0.3456 vs true 0.35 (the +/-3% noise on pl explains the gap); boundary pins 1/40 (2.5%). (c) The same realistic data under the v9 mapping (S = row.pl, marketPrice = row.plc) pins 36/40 (90%) at the bound = no solution; this is the strongest evidence that the input mapping, not a data signal, caused the 77% at-cap warning. (d) Filter OFF => every confirmed option passes (fail-open) and IV/atBoundary are still echoed; filter ON => missing bid/ask still returns insufficient-data (no fabrication). (e) Timing unchanged: full recompute 12.7-16.0ms, incremental 1.42ms, detectDirty 0.90-1.01ms. (f) q3/q4 must not be guessed; the provisional values are explicitly marked in DEFAULT_FUNNEL_CONFIG and in the design doc section 12.`

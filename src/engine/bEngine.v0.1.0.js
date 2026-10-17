@@ -74,16 +74,27 @@ const INDEX_SAMPLE = 16;
 // defaults below follow the G-11 probe (the best-evidenced mapping in this repo)
 // and are still PROVISIONAL until the owner decides.
 const DEFAULT_FUNNEL_CONFIG = {
-  T: 30 / 365,             // ~1 month (G-11 probe value; v9 used 0.082 — same)
-  r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2 — UNRESOLVED)
+  T: 30 / 365,             // ~1 month (G-11 probe value; v9 used 0.082 - same)
+  r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2) - OWNER DECISION PENDING
   ivMin: 0.01,             // implied vol lower bound
   ivMax: 1.0,              // implied vol upper bound
-  deltaMin: 0.3,           // |delta| lower bound
-  gammaMin: 1e-4,          // gamma lower bound
-  // where the option's market price comes from
-  marketPriceFrom: 'bidAskMid',    // 'bidAskMid' (G-11) | 'pl' | 'pc' | 'plc' | 'pcp'
-  // where the underlying price S comes from
-  underlyingFrom: 'underlyingMap', // 'underlyingMap' (G-11) | 'rowPl' (v9) | 'none'
+  deltaMin: 0.3,           // |delta| lower bound (only used when useDeltaGamma)
+  gammaMin: 1e-4,          // gamma lower bound (only used when useDeltaGamma)
+  // OWNER DECISION 2026-10-17 (q5): pass = IV solved and inside the valid range.
+  // delta/gamma thresholds are kept in config but NOT applied until re-enabled.
+  useDeltaGamma: false,
+  // OWNER DECISION 2026-10-17 (q1): the "77% IV at cap" signal is an OPEN BUG.
+  // Until the live diagnostic probe shows how many live rows are boundary-pinned,
+  // no IV-based filtering happens: every confirmed option is computed and passes,
+  // which is exactly the fail-open behaviour the owner asked for. The IV is still
+  // solved and echoed (with an atBoundary flag) so the live probe can read it.
+  ivFilterEnabled: false,
+  // OWNER DECISION 2026-10-17 (q2): the option's market price is `pl` (last trade).
+  marketPriceFrom: 'pl',           // 'pl' | 'pc' | 'plc' | 'pcp' | 'bidAskMid'
+  // S source: PROVISIONAL - the round-trip test proves the underlying-map mapping
+  // is correct, but the owner's answer here was ambiguous, so this stays a
+  // documented default until confirmed. 'none' disables S entirely.
+  underlyingFrom: 'underlyingMap', // 'underlyingMap' | 'rowPl' | 'none'
   // which field of the underlying row is its price (G-11 used pc)
   underlyingPriceField: 'pc',      // 'pc' | 'pl'
   // reproduce the v9 probe mapping for comparison
@@ -398,18 +409,38 @@ function createBEngine(options) {
         return { status: 'error', reason: 'models not injected' };
       }
       const iv = models.impliedVol({ S: S, K: K, T: funnel.T, r: funnel.r, kind: kind, marketPrice: marketPrice });
+      const inputs = { S: S, K: K, marketPrice: marketPrice, T: funnel.T, r: funnel.r, kind: kind };
+
+      // ---- IV filter disabled (owner decision q1: 77% at-cap is an OPEN BUG) ----
+      // The IV is still solved and echoed for diagnostics, but it cannot hide a
+      // row until the live probe says how many rows are boundary-pinned.
+      if (!funnel.ivFilterEnabled) {
+        const ivOk = iv && !iv.error && iv.sigma !== undefined && iv.sigma !== null && isFinite(iv.sigma);
+        return {
+          status: 'ok', pass: true, reason: 'iv-filter-disabled-open-bug',
+          iv: ivOk ? iv.sigma : null,
+          atBoundary: ivOk ? (iv.sigma <= 0.0100001 || iv.sigma >= 2.9999999) : null,
+          iterations: ivOk ? iv.iterations : null,
+          inputs: inputs
+        };
+      }
+
       if (!iv || iv.error || iv.sigma === undefined || iv.sigma === null || !isFinite(iv.sigma)) {
         return { status: 'insufficient-data', reason: 'iv failed' };
       }
       const g = models.bsGreeks({ S: S, K: K, T: funnel.T, r: funnel.r, sigma: iv.sigma, kind: kind });
       if (!g || g.error) return { status: 'insufficient-data', reason: 'greeks failed' };
-      // |delta| so calls and puts are treated symmetrically (provisional threshold)
-      const pass = (iv.sigma > funnel.ivMin) && (iv.sigma < funnel.ivMax) &&
-                   (Math.abs(g.delta) > funnel.deltaMin) && (g.gamma > funnel.gammaMin);
+      const atBoundary = (iv.sigma <= 0.0100001 || iv.sigma >= 2.9999999);
+      // owner decision q5: IV range only. delta/gamma are opt-in again.
+      let pass = (iv.sigma > funnel.ivMin) && (iv.sigma < funnel.ivMax);
+      if (pass && funnel.useDeltaGamma === true) {
+        pass = (Math.abs(g.delta) > funnel.deltaMin) && (g.gamma > funnel.gammaMin);
+      }
       return {
         status: 'ok', pass: pass, delta: g.delta, gamma: g.gamma,
-        iv: iv.sigma, iterations: iv.iterations,
-        inputs: { S: S, K: K, marketPrice: marketPrice, T: funnel.T, r: funnel.r, kind: kind }
+        iv: iv.sigma, iterations: iv.iterations, atBoundary: atBoundary,
+        reason: pass ? 'pass' : 'fail-iv-range',
+        inputs: inputs
       };
     } catch (e) {
       return { status: 'error', reason: String((e && e.message) || e) };

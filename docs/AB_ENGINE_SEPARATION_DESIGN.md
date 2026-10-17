@@ -269,6 +269,9 @@ RenderData پیش از B)، نبود `known`/`bitset`، نماد ناشناس، 
 | Incremental — فقط compute (live) | 0.8–1.0 ms | live v9 [TextArea] | ✅ |
 | detectDirty (۴ فیلد × ۳۲۸۹) | **2.3 ms** | live v1 [کنسول] | مستقل از compute |
 | **Incremental — کل چرخه (compute + detectDirty)** | **~2.6–3.4 ms** | live v1 + v9 | ✅ زیر آستانهٔ ۵ms |
+| parity suite (node، ۹۴ تست) | ۹۴/۹۴ پاس | engine.parity.v1 | ✅ |
+| full recompute با mapping مالک | ۱۲.۷–۱۶.۰ms | engine.parity.v1 | ✅ |
+| IV filter OFF (q1) | هر آپشن confirmed پاس می‌شود | engine.parity.v1 | ✅ fail-open تا بسته‌شدن باگ |
 | Per-row lookup (A) | ~0.01 ms | design | ✅ (3289 rows ≈ 33ms total in RenderData) |
 | Bitset size | 411 bytes | live v5 | ✅ (63× کاهش vs ~27KB object) |
 | Memory (__B_result) — bitset+known | **824 bytes** (۲× ۴۱۲) | اندازه‌گیری‌شده node | ✅ |
@@ -633,30 +636,44 @@ if (__i && mw.__B_known && mw.__B_bitset && row) {
    `evaluateRow(row, published)` است؛ parity test به‌اشتباه جابجا صدا می‌شد و
    ۷۸۶ عدم‌تطابق گزارش شد. اصلاح: امضا `(row, mw)` تا با `evaluateRow` یکسان شود.
 
-### تصمیم‌های باز برای مالک (قبل از live) — به‌روزرسانی‌شده در سیستم پرسیدن
+### تصمیم‌های مالک — اعمال‌شده در کد (۲۰۲۶-۱۰-۱۷)
 
-**در کد پیاده شده:** mapping ورودی funnel حالا تنظم‌پذیر است و در
-`DEFAULT_FUNNEL_CONFIG` قابل تغییر (پس تصمیم شما تصمی می‌گیرد، نه کد):
+| # | تصمیم | مقدار در `DEFAULT_FUNNEL_CONFIG` |
+|---|---|---|
+| q1 | ۷۷٪ IV-at-cap = **باگ باز** | `ivFilterEnabled: false` — تا probe تشخیصی زنده اجرا نشود هیچ فیلتری بر پایهٔ IV انجام نمی‌شود؛ IV حل و echo می‌شود (با فلگ `atBoundary`) ولی ردیفی را پنهان نمی‌کند |
+| q2 | قیمت آپشن = `pl` | `marketPriceFrom: 'pl'` |
+| q3 | منبع S | پاسخ شما نامشخص بود («با انتخاب کاربر نهایی») — موقتاً `underlyingFrom: 'underlyingMap'` (همان mapping که round-trip آن را اثبات کرد). تا شفع نشود این مقدار است |
+| q4 | نرخ بدون ریسک | پاسخ شما نامشخص بود — موقتاً `r: 0.30` (probe G-11). تا شفع نشود این مقدار است |
+| q5 | آستانه‌ها | `useDeltaGamma: false` — پاس = «IV حل شد و در بازهٔ معتبر است»؛ delta/gamma در config مانده‌اند ولی اعمال نمی‌شوند |
+| q6 | minify | بازنشده نمی‌شود (تصمیم قبلی) |
 
 ```javascript
-// پیش‌فرض حالی — مبتنی بر probe G-11، فقط پرستهای تأیید‌نشده
-marketPriceFrom: 'bidAskMid',        // (pd1+po1)/2
-underlyingFrom: 'underlyingMap',     // S = pc ردیف underlying از طریق نقشهٔ l30
-underlyingPriceField: 'pc',
-r: 0.30,
-// تکرار mapping پروب v9 (برای مقایسهٔ زنده): legacyV9Mapping: true
-//   marketPriceFrom: 'plc', underlyingFrom: 'rowPl', r: 0.2
+const DEFAULT_FUNNEL_CONFIG = {
+  T: 30 / 365, r: 0.30,
+  ivMin: 0.01, ivMax: 1.0,
+  deltaMin: 0.3, gammaMin: 1e-4,      // kept, NOT applied while useDeltaGamma is false
+  useDeltaGamma: false,               // q5
+  ivFilterEnabled: false,             // q1 - open bug, no IV-based hiding
+  marketPriceFrom: 'pl',              // q2
+  underlyingFrom: 'underlyingMap',    // q3 - PROVISIONAL, answer was ambiguous
+  underlyingPriceField: 'pc',
+  legacyV9Mapping: false
+};
 ```
 
-1. **mapping قیمت آپشن** — `bidAskMid` (G-11) یا `pl` یا `pc` یا `plc`؟
-   معنی `plc` در این repo تأیید نشده (E-011: «semantics unknown»).
-   probe تشخیص `plc = pl - pc` را روی دادهٔ زنده اندازه می‌گیرد.
-2. **منبع S** — `underlyingMap` (G-11) یا `rowPl` (v9) یا `none`؟
-   نقشهٔ underlying فقط sample-only است تا بستن gate های زنجیره/تقویم (E-012)؛
-   miss باید به `insufficient-data` برگردد، نه به S ساخته.
-3. **`r`** — `0.30` (probe G-11) یا `0.2` (probe v9) یا مقداری که شما تعیین می‌کنید.
-4. **آستانهٔ پاس/رد** (`deltaMin 0.3`، `gammaMin 1e-4`، `iv ∈ (0.01,1)`، و `|delta|` برای puts) — از v9 به ارث رسیده و تأیید نشده.
-5. **`minify`** — بازنشسته نمی‌شود (تصمیم قبلی شما).
+### نکتهٔ مهم از تست round-trip با انتخاب q2
+
+وقتی دادهٔ ردیف آپشن را واقع‌گرایانه کردم (`pl` = قیمت خود آپشن، نه قیمت
+underlying — همان فرضی که probe v9 داشت و اشتباه بود):
+
+| mapping | IV بازیابی‌شده (حقیقت ۰.۳۵) | چسبیدن به مرز |
+|---|---|---|
+| مالک (q2+q3): `pl` + نقشهٔ underlying | ۰.۳۴۵۶ | ۱/۴۰ (۲.۵٪) |
+| v9: `row.pl` به‌عنوان S + `plc` | — | ۳۶/۴۰ (۹۰٪) |
+
+یعنی انتخاب شما IV را تقریباً دقیق بازیابی می‌کند، در حالی که mapping قدیمی probe v9
+۹۰٪ ردیف‌ها را به مرز می‌چسباند (راه‌حلی وجود ندارد). این قوی‌ترین شاهد بر اینکه
+mapping ورودی علت اصلی هشدار بود.
 
 ### گام بعدی (live) — دو probe، یکی در هر اجرا
 

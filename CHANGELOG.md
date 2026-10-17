@@ -4,6 +4,26 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+### Changed — owner decisions applied to the funnel config (2026-10-17)
+
+- `ivFilterEnabled: false` — the 77% IV-at-cap warning is an **open bug**: no row is
+  hidden on the basis of IV until the live diagnostic probe (`probes/fieldsem.ivdiagnostic.live.v1.js`)
+  has run. IV is still solved and echoed (`iv`, `atBoundary`) so the published projection
+  stays auditable; `reason` is `iv-filter-disabled-open-bug` and every confirmed option
+  passes (fail-open).
+- `marketPriceFrom: 'pl'` (owner q2) replaces `bidAskMid`; `resolveMarketPrice()` keeps
+  `bidAskMid` available for comparison.
+- `useDeltaGamma: false` (owner q5) — pass = "IV solved and inside (ivMin, ivMax)";
+  `deltaMin`/`gammaMin` remain in the config but are not applied.
+- `underlyingFrom` and `r` remain provisional (`underlyingMap`, `0.30`) because the
+  owner's answers for those two questions were ambiguous; both are flagged
+  OWNER-DECISION-PENDING in the design doc §12.
+- Parity suite extended to **94 assertions** (`probes/engine.parity.v1.js`), all passing:
+  synthetic option rows now carry realistic price fields (`pl` = the option's own last
+  price), the round-trip test runs under the owner mapping (mean IV 0.3456 vs true 0.35,
+  boundary pins 1/40), and the v9 mapping on the same data pins 36/40 (90%).
+
+
 ### Added — A/B engine separation v0.1.0 (G-12/G-13)
 
 - `src/engine/bEngine.v0.1.0.js` — B engine: reverse index with caching, dirty
