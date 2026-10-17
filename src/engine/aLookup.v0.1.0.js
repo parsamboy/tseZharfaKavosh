@@ -37,8 +37,8 @@ function evaluateRow(row, published) {
   if (!inscode) return true;                       // fail-open: no identity
   const pos = published.index[inscode];
   if (pos === undefined) return true;              // fail-open: unknown symbol
-  const byteIdx = (pos / 8) | 0;
-  const mask = 1 << (pos % 8);
+  const byteIdx = pos >> 3;                        // pos / 8 (identical, cheaper)
+  const mask = 1 << (pos & 7);                     // pos % 8 (identical, cheaper)
   if (byteIdx < 0 || byteIdx >= published.known.length) return true; // fail-open: out of range
   if (!((published.known[byteIdx] & mask) !== 0 ? 1 : 0)) return true; // not computed -> fail-open
   return ((published.bitset[byteIdx] & mask) !== 0);
@@ -60,7 +60,7 @@ function buildFilterCodeBody() {
     'if (__i && mw.__B_known && mw.__B_bitset && row) {',
     '  var __p = __i[row.inscode];',
     '  if (__p !== undefined) {',
-    '    var __b = (__p / 8) | 0, __m = __p % 8;',
+    '    var __b = __p >> 3, __m = __p & 7;',
     '    if (__b >= 0 && __b < mw.__B_known.length && (mw.__B_known[__b] >> __m) & 1) {',
     '      FilterResult = !!((mw.__B_bitset[__b] >> __m) & 1);',
     '    }',

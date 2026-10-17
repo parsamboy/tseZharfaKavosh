@@ -217,20 +217,34 @@ try {
 
 ## ۳. A — Per-Row Lookup (inside FilterCode)
 
+بدنهٔ **پیاده‌شده** در `src/engine/aLookup.v0.1.0.js` (`buildFilterCodeBody()`، ۴۳۰ بایت):
+
 ```javascript
-// === A: per-row lookup (fail-open) ===
-var __posA = mw.__B_index[row.inscode];
-var FilterResult = true;  // fail-open default
-if (__posA !== undefined && mw.__B_bitset) {
-    FilterResult = !!((mw.__B_bitset[Math.floor(__posA / 8)] >> (__posA % 8)) & 1);
+// tseZharfaKavosh A lookup 0.1.0-aLookup-001 — reads only B published projection
+var FilterResult = true;
+var __i = mw.__B_index;
+if (__i && mw.__B_known && mw.__B_bitset && row) {
+  var __p = __i[row.inscode];
+  if (__p !== undefined) {
+    var __b = __p >> 3, __m = __p & 7;
+    if (__b >= 0 && __b < mw.__B_known.length && (mw.__B_known[__b] >> __m) & 1) {
+      FilterResult = !!((mw.__B_bitset[__b] >> __m) & 1);
+    }
+  }
 }
 ```
 
-- **O(1)** — bitset lookup
-- **Fail-open** — اگر B publish نکرده باشد، `true` برمی‌گرداند
+هر شاخهٔ `if` یک **خروج fail-open** است: نبود projection، نبود `__B_index` (اولین
+RenderData پیش از B)، نبود `known`/`bitset`، نماد ناشناس، یا بایت خارج از بازه —
+همه `true` برمی‌گردانند. اگر برعکس بود (throw یا `false`)، TSETMC پیش‌فرض خود را
+اعمال می‌کرد و صفحهٔ خالی 가능 می‌شد.
+
+- **O(1)** — bitset lookup (`>> 3` / `& 7` به جای `/8` و `%8`: معنای یکسان، ارزان‌تر)
+- **Fail-open** — هر عدم‌قطعییت → `true`
 - **هیچ computation** — فقط lookup
 - **هیچ state** — stateless
 - **~0.01ms per row**
+- **parity**: `evaluateRow` و همین بدنه روی ۳۲۸۲/۳۲۸۲ ردیف یکسان جواب دادند
 
 ---
 
@@ -257,7 +271,10 @@ if (__posA !== undefined && mw.__B_bitset) {
 | **Incremental — کل چرخه (compute + detectDirty)** | **~2.6–3.4 ms** | live v1 + v9 | ✅ زیر آستانهٔ ۵ms |
 | Per-row lookup (A) | ~0.01 ms | design | ✅ (3289 rows ≈ 33ms total in RenderData) |
 | Bitset size | 411 bytes | live v5 | ✅ (63× کاهش vs ~27KB object) |
-| Memory (__B_result) | ~200-300 KB | live estimate | ✅ (تصحیح‌شده از 27KB) |
+| Memory (__B_result) — bitset+known | **824 bytes** (۲× ۴۱۲) | اندازه‌گیری‌شده node | ✅ |
+| Memory `__B_prevRows` (۷ فیلد × ۳۲۸۹) | **~۳۵۰KB** (JSON) / ~۴۵۰KB heap | اندازه‌گیری‌شده node | ✅ |
+| Memory `__B_symbols` + `__B_index` | **~۰.۰۶MB + ~۰.۱۹MB** | اندازه‌گیری‌شده node | ✅ |
+| **جمع حافظهٔ B** | **~۰.۷–۰.۹MB** | اندازه‌گیری‌شده node | ⚠️ عدد قبلی (۲۰۰-۳۰۰KB) فقط bitset را حساب می‌کرد |
 | **Full recompute (node parity، ۹۸۴ آپشن)** | **۱۶.۹–۲۲.۱ms** | engine.parity.v1 (node) | ✅ هم‌مرتبه با live ۱۸.۴ms |
 | **Incremental cycle (node parity، ۶۵ dirty)** | **۱.۳–۲.۲ms** | engine.parity.v1 (node) | ✅ با cache ایندکس |
 | detectDirty با ۷ فیلد (node) | ۰.۸–۱.۶ms | engine.parity.v1 (node) | ✅ (۴ فیلد: ۰.۲۵ms؛ live ۴ فیلد: ۲.۳ms) |
@@ -267,10 +284,24 @@ if (__posA !== undefined && mw.__B_bitset) {
 
 1. **۹۹۶ ردیف آپشن confirmed** از ۳۲۸۹ نماد (۳۰٪) — بیشتر از تخمین G-04 (۸۰۰ از ۳۳۶۲).
    هزینهٔ funnel به **تعداد آپشن‌ها** بسته است، نه کل نمادها.
-2. **۷۷٪ ردیف‌ها (۷۶۸ از ۹۹۶) به سقف تکرار IV می‌رسند** (p50=24، max=24). یعنی قیمت
-   بازار واقعی (`plc`) با قیمت BS هم‌خوان نیست (نویز/کم‌نقدی). نتیجه: per-row cost
-   همیشه روی **حداکثر ساختاری** است — نه ارزان‌تر می‌شود، ولی **پیش‌بینی‌پذیر** است.
-   بنچمارک محلی (۸.۴μs) خوش‌بینانه بود؛ عدد طراحی باید **۱۶.۱۶μs** باشد.
+2. **۷۷٪ ردیف‌ها (۷۶۸ از ۹۹۶) به سقف تکرار IV می‌رسند** (p50=24، max=24).
+   **تفسیر اولیهٔ ما («قیمت بازار با BS هم‌خوان نیست») ناتوان بود** و با اندازه‌گیری
+   تصحیح شد: حتی با mapping **درست** (S از نقشهٔ underlying + mid پیشنهاد خرید/فروش،
+   `r=0.30`) روی دادهٔ مصنوعی، ۱۰۰٪ ردیف‌ها هنوز به سقف می‌رسند. علت واقعی
+   **شرط توقف حلقه** است: `|price - marketPrice| < 1e-6` در مقیاس ریال (قیمت
+   هزاران ریال) عملاً دست‌نیافتنی است، پس حلقه همیشه از مسیر `high-low < 1e-7`
+   (پس از ~۲۵ تکرار) خارج می‌شود. IV با دقت ۱e-7 همگرا می‌شود — نتیجه **قابل استفاده**
+   است، فقط زودتر break نمی‌کند. پس at-cap به‌تنهایی نشانهٔ دادهٔ بد نیست.
+3. **اما هشدار مالک درست بود و یک شکاف واقعی را نشان داد:** هیچ evidence در این repo
+   معنای `plc` را تأیید نکرده (E-011 صریحاً می‌گوید «`_*` vs non-`_*` semantics
+   unknown»)، و پروب خودِ ما (G-11 greeks v1.1) از mapping کاملاً متفاوتی استفاده
+   کرده: S = `pc` ردیف underlying از طریق نقشهٔ ساخته‌شده از l30، marketPrice =
+   mid پیشنهاد خرید/فروش `(pd1+po1)/2`، `r=0.30`. پروب v9 از `S=row.pl` و
+   `marketPrice=row.plc` استفاده می‌کرد. این **عدم‌تطابق ثبت‌نشده** است.
+4. **تشخیص درست برای «IV معنادار است یا نه»** تعداد تکرار نیست، بلکه **مرز بودن
+   جواب** است: اگر sigma به ۰.۰۱ یا ۳.۰ چسبیده باشد یعنی راه‌حلی در بازه نیست
+   (عدم‌تطابق قیمت‌گذاری)؛ اگر درون بازه باشد IV معتبر است. probe تشخیصی
+   `probes/fieldsem.ivdiagnostic.live.v1.js` هر دو را روی دادهٔ زنده اندازه می‌گیرد.
 3. **verdict = PLAUSIBLE-40ms** — ادعای ۴۰ms probe v9 و اندازه‌گیری ۱۸.۴ms امروز
    در یک محدودهٔ منطقی هستند (v9 funnel سبک‌تر + کار bitset/index داشت).
 4. **detectDirty زنده = ۲.۳ms** → تأیید عدد DIAG2 (۲.۹ms) و اصلاح §۴.
@@ -335,14 +366,21 @@ B باید async اجرا شود (setTimeout/requestIdleCallback)، نه داخ�
 - setTimeout(0) یا requestIdleCallback B را به next frame منتقل می‌کند
 
 ```javascript
-// Async B execution
-function runB() {
-    setTimeout(function() {
-        // ... entire B computation ...
-        // atomic swap at the end
-    }, 0);
+// Async B execution — createScheduler() in bEngine.v0.1.0.js
+function createScheduler() {
+  if (typeof requestIdleCallback === 'function') {
+    return function (fn) { requestIdleCallback(function () { fn(); }, { timeout: 500 }); };
+  }
+  if (typeof setTimeout === 'function') return function (fn) { setTimeout(fn, 0); };
+  return function (fn) { fn(); };
 }
 ```
+
+**چرا `setTimeout(0)` کافی نیست:** صفحه حدود هر ۱ ثانیه `RenderData` را صدا می‌زند و
+یک چرخهٔ کامل B حدود ۲۰-۴۰ms طول می‌کشد. `setTimeout(0)` فقط جلوی block کردن UI را
+می‌گیرد ولی تضمین نمی‌کند B *بین* دو RenderData اجرا شود. `requestIdleCallback` با
+`{timeout:500}` در بازهٔ idle اجرا می‌شود؛ `setTimeout(0)` فقط fallback است.
+B هرگز داخل RenderData اجرا نمی‌شود.
 
 ---
 
@@ -484,6 +522,56 @@ function runB() {
 
 ---
 
+## ۱۱.۱ شکاف ۱ — TextArea: نحوهٔ ثبت و اجرا (قبل از این سند کاملاً غایب بود)
+
+این بخش اضافه شد چون سند هیچ توضیحی دربارهٔ **ثبت** A در TSETMC نداشت، در حالی که
+تنها مسئلهٔ حل‌نشدهٔ اصلی همان است.
+
+### آنچه تأییدشده است (evidence)
+
+| واقعیت | شاهد |
+|---|---|
+| `PrepareFilterCode` وجود دارد و ۶۱ قاعدهٔ `.replace()` دارد، بدون `eval`/`Function` | probe [کنسول] (RenderData/PrepareFilterCode RO) |
+| `PrepareFilterCode` جدا از `RenderData` است و یک‌بار compile می‌شود | همان probe |
+| محدودیت ظرفیت Artifact A: **۴۰۹۶ بایت** (ParTree=15131F) | spec §8.14 / `exactA.capacityCheck` |
+| بدنهٔ A تولیدشده: **۴۳۰ بایت** → با حاشیهٔ ۹.۶× جا می‌شود | `aLookup.buildFilterCode()` |
+| `FilterCode` اسلات authoritative است و با `SaveParams` round-trip می‌شود | E-026 / G-13 confirmed |
+| `mw` از داخل بدنهٔ filter قابل دسترسی است (probe v9 `mw.__B_index`/`mw.__B_bitset` را از FilterCode خواند) | probe B-BSIV v9 [TextArea] — **فایلش در workspace نیست، در probe live دوباره تأیید شود** |
+| trace معتبر: `submit → accepted → running → done` | E-026 |
+| rollback کار می‌کند (`restoredSlot` before/after، `restored=true`) | E-026 |
+
+### جریان ثبت (طراحی)
+
+```
+1. B ماژول را روی صفحه تزریق می‌کند (script tag یا کنسول) و hooks را نصب می‌کند.
+2. B اولین چرخه را async اجرا و projection را روی mw.__B_* منتشر می‌کند.
+3. A: بدنهٔ ۴۳۰ بایتی (buildFilterCodeBody) از طریق PrepareFilterCode ثبت می‌شود.
+4. PrepareFilterCode آن را در FilterCode authoritative می‌نشاند و SaveParams
+   round-trip تأیید می‌کند (E-026).
+5. هر RenderData، A برای هر ردیف فقط بیت را می‌خواند.
+```
+
+### آنچه هنوز باز است (gate بعدی)
+
+1. **API دقیق ثبت TextArea** — نام تابع/پارامترهای `PrepareFilterCode` و نحوهٔ
+   تحویل بدنه در این repo ثبت نشده (probe های v9 فایلشان در workspace نیست).
+2. **آیا بدنهٔ filter به `mw` دسترسی دارد؟** v9 این کار را کرد، ولی باید دوباره
+   روی صفحهٔ زنده تأیید شود. اگر دسترسی نباشد، B باید projection را در یک متغیر
+   سراسری قابل دسترسی از context فیلتر منتشر کند (مثلاً `window.__B_*` به جای
+   `mw.__B_*`) — این تنها نقطهٔ وابستگی بین A و B است و باید قطعی شود.
+3. **۶۱ قانون `.replace()`** باید در برابر بدنهٔ ۴۳۰ بایتی ما تست شود (مثلاً اگر
+   قاعده‌ای شناسه‌های `__` را دستکاری کند).
+4. **`roundTick`** — اگر `suggestTrade` در B پیاده شود، `roundTick71` لازم است؛
+   در حال حاضر در طراحی A/B وجود ندارد و باید به‌عنوان وابستگی ثبت شود.
+
+### برچسب‌گذاری probe (قرارداد workflow)
+
+- `[کنسول]` = تزریق کنسول، فقط خواندن/اندازه‌گیری.
+- `[TextArea]` = ثبت FilterCode + `PrepareFilterCode` (+ rollback در پایان).
+- اگر هر دو لازم باشد، هر دو برچسب با ترتیب اجرا ذکر می‌شوند.
+
+---
+
 ## ۱۲. وضعیت پیاده‌سازی v0.1.0 (۲۰۲۶-۱۰-۱۷)
 
 ### فایل‌ها
@@ -533,6 +621,8 @@ if (__i && mw.__B_known && mw.__B_bitset && row) {
 | incremental cycle | ۱.۳–۲.۲ms |
 | detectDirty (۷ فیلد) | ۰.۸–۱.۶ms |
 | buildIndex در چرخهٔ incremental | ۰ms (cache hit) |
+| per-row funnel با mapping G-11 (node) | ۱۶.۱۷μs |
+| حافظهٔ کل B | ~۰.۷–۰.۹MB (اندازه‌گیری‌شده) |
 
 ### دو باگی که تست‌ها گرفتند (هر دو اصلاح شدند)
 
@@ -543,18 +633,34 @@ if (__i && mw.__B_known && mw.__B_bitset && row) {
    `evaluateRow(row, published)` است؛ parity test به‌اشتباه جابجا صدا می‌شد و
    ۷۸۶ عدم‌تطابق گزارش شد. اصلاح: امضا `(row, mw)` تا با `evaluateRow` یکسان شود.
 
-### تصمیم‌های باز برای مالک (قبل از live)
+### تصمیم‌های باز برای مالک (قبل از live) — به‌روزرسانی‌شده در سیستم پرسیدن
 
-1. **آستانه‌های funnel** (`deltaMin: 0.3`، `gammaMin: 1e-4`، `iv ∈ (0.01, 1)`) —
-   از probe v9 به ارث رسیده و **تأیید نشده**؛ این‌ها تعیین می‌کنند کدام ردیف‌ها پاس شوند.
-2. **`|delta|` به جای `delta > 0.3`** — در probe v9 فقط call-style delta بود؛ برای
-   puts از قدرمطلق استفاده کردم (وگرنه هیچ putی پاس نمی‌شد). تأیید مالک لازم است.
-3. **منبع S** — funnel از `row.pl` به‌عنوان underlying استفاده می‌کند (همان رفتار
-   probe زنده). برای آپشن، `pl` قیمت خود آپشن است، نه underlying؛ منبع درست
-   underlying (زنجیره/نماد پایه) طبق قرارداد منبع داده باید تأیید شود.
-4. **`minify`** — بازنشسته نمی‌شود (تصمیم قبلی کاربر).
+**در کد پیاده شده:** mapping ورودی funnel حالا تنظم‌پذیر است و در
+`DEFAULT_FUNNEL_CONFIG` قابل تغییر (پس تصمیم شما تصمی می‌گیرد، نه کد):
 
-### گام بعدی (live)
+```javascript
+// پیش‌فرض حالی — مبتنی بر probe G-11، فقط پرستهای تأیید‌نشده
+marketPriceFrom: 'bidAskMid',        // (pd1+po1)/2
+underlyingFrom: 'underlyingMap',     // S = pc ردیف underlying از طریق نقشهٔ l30
+underlyingPriceField: 'pc',
+r: 0.30,
+// تکرار mapping پروب v9 (برای مقایسهٔ زنده): legacyV9Mapping: true
+//   marketPriceFrom: 'plc', underlyingFrom: 'rowPl', r: 0.2
+```
 
-پروب live برای ثبت A از طریق `PrepareFilterCode` و تأیید ۶۱ قانون + اندازه‌گیری
-دورهٔ incremental روی صفحهٔ واقعی. طبق workflow، یک probe در هر اجرا.
+1. **mapping قیمت آپشن** — `bidAskMid` (G-11) یا `pl` یا `pc` یا `plc`؟
+   معنی `plc` در این repo تأیید نشده (E-011: «semantics unknown»).
+   probe تشخیص `plc = pl - pc` را روی دادهٔ زنده اندازه می‌گیرد.
+2. **منبع S** — `underlyingMap` (G-11) یا `rowPl` (v9) یا `none`؟
+   نقشهٔ underlying فقط sample-only است تا بستن gate های زنجیره/تقویم (E-012)؛
+   miss باید به `insufficient-data` برگردد، نه به S ساخته.
+3. **`r`** — `0.30` (probe G-11) یا `0.2` (probe v9) یا مقداری که شما تعیین می‌کنید.
+4. **آستانهٔ پاس/رد** (`deltaMin 0.3`، `gammaMin 1e-4`، `iv ∈ (0.01,1)`، و `|delta|` برای puts) — از v9 به ارث رسیده و تأیید نشده.
+5. **`minify`** — بازنشسته نمی‌شود (تصمیم قبلی شما).
+
+### گام بعدی (live) — دو probe، یکی در هر اجرا
+
+1. **`probes/fieldsem.ivdiagnostic.live.v1.js` [کنسول]** — اندازه‌گیری معنی `plc`/`plp` (آزا `plc = pl - pc` روی تمام ردیف‌ها) + تفکیک IV در هر دو mapping (سیگما درون بازه یا چسبیده به مرز). این باعث تصه یمی‌شود و تصهیم‌های ۱ تا ۳ بسته شود.
+2. **ثبت A از طریق `PrepareFilterCode`** + تأیید ۶۱ قانون + اندازه‌گیری دورهٔ incremental روی صفحهٔ واقعی (rollback در پایان).
+
+طبق workflow، هر بار یکی از این دو تا پرسیدن نتیجه.

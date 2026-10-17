@@ -31,6 +31,30 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   (18.4ms full / 16.16us per option row / detectDirty 2.3ms live),
   E-042 implementation + 69/69 parity + node --check 73/73.
 
+### Changed — gap verification round 2 (2026-10-17)
+
+- `src/engine/aLookup.v0.1.0.js` — bit extraction micro-optimised (`>> 3` / `& 7`);
+  doc section 3 now shows the implemented guarded body instead of the old snippet.
+- `src/engine/bEngine.v0.1.0.js` —
+  - funnel input mapping is now explicit config (`marketPriceFrom`,
+    `underlyingFrom`, `underlyingPriceField`, `r`) with a `legacyV9Mapping` switch;
+  - default follows the repo's own G-11 probe (underlying map + bid/ask mid, r=0.30);
+  - `createScheduler()` prefers `requestIdleCallback({timeout:500})` over `setTimeout(0)`;
+  - `installHooks` initialises `mw.__B_configVersion` at install time;
+  - funnel echoes its inputs (`S`, `K`, `marketPrice`, `T`, `r`, `kind`) for audit.
+- `docs/AB_ENGINE_SEPARATION_DESIGN.md` — new section 11.1 (TextArea registration:
+  what is confirmed vs what is open), measured memory numbers (~0.7-0.9 MB total),
+  async section rewritten, IV-at-cap reframed (stopping criterion, not a data signal).
+- `probes/engine.parity.v1.js` — 89 assertions, including an IV round-trip proof:
+  the G-11 mapping recovers a synthesized true IV exactly (mean 0.3500, 0/984
+  boundary pins) while the v9 mapping is biased (0.3557) and pins 28/984.
+- `probes/fieldsem.ivdiagnostic.live.v1.js` — new live probe: settles what `plc`
+  means (`plc = pl - pc`?) and whether live IVs are interior or boundary-pinned.
+
+### Evidence
+
+- E-042 implementation + parity; E-043 gap verification + IV round-trip proof.
+
 ## [0.1.0.0] — 2026-10-04
 
 ### Added

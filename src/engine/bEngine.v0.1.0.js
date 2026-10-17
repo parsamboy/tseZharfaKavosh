@@ -59,13 +59,44 @@ const INDEX_SAMPLE = 16;
 // Provisional funnel thresholds — origin: probe B-BSIV v9 (live 2026-10-17).
 // NOT owner-approved product behavior: they decide which rows pass, so they are
 // configuration (part of configHash) and must be reviewed before any release.
+//
+// INPUT MAPPING (open decision, see AB_ENGINE_SEPARATION_DESIGN.md §12):
+// The v9 probe fed impliedVol with S = row.pl (the OPTION's own price) and
+// marketPrice = row.plc. Neither is verified: E-011 records all 113 field names
+// but explicitly leaves "_* vs non-* duplicate fields semantics unknown", and no
+// evidence in this repo documents `plc` as a price. The repo's OWN G-11 greeks
+// probe (probes/g11.greeks.limited-test.v1.1.js) instead used
+//   S           = underlying row's `pc` (via an underlying map built from l30)
+//   marketPrice = the option's bid/ask mid (pd1+po1)/2
+//   r           = 0.30,  T = 30/365
+// The v9 mapping produced a 77% IV-at-cap rate (perf.funnel.live.v1) — consistent
+// with feeding the solver an unrelated S and a non-price marketPrice. The
+// defaults below follow the G-11 probe (the best-evidenced mapping in this repo)
+// and are still PROVISIONAL until the owner decides.
 const DEFAULT_FUNNEL_CONFIG = {
-  T: 0.082,          // ~1 month to expiry (probe value)
-  r: 0.2,            // risk-free (probe value)
-  ivMin: 0.01,       // implied vol lower bound
-  ivMax: 1.0,        // implied vol upper bound
-  deltaMin: 0.3,     // |delta| lower bound
-  gammaMin: 1e-4     // gamma lower bound
+  T: 30 / 365,             // ~1 month (G-11 probe value; v9 used 0.082 — same)
+  r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2 — UNRESOLVED)
+  ivMin: 0.01,             // implied vol lower bound
+  ivMax: 1.0,              // implied vol upper bound
+  deltaMin: 0.3,           // |delta| lower bound
+  gammaMin: 1e-4,          // gamma lower bound
+  // where the option's market price comes from
+  marketPriceFrom: 'bidAskMid',    // 'bidAskMid' (G-11) | 'pl' | 'pc' | 'plc' | 'pcp'
+  // where the underlying price S comes from
+  underlyingFrom: 'underlyingMap', // 'underlyingMap' (G-11) | 'rowPl' (v9) | 'none'
+  // which field of the underlying row is its price (G-11 used pc)
+  underlyingPriceField: 'pc',      // 'pc' | 'pl'
+  // reproduce the v9 probe mapping for comparison
+  legacyV9Mapping: false
+};
+
+// Legacy mapping from probe B-BSIV v9 — kept ONLY so the two can be compared
+// live. Selecting it reproduces the 77% IV-at-cap behaviour.
+const V9_FUNNEL_CONFIG = {
+  r: 0.2,
+  marketPriceFrom: 'plc',
+  underlyingFrom: 'rowPl',
+  legacyV9Mapping: true
 };
 
 // ---------- small helpers (module scope = JIT friendly) ----------
@@ -106,6 +137,44 @@ function normalizeRows(rows) {
 }
 
 /**
+ * Underlying map in the G-11 style: rows whose l18 is NOT an option label carry
+ * the underlying's own price. l30 gives the option's underlying NAME, which is
+ * matched against these l18 keys (E-012: the relation is sample-only until the
+ * chain/calendar gates G-07..G-10 close, so a miss must degrade to
+ * insufficient-data, never to a fabricated S).
+ */
+function buildUnderlyingMap(list, field) {
+  const priceField = field || 'pc';
+  const map = Object.create(null);
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
+    if (!r) continue;
+    const l18 = String(r.l18 || '').trim();
+    if (!l18 || l18.length > 12) continue;
+    const first = l18.charAt(0);
+    if (first === '\u0636' || first === '\u0637') continue; // option prefix
+    const price = toNum(r[priceField]);
+    if (price !== null && price > 0 && map[l18] === undefined) map[l18] = price;
+  }
+  return map;
+}
+
+/**
+ * Default async scheduler for B: requestIdleCallback({timeout:500}) when the page
+ * offers it, otherwise setTimeout(0). Never runs B synchronously inside
+ * RenderData — that would block the render tick for 20-40ms.
+ */
+function createScheduler() {
+  if (typeof requestIdleCallback === 'function') {
+    return function (fn) {
+      requestIdleCallback(function () { fn(); }, { timeout: 500 });
+    };
+  }
+  if (typeof setTimeout === 'function') return function (fn) { setTimeout(fn, 0); };
+  return function (fn) { fn(); };
+}
+
+/**
  * Create a B engine instance.
  * @param {object} [options]
  * @param {object} [options.models] { parseOptionLabel, impliedVol, bsGreeks } — injected
@@ -118,12 +187,17 @@ function normalizeRows(rows) {
 function createBEngine(options) {
   const opts = options || {};
   const models = opts.models || {};
-  const funnel = Object.assign({}, DEFAULT_FUNNEL_CONFIG, opts.funnelConfig || {});
+  let funnel = Object.assign({}, DEFAULT_FUNNEL_CONFIG, opts.funnelConfig || {});
+  if (opts.legacyV9Mapping === true || funnel.legacyV9Mapping === true) {
+    funnel = Object.assign({}, funnel, V9_FUNNEL_CONFIG);
+  }
   const dirtyFields = Array.isArray(opts.dirtyFields) && opts.dirtyFields.length ? opts.dirtyFields.slice() : DIRTY_FIELDS;
   const strictIndex = opts.strictIndex === true;
-  const scheduler = opts.scheduler || (typeof setTimeout === 'function'
-    ? function (fn) { setTimeout(fn, 0); }
-    : function (fn) { fn(); });
+  // Async scheduler. The page calls RenderData ~1/sec and a full B cycle is
+  // ~20-40ms, so setTimeout(0) alone does not separate B from the render tick.
+  // requestIdleCallback with a timeout runs B in the idle gap; setTimeout(0) is
+  // the fallback. Both are injected for testability.
+  const scheduler = opts.scheduler || createScheduler();
   const now = opts.now || (typeof performance !== 'undefined' && performance.now
     ? function () { return performance.now(); }
     : function () { return Date.now(); });
@@ -135,6 +209,7 @@ function createBEngine(options) {
     bitset: new Uint8Array(0),   // 1 bit per symbol: pass/fail
     known: new Uint8Array(0),    // 1 bit per symbol: computed? (0 => A fails open)
     prevRows: Object.create(null), // inscode -> {tvol,pl,tno,pcp}
+    underlyingMap: Object.create(null), // underlying name -> price (G-11 style)
     snapshotId: null,
     configHash: null,
     configVersion: 0,
@@ -176,6 +251,7 @@ function createBEngine(options) {
     state.index = index;
     state.rowIndex = rowIndex;
     state.indexRebuilds++;
+    if (funnel.underlyingFrom === 'underlyingMap') state.underlyingMap = buildUnderlyingMap(list, funnel.underlyingPriceField);
     if (changed) {
       // symbol set changed -> old positions are meaningless, start clean
       state.bitset = new Uint8Array(Math.ceil(symbols.length / 8));
@@ -282,13 +358,39 @@ function createBEngine(options) {
    *   status 'insufficient-data' -> symbol stays unknown (A fails open for it)
    *   status 'error'              -> cycle aborts, nothing published (B fail-closed)
    */
+  /**
+   * Resolve the option's market price per the configured source.
+   * 'bidAskMid' follows the G-11 probe ((pd1+po1)/2) and degrades to
+   * insufficient-data when the book is shallow (G-05: missing 4/30) — never to a
+   * fabricated price.
+   */
+  function resolveMarketPrice(row) {
+    const src = funnel.marketPriceFrom;
+    if (src === 'bidAskMid') {
+      const bid = toNum(row.pd1), ask = toNum(row.po1);
+      if (bid === null || ask === null || bid <= 0 || ask <= 0) return null;
+      return (bid + ask) / 2;
+    }
+    return toNum(row[src]);
+  }
+
+  /** Resolve the underlying price S per the configured source. */
+  function resolveUnderlying(row, parsed) {
+    if (funnel.underlyingFrom === 'rowPl') return toNum(row.pl);       // v9 probe
+    if (funnel.underlyingFrom === 'none') return null;
+    const name = parsed && parsed.underlying ? String(parsed.underlying).trim() : '';
+    if (!name) return null;
+    const price = state.underlyingMap[name];
+    return (price === undefined) ? null : price;
+  }
+
   function computeFunnel(row, parsed) {
     try {
       if (!row || typeof row !== 'object') return { status: 'error', reason: 'row not object' };
       if (!parsed || parsed.status !== 'confirmed') return { status: 'insufficient-data', reason: 'not a confirmed option' };
-      const S = toNum(row.pl);
+      const S = resolveUnderlying(row, parsed);
       const K = toNum(parsed.strike);
-      const marketPrice = toNum(row.plc);
+      const marketPrice = resolveMarketPrice(row);
       if (S === null || K === null) return { status: 'insufficient-data', reason: 'missing S/K' };
       if (marketPrice === null) return { status: 'insufficient-data', reason: 'missing market price' };
       const kind = (parsed.kind === 'put') ? 'put' : 'call';
@@ -304,7 +406,11 @@ function createBEngine(options) {
       // |delta| so calls and puts are treated symmetrically (provisional threshold)
       const pass = (iv.sigma > funnel.ivMin) && (iv.sigma < funnel.ivMax) &&
                    (Math.abs(g.delta) > funnel.deltaMin) && (g.gamma > funnel.gammaMin);
-      return { status: 'ok', pass: pass, delta: g.delta, gamma: g.gamma, iv: iv.sigma, iterations: iv.iterations };
+      return {
+        status: 'ok', pass: pass, delta: g.delta, gamma: g.gamma,
+        iv: iv.sigma, iterations: iv.iterations,
+        inputs: { S: S, K: K, marketPrice: marketPrice, T: funnel.T, r: funnel.r, kind: kind }
+      };
     } catch (e) {
       return { status: 'error', reason: String((e && e.message) || e) };
     }
@@ -455,6 +561,11 @@ function createBEngine(options) {
   function installHooks(mw, ctx) {
     if (!mw || typeof mw !== 'object') return { uninstall: function () {} };
     const context = ctx || (typeof window !== 'undefined' ? window : null);
+    // Make the counter observable from the first moment: without this it stays
+    // undefined until the first hook fires, and anything reading mw.__B_configVersion
+    // before that sees undefined (configHash guards with `|| 0`, but the published
+    // projection should never carry an undefined).
+    if (typeof mw.__B_configVersion !== 'number') mw.__B_configVersion = state.configVersion;
     const origSettings = mw.SaveSettings;
     const origParams = mw.SaveParams;
 
@@ -492,6 +603,7 @@ function createBEngine(options) {
     state.bitset = new Uint8Array(0);
     state.known = new Uint8Array(0);
     state.prevRows = Object.create(null);
+    state.underlyingMap = Object.create(null);
     state.snapshotId = null;
     state.configHash = null;
     state.configVersion = 0;
@@ -535,5 +647,11 @@ function createBEngine(options) {
   };
 }
 
-module.exports = { createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, INDEX_SAMPLE };
-if (typeof window !== 'undefined') window.TseBEngine = { createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, INDEX_SAMPLE };
+module.exports = {
+  createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, V9_FUNNEL_CONFIG,
+  INDEX_SAMPLE, createScheduler, buildUnderlyingMap
+};
+if (typeof window !== 'undefined') window.TseBEngine = {
+  createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, V9_FUNNEL_CONFIG,
+  INDEX_SAMPLE, createScheduler, buildUnderlyingMap
+};
