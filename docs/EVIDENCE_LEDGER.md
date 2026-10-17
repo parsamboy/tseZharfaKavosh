@@ -540,3 +540,51 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `tested`: `11 same-origin endpoints on old.tsetmc.com 15131F`
 - `results`: `Option.aspx 200 html no-oi, InstOption.aspx 200 html no-oi, OptionMarketWatch 200 html, DerivativeOption 200 html, ClientTypeAll flow=3 200 csv (not OI), MarketWatchInit 200 AllRows csv, MarketWatchPlus 200 csv, /api/* 404, TsePublicV2 http blocked MixedContent`
 - `conclusion`: `No public OI/multiplier endpoint — authenticated api.tsetmc.com is the only remaining candidate per §7`
+
+### E-037 — A/B engine separation architecture (G-12/G-13 extension) — platform-verified / candidate
+
+- `evidenceId`: `E-037`
+- `claim`: `A/B engine separation validated on old.tsetmc.com 15131F: B (UX+settings+data+compute) runs independently once per snapshot; A per-row does only lookup of B's published immutable bitset projection. Guard (mw.__B_done + mw.__B_snapshotId) ensures B runs once per snapshot. Incremental dirty-tracking (tvol/pl/tno/pcp) validated: run1 dirty=3282, run2 dirty=29, run3 dirty=56. Bitset compression: 411 bytes for 3282 symbols (Uint8Array). Reverse index (mw.__B_rowIndex: inscode→row) for O(1) lookup. Atomic swap (build new bitset, then swap — no reset-then-fill race). Fail-open: A returns true on uncertainty. new Function() for helpers (JIT-optimizable, global scope) — 40ms run1 vs 312ms with eval function. Performance: run1 40ms (full recompute), incremental 0.8-1.0ms. minify candidate NOT retired (user decision خیر).`
+- `level`: `platform-verified`
+- `source`: `probes (console + TextArea): mw.RenderData RO, PrepareFilterCode RO, guard minimal, incremental+bitset, B-Real v3/v4/v5/v6/v7/v8/v9, timing (simple + BS+IV), diag1-6 — all on old.tsetmc.com 15131F`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-17T09:00Z — 2026-10-17T09:45Z (multiple probe runs)`
+- `method`: `console injection [کنسول] + FilterCode registration [TextArea] — read-only inspection + controlled FilterCode test with rollback (FilterCode cleared after each test)`
+- `fixtureHash`: `N/A — architecture probe, no single fixture; results captured in console output`
+- `status`: `candidate` — architecture validated via 9 probe iterations; performance acceptable (40ms full, 0.8ms incremental); ready for implementation`
+- `relatedGate`: `G-12 (exact A projection) + G-13 (bridge)`
+- `ownerApproval`: `owner chose A/B separation architecture (B independent, A lookup-only); minify NOT retired (خیر); incremental confirmed (بله); bitset confirmed (بله)`
+- `notes`: `Key findings: (1) O(n²) dirty tracking in A was real error — moved to B (O(n) once per cycle). (2) Memory underestimate 10× — corrected to ~200-300KB for __B_result. (3) Atomic swap vs reset-then-fill — atomic swap only. (4) Fail-open (A returns true) not halt. (5) configHash owned by UX (set on Settings write). (6) snapshotId from hook on mw.ApplyFilter or dirty detection. (7) B must be async (setTimeout/requestIdleCallback), not inside RenderData. (8) new Function() required for JIT — eval-defined functions 12× slower. (9) Method call overhead (mw.__B_erf) 11× slower than global (window.__B_erf). (10) Closure-captured variables in eval 11× slower than global property access.`
+
+### E-038 — ConfigHash dual trigger (SaveSettings/SaveParams hooks) — platform-verified / candidate
+
+- `evidenceId`: `E-038`
+- `claim`: `ConfigHash dual trigger validated on old.tsetmc.com 15131F: SaveSettings and SaveParams hooks installed (this=window context). ConfigVersion increments on UI settings change (0→12 observed). B re-runs when configVersion changes (configHash = configVersion-FilterCode.length). SnapshotId trigger (RoundNo-based) also works independently. Dual trigger: B runs when snapshotId OR configHash changes.`
+- `level`: `platform-verified`
+- `source`: `probes B-Real v3/v4/v5/v6/v7/v8/v9 (TextArea) on old.tsetmc.com 15131F — SaveSettings/SaveParams hook installation + configVersion tracking`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-17T09:00Z — 2026-10-17T09:45Z`
+- `method`: `FilterCode registration [TextArea] with hook installation on mw.SaveSettings and mw.SaveParams; console observation of configVersion changes on UI settings modification`
+- `fixtureHash`: `N/A — live probe, no fixture`
+- `status`: `candidate` — dual trigger validated; configVersion 0→12 on UI change; B re-runs correctly`
+- `relatedGate`: `G-12 (exact A projection)`
+- `ownerApproval`: `owner confirmed dual trigger approach (snapshotId + configHash)`
+- `notes`: `Key findings: (1) SaveSettings hook failed in v3 due to this=mw context (TypeError: Cannot read properties of undefined reading 'Instruments') — fixed in v4: this=window. (2) SaveParams hook works when user changes settings via UI (configVersion 0→12). (3) SaveSettings hook may not trigger on all UI changes (only SaveParams observed). (4) ConfigHash = configVersion + '-' + FilterCode.length. (5) Need to investigate if SaveSettings triggers on different settings (e.g., market change vs view mode change).`
+
+### E-039 — BS+IV Funnel timing + incremental validation — platform-verified / candidate
+
+- `evidenceId`: `E-039`
+- `claim`: `BS+IV Funnel (Black-Scholes delta/gamma + IV solving) timing measured on old.tsetmc.com 15131F: simple Funnel 2.9ms (3015 rows), BS+IV Funnel 17.4ms (3093 rows, 5.6μs/row). Incremental validated: run1 309ms (3093 dirty) → run4 4.3ms (41 dirty) with O(n²) lookup; after reverse index + new Function(): run1 40ms (3282 dirty) → incremental 0.8ms (41 dirty). solveIV converges in ~47 iterations avg (not early break). Incremental NECESSARY for BS+IV (>5ms threshold).`
+- `level`: `platform-verified`
+- `source`: `probes: timing (simple + BS+IV) [کنسول], B-Real v3-v9 [TextArea], diag1-6 [کنسول] on old.tsetmc.com 15131F`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-17T07:37Z — 2026-10-17T09:45Z`
+- `method`: `console timing probe (performance.now) + FilterCode registration with elapsedMs tracking`
+- `fixtureHash`: `N/A — live probe, no fixture`
+- `status`: `candidate` — timing measured; incremental validated; performance acceptable after new Function() fix`
+- `relatedGate`: `G-11 (other models) + G-12 (exact A projection)`
+- `ownerApproval`: `owner confirmed incremental (بله), bitset (بله), B-Real run1 (بله)`
+- `notes`: `Key findings: (1) Simple Funnel (tvol/plp/pcp/tno) = 2.9ms — incremental optional. (2) BS+IV Funnel = 17.4ms — incremental NECESSARY. (3) solveIV does NOT early-break (avg 47.2 iters, not 1) — because marketPrice (plc/pcp) doesn't match BS price. (4) Method call overhead (mw.__B_erf) 11× slower than global (window.__B_erf). (5) Closure-captured variables in eval 11× slower than global property access. (6) eval-defined functions 12× slower than new Function() (JIT). (7) Inlined erf (38.8ms) slower than function call (16.4ms) — JIT optimizes function calls better. (8) Final performance: 40ms full recompute, 0.8ms incremental — acceptable.`
