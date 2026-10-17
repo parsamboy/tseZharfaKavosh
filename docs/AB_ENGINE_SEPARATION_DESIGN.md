@@ -1,8 +1,8 @@
 # A/B Engine Separation — Final Design
 
 **تاریخ:** 2026-10-17  
-**وضعیت:** Candidate (probe-validated, pending implementation)  
-**مرجع:** E-037, E-038, E-039 (Evidence Ledger)
+**وضعیت:** **v0.1.0 پیاده‌سازی شد** — `src/engine/bEngine.v0.1.0.js` + `src/engine/aLookup.v0.1.0.js`، ۶۹/۶۹ تست parity پاس (E-042). اجرای live هنوز باقی است.  
+**مرجع:** E-037, E-038, E-039, E-040, E-041, E-042 (Evidence Ledger)
 
 ---
 
@@ -54,11 +54,12 @@
 
 ```javascript
 mw.__B_index       // {inscode: position} — reverse index (O(1) lookup)
-mw.__B_rowIndex    // {inscode: row} — reverse index for rows
+mw.__B_rowIndex    // {inscode: row} — فقط aid/debug؛ compute هرگز از آن نمی‌خواند
 mw.__B_symbols     // [inscode, ...] — ordered symbol list
 mw.__B_bitset      // Uint8Array — compressed result (1 bit per symbol)
 mw.__B_prevRows    // {inscode: {tvol, pl, tno, pcp}} — for dirty detection
 mw.__B_totalRuns   // number — run counter
+mw.__B_indexRebuilds / __B_indexCacheHits // number — شاخص کارایی index
 mw.__B_snapshotId  // string — last processed snapshot
 mw.__B_configHash  // string — last processed config
 mw.__B_configVersion // number — increments on SaveSettings/SaveParams
@@ -122,26 +123,28 @@ if (__needRun) {
 
 ### ۲.۵ Dirty Detection (O(n) once per cycle)
 
+پیاده‌سازی: `bEngine.detectDirty(rows)` → `{dirty, rowMap, count}` (بدون mutation).
+
 ```javascript
-var __dirty = [];
-for (var __k in mw.AllRows) {
-    if (mw.AllRows.hasOwnProperty(__k)) {
-        var __r = mw.AllRows[__k];
-        var __prev = mw.__B_prevRows[__r.inscode];
-        if (!__prev || __prev.tvol !== __r.tvol || __prev.pl !== __r.pl ||
-            __prev.tno !== __r.tno || __prev.pcp !== __r.pcp) {
-            __dirty.push(__r.inscode);
-        }
-        mw.__B_prevRows[__r.inscode] = {tvol: __r.tvol, pl: __r.pl, tno: __r.tno, pcp: __r.pcp};
-    }
-}
+const DIRTY_FIELDS = ['pl', 'plc', 'l18', 'l30', 'tvol', 'tno', 'pcp'];
 ```
 
 - **O(n)** — یک‌بار per cycle (نه per row)
-- مقایسه: tvol, pl, tno, pcp (4 field)
-- نتیجه: لیست dirty symbols
+- **۷ فیلد، نه ۴:** مجموعهٔ اولیهٔ probe (`tvol/pl/tno/pcp`) **`plc` را جا انداخته بود**.
+  `plc` (قیمت بازار) ورودی مستقیم `impliedVol` است؛ تغییرش بدون بازمحاسبه می‌ماند و
+  بیت قدیمی می‌ماند (bug صحت). `l18/l30` هم ورودی parse (strike/kind) هستند.
+  این باگ با تست stale-row در `probes/engine.parity.v1.js` گرفته شد.
+- **بدون mutation:** `prevRows` فقط بعد از چرخهٔ موفق (`commitDirty`) advance می‌شود؛
+  در حالت fail-closed، ردیف‌های ناموفق در چرخهٔ بعد retry می‌شوند.
+- `rowMap` شیء row **جاری** هر dirty را نگه می‌دارد؛ compute هرگز به row کش‌شده
+  (`__B_rowIndex`) وابسته نیست.
 
 ### ۲.۶ Compute Phase (O(dirty) with O(1) lookup)
+
+قبل از compute، `ensureIndex()` ایندکس را فقط وقتی می‌سازد که مجموعهٔ نمادها عوض شده
+باشد (count + نمونه‌برد ۱۶ inscode). صفحه فیلدها را in-place mutate می‌کند، پس کلیدها
+پایدارند؛ ساخت ۳۲۸۲ کلید در هر چرخه ۱.۴-۱.۷ms بی‌دلیل هزینه داشت (۵۰٪ بودجهٔ cycle).
+گزینهٔ `strictIndex` برای rebuild اجباری در هر چرخه موجود است.
 
 ```javascript
 var __newResult = new Uint8Array(mw.__B_bitset.length);
@@ -255,6 +258,10 @@ if (__posA !== undefined && mw.__B_bitset) {
 | Per-row lookup (A) | ~0.01 ms | design | ✅ (3289 rows ≈ 33ms total in RenderData) |
 | Bitset size | 411 bytes | live v5 | ✅ (63× کاهش vs ~27KB object) |
 | Memory (__B_result) | ~200-300 KB | live estimate | ✅ (تصحیح‌شده از 27KB) |
+| **Full recompute (node parity، ۹۸۴ آپشن)** | **۱۶.۹–۲۲.۱ms** | engine.parity.v1 (node) | ✅ هم‌مرتبه با live ۱۸.۴ms |
+| **Incremental cycle (node parity، ۶۵ dirty)** | **۱.۳–۲.۲ms** | engine.parity.v1 (node) | ✅ با cache ایندکس |
+| detectDirty با ۷ فیلد (node) | ۰.۸–۱.۶ms | engine.parity.v1 (node) | ✅ (۴ فیلد: ۰.۲۵ms؛ live ۴ فیلد: ۲.۳ms) |
+| buildIndex در چرخهٔ incremental | **۰ms (cache)** | engine.parity.v1 (node) | ✅ (بدون cache: ۱.۴-۱.۷ms) |
 
 ### یافتهٔ کلیدی اجرای live v1 (۲۰۲۶-۱۰-۱۷)
 
@@ -341,22 +348,25 @@ function runB() {
 
 ## ۸. Implementation Checklist
 
-- [ ] Create `src/engine/bEngine.v0.1.0.js` — B engine (index, dirty, compute, publish)
-- [ ] Create `src/engine/aLookup.v0.1.0.js` — A per-row lookup (FilterCode template)
-- [ ] Use `new Function()` for all helper functions (erf, bsDelta, solveIV, etc.)
-- [ ] Store helpers on `window` (global scope) for JIT optimization
-- [ ] Install SaveSettings/SaveParams hooks with `this=window`
-- [ ] Implement guard (snapshotId + configHash dual trigger)
-- [ ] Implement dirty detection (O(n) once per cycle)
-- [ ] Implement reverse index (O(1) lookup)
-- [ ] Implement atomic swap (build new, then swap)
-- [ ] Implement fail-closed (try/catch, no partial publish)
-- [ ] Implement fail-open in A (return true on uncertainty)
-- [ ] Add async execution (setTimeout/requestIdleCallback)
-- [ ] Test with PrepareFilterCode (61 rules)
-- [ ] Test incremental (dirty=0 on no-change)
-- [ ] Test performance (run1 <50ms, incremental <2ms)
-- [ ] Update governance (E-037/038/039 already added)
+- [x] Create `src/engine/bEngine.v0.1.0.js` — B engine (index, dirty, compute, publish)
+- [x] Create `src/engine/aLookup.v0.1.0.js` — A per-row lookup (FilterCode body)
+- [x] ~~Use `new Function()` for helpers~~ — **لازم نیست**: ماژول واقعی است، نه eval.
+      توابع معمولی در module scope از قبل JIT-optimizable هستند (درس probe ها فقط
+      برای کد تزریق‌شدهٔ کنسول/FilterCode معنا داشت).
+- [x] Install SaveSettings/SaveParams hooks with `this=window` (تأییدشده با تست)
+- [x] Implement guard (snapshotId + configHash dual trigger)
+- [x] Implement dirty detection (O(n) once per cycle, 7 fields, no mutation)
+- [x] Implement reverse index (O(1) lookup) + index caching
+- [x] Implement atomic swap (build new, then swap)
+- [x] Implement fail-closed (error → publish nothing, retry next cycle)
+- [x] Implement fail-open in A (true on no projection / unknown symbol / unknown bit)
+- [x] Add async execution (injected scheduler: setTimeout/requestIdleCallback)
+- [x] Unit + parity suite: `probes/engine.parity.v1.js` — **۶۹/۶۹ پاس**
+- [x] `node --check` روی ۷۳ فایل src+probes — همه پاس
+- [ ] Test with PrepareFilterCode on the live page (61 rules) — **probe live بعدی**
+- [ ] Test incremental on the live page (dirty=0 on no-change)
+- [ ] Test performance on the live page (run1 <50ms, incremental <5ms)
+- [x] Update governance (E-037..E-041 added; E-042 for implementation)
 
 ---
 
@@ -471,3 +481,80 @@ function runB() {
 **نتیجه:** هر سه تناقض بسته شد. **هیچ مانعی برای پیاده‌سازی باقی نمانده.**
 عدد بودجهٔ طراحی: full recompute = **~۱۸.۴ms** (یک‌بار per snapshot)،
 هر چرخهٔ incremental = **~۳ms**، per-row lookup در A = **~۰.۰۱ms**.
+
+---
+
+## ۱۲. وضعیت پیاده‌سازی v0.1.0 (۲۰۲۶-۱۰-۱۷)
+
+### فایل‌ها
+
+| فایل | نقش |
+|---|---|
+| `src/engine/bEngine.v0.1.0.js` | B: index (+cache)، dirty detection، funnel (ماژول‌های تزریق‌شده)، guard، atomic swap، publish، hooks |
+| `src/engine/aLookup.v0.1.0.js` | A: `evaluateRow` + بدنهٔ تولیدی برای FilterCode (۴۳۵ بایت) + capacity check + parity harness |
+| `probes/engine.parity.v1.js` | ۶۹ تست: unit + parity + timing |
+
+### API خلاصه
+
+```javascript
+// B
+const b = createBEngine({ models: { parseOptionLabel, impliedVol, bsGreeks } });
+b.installHooks(mw, window);              // configVersion (dual trigger)
+const snap = b.computeSnapshotId(mw);    // 'snap-7-3289'
+const cfg  = b.computeConfigHash(mw);    // '3-3'
+const report = b.run(mw.AllRows, snap, cfg);
+// report: {published, reason, dirtyCount, computed, unknown, elapsedMs, runs, meta}
+b.publish(mw);                           // atomic: mw.__B_bitset / __B_known / __B_index ...
+b.runAsync(mw.AllRows, snap, cfg, cb);   // async — never inside RenderData
+
+// A (inside the filter slot, 435 bytes)
+var FilterResult = true;
+var __i = mw.__B_index;
+if (__i && mw.__B_known && mw.__B_bitset && row) {
+  var __p = __i[row.inscode];
+  if (__p !== undefined) {
+    var __b = (__p / 8) | 0, __m = __p % 8;
+    if (__b >= 0 && __b < mw.__B_known.length && (mw.__B_known[__b] >> __m) & 1) {
+      FilterResult = !!((mw.__B_bitset[__b] >> __m) & 1);
+    }
+  }
+}
+```
+
+### نتایج تست parity (node 22، کد واقعی repo، ۳۲۸۲ نماد / ۹۸۴ آپشن)
+
+| شاخص | مقدار |
+|---|---|
+| تست‌های پاس‌شده | **۶۹ / ۶۹** |
+| `node --check` (۷۳ فایل src+probes) | همه پاس |
+| parity بدنهٔ A با `evaluateRow` | ۳۲۸۲/۳۲۸۲ یکسان |
+| بایت بدنهٔ A | ۴۳۵ / ۴۰۹۶ (fits) |
+| full recompute | ۱۶.۹–۲۲.۱ms |
+| incremental cycle | ۱.۳–۲.۲ms |
+| detectDirty (۷ فیلد) | ۰.۸–۱.۶ms |
+| buildIndex در چرخهٔ incremental | ۰ms (cache hit) |
+
+### دو باگی که تست‌ها گرفتند (هر دو اصلاح شدند)
+
+1. **`plc` در dirty fields نبود** — `plc` ورودی `impliedVol` است؛ تغییرش باعث
+   recompute نمی‌شد و بیت قدیمی می‌ماند. اصلاح: `DIRTY_FIELDS = [pl, plc, l18, l30,
+   tvol, tno, pcp]`. هزینه: detectDirty از ۰.۲۵ms به ~۱ms (node) رفت — قابل قبول.
+2. **ترتیب آرگومان‌ها در `compileFilterCodeBody`** — امضا `(mw, row)` بود در حالی که
+   `evaluateRow(row, published)` است؛ parity test به‌اشتباه جابجا صدا می‌شد و
+   ۷۸۶ عدم‌تطابق گزارش شد. اصلاح: امضا `(row, mw)` تا با `evaluateRow` یکسان شود.
+
+### تصمیم‌های باز برای مالک (قبل از live)
+
+1. **آستانه‌های funnel** (`deltaMin: 0.3`، `gammaMin: 1e-4`، `iv ∈ (0.01, 1)`) —
+   از probe v9 به ارث رسیده و **تأیید نشده**؛ این‌ها تعیین می‌کنند کدام ردیف‌ها پاس شوند.
+2. **`|delta|` به جای `delta > 0.3`** — در probe v9 فقط call-style delta بود؛ برای
+   puts از قدرمطلق استفاده کردم (وگرنه هیچ putی پاس نمی‌شد). تأیید مالک لازم است.
+3. **منبع S** — funnel از `row.pl` به‌عنوان underlying استفاده می‌کند (همان رفتار
+   probe زنده). برای آپشن، `pl` قیمت خود آپشن است، نه underlying؛ منبع درست
+   underlying (زنجیره/نماد پایه) طبق قرارداد منبع داده باید تأیید شود.
+4. **`minify`** — بازنشسته نمی‌شود (تصمیم قبلی کاربر).
+
+### گام بعدی (live)
+
+پروب live برای ثبت A از طریق `PrepareFilterCode` و تأیید ۶۱ قانون + اندازه‌گیری
+دورهٔ incremental روی صفحهٔ واقعی. طبق workflow، یک probe در هر اجرا.

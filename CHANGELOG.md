@@ -2,6 +2,35 @@
 
 All notable changes to `tseZharfaKavosh` are recorded here.
 
+## [Unreleased]
+
+### Added — A/B engine separation v0.1.0 (G-12/G-13)
+
+- `src/engine/bEngine.v0.1.0.js` — B engine: reverse index with caching, dirty
+  detection (7 fields, O(n), no mutation), dual-trigger guard (snapshotId +
+  configHash), per-row funnel with injected models, atomic swap, fail-closed
+  publish, SaveSettings/SaveParams hooks (`this=window`), async runner.
+- `src/engine/aLookup.v0.1.0.js` — A per-row lookup: `evaluateRow` (fail-open),
+  generated 435-byte FilterCode body, capacity check (4096 limit), parity harness.
+- `probes/engine.parity.v1.js` — 69 assertions: unit + parity + timing.
+- `docs/AB_ENGINE_SEPARATION_DESIGN.md` — design, contradiction review (§11),
+  performance budget (§4), implementation status (§12).
+
+### Fixed (found by the parity suite)
+
+- `plc` was missing from `DIRTY_FIELDS` although `impliedVol` reads it, so a
+  market-price-only change never recomputed and the published bit went stale.
+  `DIRTY_FIELDS` is now `[pl, plc, l18, l30, tvol, tno, pcp]`.
+- `compileFilterCodeBody` had signature `(mw, row)` while `evaluateRow` is
+  `(row, published)`; the signature now matches so the two cannot be confused.
+
+### Evidence
+
+- E-037 A/B architecture, E-038 configHash dual trigger, E-039 BS+IV timing,
+  E-040 contradiction review + local benchmark, E-041 live funnel timing
+  (18.4ms full / 16.16us per option row / detectDirty 2.3ms live),
+  E-042 implementation + 69/69 parity + node --check 73/73.
+
 ## [0.1.0.0] — 2026-10-04
 
 ### Added
