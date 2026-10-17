@@ -19,7 +19,8 @@
 │  • Guard: runs only if snapshotId or configHash changed │
 │  • Async: setTimeout/requestIdleCallback (not in       │
 │    RenderData)                                          │
-│  • Fail-closed: error → halt, no partial publish       │
+│  • Fail-closed (B): error → keep PREVIOUS valid state, │
+│    publish nothing partial                              │
 └──────────────────────┬──────────────────────────────────┘
                        │ publishes (atomic swap)
                        ▼
@@ -28,7 +29,8 @@
 │  ─────────────────────────────────────────────────────  │
 │  • Does ONLY lookup of B's published bitset            │
 │  • FilterResult = bitset[pos] (O(1))                   │
-│  • Fail-open: returns true on uncertainty              │
+│  • Fail-open (A): no valid published result → true     │
+│    (user sees MORE, never an empty page)               │
 │  • No computation, no dirty-tracking, no state         │
 │  • ~0.01ms per row (bitset lookup)                     │
 └─────────────────────────────────────────────────────────┘
@@ -39,7 +41,9 @@
 1. **B مستقل اجرا می‌شود** — UX + settings + data + engine در B است
 2. **A فقط lookup می‌کند** — هیچ computation، dirty-tracking یا state در A
 3. **B فقط یک‌بار per snapshot اجرا می‌شود** — guard با snapshotId + configHash
-4. **B partial/error → halt** — فقط نتیجهٔ کامل publish می‌شود
+4. **دو معنای مجزای fail دارند** (بند ۲.۸ را ببینید):
+   - B: error → نتیجهٔ قبلی حفظ می‌شود، هیچ partial publish نمی‌شود
+   - A: اگر نتیجهٔ معتبر منتشر نشده → `true` (کاربر همه را می‌بیند، صفحهٔ خالی نه)
 5. **minify candidate بازنشسته نمی‌شود** — evidence 61 PrepareFilterCode rules حفظ می‌شود
 
 ---
@@ -193,11 +197,18 @@ try {
     // ... entire B computation ...
 } catch(e) {
     console.error('[B] Error:', e.message);
-    // Do NOT publish partial result
-    // mw.__B_bitset remains unchanged (previous valid state)
-    // A will use previous bitset (fail-open on A side)
+    // B FAIL-CLOSED: publish NOTHING. Previous mw.__B_bitset stays as-is.
+    // If this was the FIRST run (no previous bitset), A has nothing valid to
+    // read and therefore returns true for every row (fail-open) — see §3.
 }
 ```
+
+> **دو معنای fail — تفکیک‌شده (اصلاح تناقض ۱، ۲۰۲۶-۱۰-۱۷):**
+> «fail-closed» فقط دربارهٔ **B** است: B هیچ نتیجهٔ ناقص یا خرابی را publish نمی‌کند.
+> «fail-open» فقط دربارهٔ **A** است: اگر B نتیجهٔ معتبری منتشر نکرده باشد (اولین اجرا
+> یا خطا)، A برای همهٔ ردیف‌ها `true` برمی‌گرداند — کاربر **همهٔ** ردیف‌ها را می‌بیند.
+> اگر برعکس باشد (A روی خطای B `false` بدهد) صفحهٔ خالی می‌شود — فاجعه.
+> عبارت «B fail-closed → halt» به معنای «متوقف شدن publish» است، نه «متوقف شدن A».
 
 ---
 
@@ -222,14 +233,42 @@ if (__posA !== undefined && mw.__B_bitset) {
 
 ## ۴. Performance Summary
 
-| سناریو | زمان | قابل قبول؟ |
-|---|---|---|
-| Full recompute (run 1) | 40 ms | ✅ (یک‌بار per snapshot) |
-| Incremental (run 2+) | 0.8-1.0 ms | ✅ (هر RenderData cycle) |
-| Per-row lookup (A) | ~0.01 ms | ✅ (3282 rows = ~33ms total in RenderData) |
-| Bitset size | 411 bytes | ✅ (63× کاهش vs ~27KB object) |
-| Memory (__B_result) | ~200-300 KB | ✅ (تصحیح‌شده از 27KB) |
-| Dirty detection | 2.9 ms | ✅ (O(n) once per cycle) |
+> **وضعیت اعداد:** ردیف‌های «live» از probe های سایت زنده گرفته شده‌اند؛
+> ردیف‌های «local bench» از `probes/perf.computeFunnel.benchmark.v1.js`
+> (node 22، کد **واقعی** repo: optionParser + greeks، دادهٔ مصنوعی) هستند.
+> تناقض ۲ و ۳ (بررسی ۲۰۲۶-۱۰-۱۷) در §۱۱ ثبت شده‌اند.
+
+| سناریو | زمان | منبع | قابل قبول؟ |
+|---|---|---|---|
+| Per-row funnel (parse+impliedVol+bsGreeks) | **8.4 μs** | local bench (warm) | ✅ |
+| impliedVol به‌تنها | 4.5 μs (avg 15.6 iter، سقف ۲۵) | local bench | ✅ |
+| bsGreeks (σ معلوم) | 0.74 μs | local bench | ✅ |
+| Funnel روی ۸۰۰ ردیف آپشن | 5.4 ms | local bench | ✅ |
+| Funnel روی همهٔ ۳۲۸۲ نماد (extrapolated) | 27.5 ms | local bench | ✅ |
+| Cold single-shot impliedVol (اولین فراخوانی) | 0.13–0.83 ms | local bench | ✅ یک‌بار |
+| **Full recompute (run 1، live)** | **40 ms** | live v9 [TextArea] | ✅ یک‌بار per snapshot |
+| Incremental — فقط compute (live) | 0.8–1.0 ms | live v9 [TextArea] | ✅ |
+| detectDirty (۴ فیلد × ۳۲۸۲) | 2.9 ms | live DIAG2 [کنسول] | مستقل از compute |
+| **Incremental — کل چرخه (compute + detectDirty)** | **~3.7–4.0 ms** | محاسبه‌شده | ✅ زیر آستانهٔ ۵ms |
+| Per-row lookup (A) | ~0.01 ms | design | ✅ (3282 rows = ~33ms total in RenderData) |
+| Bitset size | 411 bytes | live v5 | ✅ (63× کاهش vs ~27KB object) |
+| Memory (__B_result) | ~200-300 KB | live estimate | ✅ (تصحیح‌شده از 27KB) |
+
+### چرا ادعای ۴۰ms معقول است (و چرا نه اغراق‌آمیز)
+
+`src/models/greeks.v0.1.0.js` از **bisection** برای IV استفاده می‌کند، ولی حلقه در
+همین حالت سقف سخت دارد: در هر تکرار بازه نصف می‌شود و `high-low < 1e-7` پس از
+~۲۵ تکرار break می‌کند (اندازه‌گیری: avg 15.6، max 24). پس هر `impliedVol`
+حداکثر ~۲۵ فراخوانی `bsGreeks` ≈ ۱۸μs گرم است. با ۸.۴μs per-row برای کل funnel:
+
+- ۸۰۰ ردیف آپشن → ۵.۴ms
+- ۳۲۸۲ نماد (حالت بد، بدون فیلتر آپشن) → ۲۷.۵ms
+- به‌علاوه cold start یک‌بار (≤۰.۸ms) + detectDirty (۲.۹ms) → ~۳۱ms
+
+عدد زندهٔ ۴۰ms **در همین محدوده** است؛ یعنی نه اغراق‌آمیز و نه خیلی خوش‌بینانه.
+تخمین «۱-۲ms هر آپشن → ۳-۶ ثانیه» حدود ۲۵۰ برابر بدبینانه بود (فرض ۱۰۰ تکرار
+bisection، در حالی که سقف واقعی ~۲۵ است).
+**یعنی گزینهٔ (ب) نبود؛ گزینهٔ (الف) هم نبود** — funnel واقعاً BS+IV کامل است.
 
 ---
 
@@ -247,6 +286,9 @@ if (__posA !== undefined && mw.__B_bitset) {
 | 8 | Inlined erf کندتر | JIT function call optimization | function call (16.4ms vs 38.8ms) |
 | 9 | solveIV early-break نمی‌کند | marketPrice (plc/pcp) ≠ BS price | avg 47.2 iters (نه 1) |
 | 10 | configVersion 0→12 | SaveParams hook کار می‌کند | dual trigger validated |
+| 11 | تخمین IV گران بود (۲۵۰×) | bisection سقف سخت ~۲۵ تکرار دارد (`high-low<1e-7`) | impliedVol فقط ۴.۵μs گرم |
+| 12 | «۰.۸ms incremental» فقط compute بود | detectDirty جدا ۲.۹ms اندازه گرفته شد | کل چرخه ~۳.۷-۴ms اعلام شود |
+| 13 | فایل probe v9 در workspace نیست | نمی‌توان مرز اندازه‌گیری elapsed را تأیید کرد | probe بعدی breakdown جدا می‌گیرد |
 
 ---
 
@@ -317,6 +359,8 @@ function runB() {
 | B-BSIV v8 | [TextArea] | run1 312ms | eval-defined 12× |
 | B-BSIV v9 | [TextArea] | run1 40ms, incr 0.8ms | new Function() JIT ✅ |
 | Diag1-6 | [کنسول] | various | root cause identification |
+| **computeFunnel bench (local)** | **node 22** | impliedVol 4.5μs (cap 25 iter), funnel 8.4μs/row, 3282 → 27.5ms | تخمین «۱-۲ms/آپشن» ۲۵۰× بدبینانه بود |
+| **funnel.live.v1** | **[کنسول]** | **در انتظار اجرای کاربر** | اندازه‌گیری live با کد واقعی + breakdown detectDirty/compute |
 
 ---
 
@@ -325,7 +369,77 @@ function runB() {
 - E-037: A/B engine separation architecture
 - E-038: ConfigHash dual trigger
 - E-039: BS+IV Funnel timing + incremental validation
+- E-040: contradiction review (fail-open/fail-closed, 40ms claim, 0.8ms incremental) + local benchmark
 - E-026: G-13 bridge confirmation (official probe v3)
 - E-011: mw.AllRows existence/schema/lifecycle
+- probes/perf.computeFunnel.benchmark.v1.js — local benchmark (node, real repo code)
+- probes/perf.funnel.live.v1.js — live timing probe (console, pending user run)
+- src/models/greeks.v0.1.0.js — real BS+IV (bisection IV, hard cap ~25 iters)
+- src/optionParser.v0.1.0.js — real option label parser
 - docs/PENDING.md: G-12 (exact A projection), G-13 (bridge confirmed)
 - docs/DECISIONS.md: D-2026-10-05-001 (Full scope), D-2026-10-05-002 (Privacy A)
+---
+
+## ۱۱. بررسی تناقض‌ها پیش از پیاده‌سازی (۲۰۲۶-۱۰-۱۷)
+
+سه تناقض مطرح شد؛ هر سه بررسی و ثبت شدند. **هیچ‌کدام مانع پیاده‌سازی نیست**،
+ولی دو مورد باعث اصلاح اعداد و یک مورد باعث اصلاح طراحی شد.
+
+### تناقض ۱ — «fail-closed» در برابر «fail-open»
+
+- **مشکل:** در §۲.۸ نوشته شده بود «B: Fail-closed: error → halt, no partial publish»
+  و هم‌زمان «A fail-open». این دو در یک جمله متناقض به نظر می‌رسیدند.
+- **تشخیص:** تناقض **ظاهری** بود، نه واقعی. دو لایهٔ مجزای fail دارند:
+  - **B fail-closed** = هیچ نتیجهٔ ناقص/خرابی publish نمی‌شود؛ نتیجهٔ **قبلی** حفظ می‌شود.
+  - **A fail-open** = اگر نتیجهٔ معتبری موجود نباشد (اولین اجرا یا خطای B)، A برای همهٔ
+    ردیف‌ها `true` برمی‌گرداند → کاربر همه را می‌بیند، صفحهٔ خالی نه.
+- **تصمیم (تأییدشده):** B حق ندارد partial publish کند؛ A حق ندارد کاربر را کور کند.
+  اگر برعخش بود (A روی خطای B `false` بدهد) صفحهٔ خالی می‌شد — فاجعه.
+- **اصلاح:** §۱، §۲.۸ و §۳ بازنویسی شدند؛ دو معنای fail صریحاً تفکیک شدند.
+
+### تناقض ۲ — ادعای «۴۰ms full recompute» بدون اندازه‌گیری مستقیم
+
+- **تردد:** `computeFunnel` (BURSA v1.5.0-rc2) هرگز مستقل اندازه‌گیری نشده بود؛
+  تخمین نظری «۱-۲ms هر آپشن → ۳-۶ ثانیه برای ۳۲۸۲ نماد» مطرح شد.
+- **اندازه‌گیری انجام‌شده (local, node 22):** `probes/perf.computeFunnel.benchmark.v1.js`
+  کد **واقعی** repo را اجرا می‌کند (`src/optionParser.v0.1.0.js` + `src/models/greeks.v0.1.0.js`)
+  روی ردیف‌های مصنوعی شبیه live (۳۲۸۲ نماد، ۸۰۰ آپشن، strike ladder نزدیک spot).
+- **نتیجه (کلیدی):** تخمین ۲۵۰× بدبینانه بود. `impliedVol` از bisection استفاده می‌کند
+  ولی حلقه **سقف سخت ~۲۵ تکرار** دارد (`high-low < 1e-7`): avg 15.6، max 24.
+  پس: impliedVol ۴.۵μs، bsGreeks ۰.۷۴μs، کل funnel ۸.۴μs per-row.
+  → ۸۰۰ ردیف آپشن = ۵.۴ms؛ ۳۲۸۲ نماد = ۲۷.۵ms؛ +cold ۰.۸ms +detectDirty ۲.۹ms ≈ ۳۱ms.
+- **حکم:** ادعای ۴۰ms **در محدودهٔ معقول** است (دادهٔ live v9). نه گزینهٔ (الف)
+  (فunnel واقعاً BS+IV کامل است) و نه گزینهٔ (ب) (ادعا اغراق‌آمیز نیست).
+- **بقایای عدم‌قطعیت (پوشش‌داده با probe بعدی):**
+  1. دادهٔ مصنوعی است، نه `plc/pc` واقعی live — قیمت بازار می‌تواند IV را به سقف ۲۵ براند.
+  2. node گرم (JIT warm) ≠ سایت زنده (B یک‌بار per snapshot اجرا می‌شود).
+  3. funnel تولیدی ممکن است GARCH/SVI/GEX هم per-row صدا بزند (bench: +۸.۷μs → ۲۸.۶ms).
+  → `probes/perf.funnel.live.v1.js` [کنسول] این سه را روی دادهٔ واقعی اندازه می‌گیرد
+  (کد inline شده با parity تست‌شده: ۴۰۰/۴۰۰ parse، ۴۰۰/۴۰۰ impliedVol+bsGreeks).
+
+### تناقض ۳ — «Incremental ۰.۸ms» بدون شاهد و بدون detectDirty
+
+- **تردد:** اگر Full = ۴۰ms و Incremental = ۰.۸ms، نرخ dirty ≈ ۲٪ (۶۶ نماد از ۳۲۸۲).
+  یعنی در هر cycle فقط چند ده نماد تغییر می‌کند. این فرض لازم است تأیید شود.
+  همچنین detectDirty خودش چند می‌شود؟ (~۱۰٬۰۰۰ مقایسه ≈ ۱-۳ms)
+- **یافتهٔ مهم:** DIAG2 جداگانه `dirty detection = ۲.۹ms` را اندازه گرفت.
+  بنابراین «۰.۸ms incremental» **نمی‌تواند** detectDirty را شامل باشد — یعنی
+  elapsed در v9 فقط فاز **compute** بوده است.
+- **تصمیم:** عدد را دو تکه اعلام کنیم:
+  - compute incremental: **۰.۸–۱.۰ms**
+  - کل چرخه (detectDirty + compute): **~۳.۷–۴.۰ms** ← عددی که A/B واقعاً می‌پردازد
+- **عدم‌قطعیت باقی‌مانده:** فایل probe v9 در workspace نیست، بنابراین **نمی‌توانم
+  تأیید کنم** elapsed دقیقاً چه بخشی را پوشش می‌داد. probe بعدی
+  (`perf.funnel.live.v1`) هر دو فاز را جدا اندازه می‌گیرد تا این ابهام بسته شود.
+- **تصحیح §۴:** جدول Performance اصلاح شد (دو ردیف مجزای compute / کل چرخه).
+
+### جمع‌بندی
+
+| # | تناقض | حکم | مانع پیاده‌سازی؟ |
+|---|---|---|---|
+| ۱ | fail-closed vs fail-open | ظاهری؛ دو لایهٔ مجزا تفکیک شدند | ❌ خیر (طراحی اصلاح شد) |
+| ۲ | ۴۰ms بدون اندازه‌گیری | معقول؛ تخمین مخالف ۲۵۰× بدبینانه بود | ❌ خیر (probe live در انتظار) |
+| ۳ | ۰.۸ms incremental | فقط compute؛ کل چرخه ~۳.۷-۴ms | ❌ خیر (شکاف elapsed probe v9 ثبت شد) |
+
+**نتیجه:** پیاده‌سازی ممکن است، با این شرط که در implementation اولیه
+`detectDirty` و `compute` جدا تایمر شوند و اعداد واقعی در evidence ثبت گردد.

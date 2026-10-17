@@ -588,3 +588,18 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `relatedGate`: `G-11 (other models) + G-12 (exact A projection)`
 - `ownerApproval`: `owner confirmed incremental (بله), bitset (بله), B-Real run1 (بله)`
 - `notes`: `Key findings: (1) Simple Funnel (tvol/plp/pcp/tno) = 2.9ms — incremental optional. (2) BS+IV Funnel = 17.4ms — incremental NECESSARY. (3) solveIV does NOT early-break (avg 47.2 iters, not 1) — because marketPrice (plc/pcp) doesn't match BS price. (4) Method call overhead (mw.__B_erf) 11× slower than global (window.__B_erf). (5) Closure-captured variables in eval 11× slower than global property access. (6) eval-defined functions 12× slower than new Function() (JIT). (7) Inlined erf (38.8ms) slower than function call (16.4ms) — JIT optimizes function calls better. (8) Final performance: 40ms full recompute, 0.8ms incremental — acceptable.`
+
+### E-040 — Pre-implementation contradiction review + local computeFunnel benchmark (2026-10-17)
+
+- `evidenceId`: `E-040`
+- `claim`: `Three contradictions reviewed before implementation. (1) fail-closed vs fail-open: apparent, not real — B fail-closed = no partial publish, previous valid state kept; A fail-open = returns true when no valid published result (user sees all, never an empty page). Design doc §1/§2.8/§3 rewritten. (2) "40ms full recompute" claim: VALIDATED as plausible by local benchmark of the REAL repo code (probes/perf.computeFunnel.benchmark.v1.js, node 22): impliedVol 4.5us/call (avg 15.6 iters, HARD CAP ~25 via high-low<1e-7), bsGreeks 0.74us, full funnel 8.4us/row -> 800 option rows 5.4ms, 3282 symbols 27.5ms, +cold 0.8ms +detectDirty 2.9ms = ~31ms. The counter-estimate "1-2ms per option -> 3-6s" was ~250x too pessimistic. (3) "0.8ms incremental": COMPUTE-ONLY (DIAG2 measured detectDirty separately at 2.9ms), so the real per-cycle cost is ~3.7-4.0ms. Probe v9 source is not in the workspace, so the exact elapsed boundary is UNVERIFIABLE — recorded as an open gap.`
+- `level`: `local-verified (benchmark) + design-review (contradiction 1) + live-derived arithmetic (contradiction 3)`
+- `source`: `probes/perf.computeFunnel.benchmark.v1.js (node 22.22.3) — uses src/optionParser.v0.1.0.js + src/models/greeks.v0.1.0.js verbatim; live figures from E-037/E-039 (v9, DIAG2)`
+- `host`: `local (benchmark) — no network`
+- `parTree`: `15131F (live figures reused)`
+- `capturedAt`: `2026-10-17T10:00Z — 2026-10-17T10:30Z`
+- `method`: `node benchmark with warmup + hrtime.bigint; synthetic rows shaped like live mw.AllRows (3282 symbols, 800 option rows, strikes bracketing spot, market price = BS price at sigma 0.35 + noise); worst-case out-of-range market price tested (24 iters, cap confirmed)`
+- `fixtureHash`: `N/A — local benchmark`
+- `status`: `candidate` — benchmark numbers local only; live confirmation pending via probes/perf.funnel.live.v1.js [کنسول]`
+- `relatedGate`: `G-11 (other models) + G-12 (exact A projection)`
+- `notes`: `(a) impliedVol iteration cap is structural: bisection halves [0.01,3.0] and breaks at high-low<1e-7 after ~25 iterations — max observed 24, avg 15.6. (b) Cold single-shot impliedVol via new Function: median 0.006ms, p90 0.014ms (warm-loop context) and 0.13-0.83ms for a truly first call. (c) Production-style funnel (parse+firstModel+iv+greeks+garch+svi) = 8.71us/row -> 28.6ms for 3282. (d) Parity test: inlined probe functions vs repo modules = 400/400 parseOptionLabel identical, 400/400 impliedVol+bsGreeks identical. (e) Remaining uncertainty for the live probe: synthetic prices, warm vs cold JIT, and whether the production funnel adds per-row GARCH/SVI/GEX calls.`
