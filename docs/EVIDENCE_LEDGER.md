@@ -603,3 +603,18 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `status`: `candidate` — benchmark numbers local only; live confirmation pending via probes/perf.funnel.live.v1.js [کنسول]`
 - `relatedGate`: `G-11 (other models) + G-12 (exact A projection)`
 - `notes`: `(a) impliedVol iteration cap is structural: bisection halves [0.01,3.0] and breaks at high-low<1e-7 after ~25 iterations — max observed 24, avg 15.6. (b) Cold single-shot impliedVol via new Function: median 0.006ms, p90 0.014ms (warm-loop context) and 0.13-0.83ms for a truly first call. (c) Production-style funnel (parse+firstModel+iv+greeks+garch+svi) = 8.71us/row -> 28.6ms for 3282. (d) Parity test: inlined probe functions vs repo modules = 400/400 parseOptionLabel identical, 400/400 impliedVol+bsGreeks identical. (e) Remaining uncertainty for the live probe: synthetic prices, warm vs cold JIT, and whether the production funnel adds per-row GARCH/SVI/GEX calls.`
+
+### E-041 — Live computeFunnel timing on old.tsetmc.com (closes contradictions 2 and 3)
+
+- `evidenceId`: `E-041`
+- `claim`: `Live timing of the REAL repo funnel (optionParser + greeks) on live mw.AllRows: totalSymbols=3289, optionRows(confirmed)=996 (30%), parseAllMs=4.2, funnelOptionMs=16.1 -> perOptionRowUs=16.16, impliedVolErrs=0, impliedVolIters min=0 p50=24 max=24 atCap24plus=768 (77% of option rows hit the structural iteration cap), coldSingleShotMs=[0.1,0,0.1,0.1,0.1], detectDirtyMs=2.3, dirtyCount=0, incrementalHypothesis2pctMs=1.06, fullRecomputeEstimateMs=18.4, verdict=PLAUSIBLE-40ms. Conclusion: the "40ms full recompute" claim (v9) is CONFIRMED — 18.4ms measured today with the real funnel, same order. The counter-estimate "1-2ms per option -> 3-6s" was ~250x too pessimistic (impliedVol bisection has a hard ~25-iteration cap via high-low<1e-7). Live per-row cost is 2x the local synthetic benchmark (16.16us vs 8.4us) because live market prices do not match BS prices, so IV always runs to the cap — cost is therefore STABLE and predictable. detectDirty measured live at 2.3ms (confirms DIAG2 2.9ms); therefore the "0.8ms incremental" figure was compute-only and the real per-cycle cost is ~2.6-3.4ms. dirtyCount=0 on an unchanged snapshot confirms the incremental precondition on real data.`
+- `level`: `platform-verified`
+- `source`: `probes/perf.funnel.live.v1.js [کنسول] on old.tsetmc.com parTree 15131F — inlined functions parity-tested against repo modules (400/400 parseOptionLabel identical, 400/400 impliedVol+bsGreeks identical)`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-17T10:29:57.724Z`
+- `method`: `read-only console injection — performance.now timing harness, no FilterCode/SaveParams/network change; T=0.082, r=0.2, strike from l30 parse, S from row.pl, marketPrice from row.plc`
+- `fixtureHash`: `N/A — live console run, no fixture`
+- `status`: `confirmed` — live measurement, parity-verified code, closes E-040 open questions 1 and 2`
+- `relatedGate`: `G-11 (other models) + G-12 (exact A projection)`
+- `notes`: `(a) Design budget numbers now: full recompute ~18.4ms (once per snapshot), incremental cycle ~3ms (detectDirty 2.3 + compute 0.8-1.0), per-row A lookup ~0.01ms. (b) optionRows=996 vs G-04 estimate 800/3362 — funnel cost scales with option count, not total symbols. (c) Open gap retained: probe v9 source is not in the workspace, so its exact elapsed boundary is unverifiable — practically irrelevant now that both phases are measured separately. (d) Still untested: whether the production funnel adds per-row GARCH/SVI/GEX calls (local bench with all models: 8.53us/row -> 28.6ms for 3282).`

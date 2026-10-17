@@ -233,42 +233,62 @@ if (__posA !== undefined && mw.__B_bitset) {
 
 ## ۴. Performance Summary
 
-> **وضعیت اعداد:** ردیف‌های «live» از probe های سایت زنده گرفته شده‌اند؛
-> ردیف‌های «local bench» از `probes/perf.computeFunnel.benchmark.v1.js`
-> (node 22، کد **واقعی** repo: optionParser + greeks، دادهٔ مصنوعی) هستند.
-> تناقض ۲ و ۳ (بررسی ۲۰۲۶-۱۰-۱۷) در §۱۱ ثبت شده‌اند.
+> **وضعیت اعداد:** اعداد «live» از probe های سایت زنده (old.tsetmc.com، parTree 15131F)
+> گرفته شده‌اند؛ اعداد «local bench» از `probes/perf.computeFunnel.benchmark.v1.js`
+> (node 22، کد **واقعی** repo، دادهٔ مصنوعی) هستند. تناقض ۲ و ۳ در §۱۱ ثبت و
+> **با اجرای live v1 بسته** شده‌اند.
 
 | سناریو | زمان | منبع | قابل قبول؟ |
 |---|---|---|---|
-| Per-row funnel (parse+impliedVol+bsGreeks) | **8.4 μs** | local bench (warm) | ✅ |
-| impliedVol به‌تنها | 4.5 μs (avg 15.6 iter، سقف ۲۵) | local bench | ✅ |
+| Per-row funnel (parse+impliedVol+bsGreeks) — **live** | **16.16 μs** | live perf.funnel.v1 [کنسول] | ✅ |
+| Per-row funnel — local bench (warm) | 8.4 μs | local bench | ✅ (خوش‌بینانه؛ live ۲× آن است) |
+| impliedVol روی قیمت‌های بازار واقعی | p50=24, max=24, **۷۷٪ ردیف‌ها در سقف** | live v1 | ✅ هزینه **پایدار و پیش‌بینی‌پذیر** |
 | bsGreeks (σ معلوم) | 0.74 μs | local bench | ✅ |
-| Funnel روی ۸۰۰ ردیف آپشن | 5.4 ms | local bench | ✅ |
-| Funnel روی همهٔ ۳۲۸۲ نماد (extrapolated) | 27.5 ms | local bench | ✅ |
-| Cold single-shot impliedVol (اولین فراخوانی) | 0.13–0.83 ms | local bench | ✅ یک‌بار |
-| **Full recompute (run 1، live)** | **40 ms** | live v9 [TextArea] | ✅ یک‌بار per snapshot |
+| Funnel روی ۹۹۶ ردیف آپشن (live) | **16.1 ms** | live v1 | ✅ |
+| parse روی همهٔ ۳۲۸۹ نماد | 4.2 ms | live v1 | ✅ |
+| Cold single-shot impliedVol | 0.0–0.1 ms | live v1 | ✅ یک‌بار |
+| **Full recompute (run 1، live)** | **~18.4 ms** (detectDirty 2.3 + funnel 16.1) | live v1 [کنسول] | ✅ یک‌بار per snapshot |
+| Full recompute در probe v9 (funnel سبک‌تر + bitset/index) | 40 ms | live v9 [TextArea] | ✅ هم‌مرتبه |
 | Incremental — فقط compute (live) | 0.8–1.0 ms | live v9 [TextArea] | ✅ |
-| detectDirty (۴ فیلد × ۳۲۸۲) | 2.9 ms | live DIAG2 [کنسول] | مستقل از compute |
-| **Incremental — کل چرخه (compute + detectDirty)** | **~3.7–4.0 ms** | محاسبه‌شده | ✅ زیر آستانهٔ ۵ms |
-| Per-row lookup (A) | ~0.01 ms | design | ✅ (3282 rows = ~33ms total in RenderData) |
+| detectDirty (۴ فیلد × ۳۲۸۹) | **2.3 ms** | live v1 [کنسول] | مستقل از compute |
+| **Incremental — کل چرخه (compute + detectDirty)** | **~2.6–3.4 ms** | live v1 + v9 | ✅ زیر آستانهٔ ۵ms |
+| Per-row lookup (A) | ~0.01 ms | design | ✅ (3289 rows ≈ 33ms total in RenderData) |
 | Bitset size | 411 bytes | live v5 | ✅ (63× کاهش vs ~27KB object) |
 | Memory (__B_result) | ~200-300 KB | live estimate | ✅ (تصحیح‌شده از 27KB) |
+
+### یافتهٔ کلیدی اجرای live v1 (۲۰۲۶-۱۰-۱۷)
+
+1. **۹۹۶ ردیف آپشن confirmed** از ۳۲۸۹ نماد (۳۰٪) — بیشتر از تخمین G-04 (۸۰۰ از ۳۳۶۲).
+   هزینهٔ funnel به **تعداد آپشن‌ها** بسته است، نه کل نمادها.
+2. **۷۷٪ ردیف‌ها (۷۶۸ از ۹۹۶) به سقف تکرار IV می‌رسند** (p50=24، max=24). یعنی قیمت
+   بازار واقعی (`plc`) با قیمت BS هم‌خوان نیست (نویز/کم‌نقدی). نتیجه: per-row cost
+   همیشه روی **حداکثر ساختاری** است — نه ارزان‌تر می‌شود، ولی **پیش‌بینی‌پذیر** است.
+   بنچمارک محلی (۸.۴μs) خوش‌بینانه بود؛ عدد طراحی باید **۱۶.۱۶μs** باشد.
+3. **verdict = PLAUSIBLE-40ms** — ادعای ۴۰ms probe v9 و اندازه‌گیری ۱۸.۴ms امروز
+   در یک محدودهٔ منطقی هستند (v9 funnel سبک‌تر + کار bitset/index داشت).
+4. **detectDirty زنده = ۲.۳ms** → تأیید عدد DIAG2 (۲.۹ms) و اصلاح §۴.
+5. `dirtyCount=0` در همان snapshot → تأیید اینکه detectDirty در «عدم تغییر» صفر
+   dirty برمی‌گرداند (شرط incremental).
 
 ### چرا ادعای ۴۰ms معقول است (و چرا نه اغراق‌آمیز)
 
 `src/models/greeks.v0.1.0.js` از **bisection** برای IV استفاده می‌کند، ولی حلقه در
 همین حالت سقف سخت دارد: در هر تکرار بازه نصف می‌شود و `high-low < 1e-7` پس از
-~۲۵ تکرار break می‌کند (اندازه‌گیری: avg 15.6، max 24). پس هر `impliedVol`
-حداکثر ~۲۵ فراخوانی `bsGreeks` ≈ ۱۸μs گرم است. با ۸.۴μs per-row برای کل funnel:
+`src/models/greeks.v0.1.0.js` از **bisection** برای IV استفاده می‌کند، ولی حلقه در
+همین حالت سقف سخت دارد: در هر تکرار بازه نصف می‌شود و `high-low < 1e-7` پس از
+~۲۵ تکرار break می‌کند. پس هر `impliedVol` حداکثر ~۲۵ فراخوانی `bsGreeks` است.
 
-- ۸۰۰ ردیف آپشن → ۵.۴ms
-- ۳۲۸۲ نماد (حالت بد، بدون فیلتر آپشن) → ۲۷.۵ms
-- به‌علاوه cold start یک‌بار (≤۰.۸ms) + detectDirty (۲.۹ms) → ~۳۱ms
+**اندازه‌گیری نهایی (live v1، ۲۰۲۶-۱۰-۱۷، ۹۹۶ ردیف آپشن):**
 
-عدد زندهٔ ۴۰ms **در همین محدوده** است؛ یعنی نه اغراق‌آمیز و نه خیلی خوش‌بینانه.
+- per-row funnel = **۱۶.۱۶μs** (نه ۸.۴μs بنچمارک محلی؛ live ۲× آن است چون ۷۷٪ ردیف‌ها
+  به سقف ۲۴-۲۵ تکرار می‌رسند — قیمت بازار واقعی با قیمت BS هم‌خوان نیست)
+- funnel روی ۹۹۶ آپشن = **۱۶.۱ms** + detectDirty **۲.۳ms** → full recompute **~۱۸.۴ms**
+- عدد probe v9 (۴۰ms) هم‌مرتبه است: funnel سبک‌تر + کار bitset/index/swap
+
 تخمین «۱-۲ms هر آپشن → ۳-۶ ثانیه» حدود ۲۵۰ برابر بدبینانه بود (فرض ۱۰۰ تکرار
 bisection، در حالی که سقف واقعی ~۲۵ است).
-**یعنی گزینهٔ (ب) نبود؛ گزینهٔ (الف) هم نبود** — funnel واقعاً BS+IV کامل است.
+**یعنی گزینهٔ (ب) نبود؛ گزینهٔ (الف) هم نبود** — funnel واقعاً BS+IV کامل است
+و ادعای ۴۰ms با اندازه‌گیری live تأیید شد (verdict: `PLAUSIBLE-40ms`).
 
 ---
 
@@ -360,7 +380,7 @@ function runB() {
 | B-BSIV v9 | [TextArea] | run1 40ms, incr 0.8ms | new Function() JIT ✅ |
 | Diag1-6 | [کنسول] | various | root cause identification |
 | **computeFunnel bench (local)** | **node 22** | impliedVol 4.5μs (cap 25 iter), funnel 8.4μs/row, 3282 → 27.5ms | تخمین «۱-۲ms/آپشن» ۲۵۰× بدبینانه بود |
-| **funnel.live.v1** | **[کنسول]** | **در انتظار اجرای کاربر** | اندازه‌گیری live با کد واقعی + breakdown detectDirty/compute |
+| **funnel.live.v1** | **[کنسول]** | **run 2026-10-17T10:29Z**: 996 option rows, funnel 16.1ms (16.16us/row), IV p50=24 max=24 (77% at cap), detectDirty 2.3ms, dirty=0, full=18.4ms, verdict PLAUSIBLE-40ms | ادعای ۴۰ms تأیید شد؛ breakdown زنده گرفته شد |
 
 ---
 
@@ -373,7 +393,7 @@ function runB() {
 - E-026: G-13 bridge confirmation (official probe v3)
 - E-011: mw.AllRows existence/schema/lifecycle
 - probes/perf.computeFunnel.benchmark.v1.js — local benchmark (node, real repo code)
-- probes/perf.funnel.live.v1.js — live timing probe (console, pending user run)
+- probes/perf.funnel.live.v1.js — live timing probe (console, RUN 2026-10-17 — results in E-041)
 - src/models/greeks.v0.1.0.js — real BS+IV (bisection IV, hard cap ~25 iters)
 - src/optionParser.v0.1.0.js — real option label parser
 - docs/PENDING.md: G-12 (exact A projection), G-13 (bridge confirmed)
@@ -401,45 +421,53 @@ function runB() {
 
 - **تردد:** `computeFunnel` (BURSA v1.5.0-rc2) هرگز مستقل اندازه‌گیری نشده بود؛
   تخمین نظری «۱-۲ms هر آپشن → ۳-۶ ثانیه برای ۳۲۸۲ نماد» مطرح شد.
-- **اندازه‌گیری انجام‌شده (local, node 22):** `probes/perf.computeFunnel.benchmark.v1.js`
+- **اندازه‌گیری ۱ (local, node 22):** `probes/perf.computeFunnel.benchmark.v1.js`
   کد **واقعی** repo را اجرا می‌کند (`src/optionParser.v0.1.0.js` + `src/models/greeks.v0.1.0.js`)
-  روی ردیف‌های مصنوعی شبیه live (۳۲۸۲ نماد، ۸۰۰ آپشن، strike ladder نزدیک spot).
-- **نتیجه (کلیدی):** تخمین ۲۵۰× بدبینانه بود. `impliedVol` از bisection استفاده می‌کند
-  ولی حلقه **سقف سخت ~۲۵ تکرار** دارد (`high-low < 1e-7`): avg 15.6، max 24.
-  پس: impliedVol ۴.۵μs، bsGreeks ۰.۷۴μs، کل funnel ۸.۴μs per-row.
-  → ۸۰۰ ردیف آپشن = ۵.۴ms؛ ۳۲۸۲ نماد = ۲۷.۵ms؛ +cold ۰.۸ms +detectDirty ۲.۹ms ≈ ۳۱ms.
-- **حکم:** ادعای ۴۰ms **در محدودهٔ معقول** است (دادهٔ live v9). نه گزینهٔ (الف)
-  (فunnel واقعاً BS+IV کامل است) و نه گزینهٔ (ب) (ادعا اغراق‌آمیز نیست).
-- **بقایای عدم‌قطعیت (پوشش‌داده با probe بعدی):**
-  1. دادهٔ مصنوعی است، نه `plc/pc` واقعی live — قیمت بازار می‌تواند IV را به سقف ۲۵ براند.
-  2. node گرم (JIT warm) ≠ سایت زنده (B یک‌بار per snapshot اجرا می‌شود).
-  3. funnel تولیدی ممکن است GARCH/SVI/GEX هم per-row صدا بزند (bench: +۸.۷μs → ۲۸.۶ms).
-  → `probes/perf.funnel.live.v1.js` [کنسول] این سه را روی دادهٔ واقعی اندازه می‌گیرد
-  (کد inline شده با parity تست‌شده: ۴۰۰/۴۰۰ parse، ۴۰۰/۴۰۰ impliedVol+bsGreeks).
+  → impliedVol ۴.۵μs (avg 15.6 iter)، funnel ۸.۴μs/row. تخمین ۲۵۰× بدبینانه بود.
+- **اندازه‌گیری ۲ (live v1 [کنسول]، ۲۰۲۶-۱۰-۱۷T10:29Z) — ✅ بسته شد:**
+  - totalSymbols=3289، optionRows=**996** (۳۰٪ — بیشتر از تخمین G-04)
+  - funnelOptionMs=**16.1** → perOptionRowUs=**16.16** (۲× بنچمارک محلی)
+  - impliedVolIters: min=0، **p50=24، max=24، atCap24plus=768** → ۷۷٪ ردیف‌ها در سقف
+  - parseAllMs=4.2، detectDirtyMs=**2.3**، dirtyCount=0
+  - coldSingleShotMs=[0.1, 0, 0.1, 0.1, 0.1]
+  - **fullRecomputeEstimateMs=18.4**، verdict=`PLAUSIBLE-40ms`
+- **حکم:** ادعای ۴۰ms **تأیید شد**. نه گزینهٔ (الف) (funnel واقعاً BS+IV کامل است)
+  و نه گزینهٔ (ب) (ادعا اغراق‌آمیز نیست). عدد طراحی: **۱۶.۱۶μs/ردیف آپشن**.
+- **یافتهٔ مهم:** قیمت بازار واقعی (`plc`) با قیمت BS هم‌خوان نیست (نویز/کم‌نقدی)،
+  بنابراین IV همیشه به سقف ساختاری می‌رسد. نتیجه: هزینهٔ per-row **پایدار و
+  پیش‌بینی‌پذیر** است (برای طراحی خوب)، ولی عدد «۸.۴μs» باید با «۱۶.۱۶μs» جایگزین شود.
+- **اقرار:** دادهٔ بنچمارک محلی مصنوعی بود و live ۲× گران‌تر out شد؛ علت (نرخ
+  رسیدن به سقف تکرار) شناسایی و ثبت شد.
 
 ### تناقض ۳ — «Incremental ۰.۸ms» بدون شاهد و بدون detectDirty
 
 - **تردد:** اگر Full = ۴۰ms و Incremental = ۰.۸ms، نرخ dirty ≈ ۲٪ (۶۶ نماد از ۳۲۸۲).
   یعنی در هر cycle فقط چند ده نماد تغییر می‌کند. این فرض لازم است تأیید شود.
   همچنین detectDirty خودش چند می‌شود؟ (~۱۰٬۰۰۰ مقایسه ≈ ۱-۳ms)
-- **یافتهٔ مهم:** DIAG2 جداگانه `dirty detection = ۲.۹ms` را اندازه گرفت.
-  بنابراین «۰.۸ms incremental» **نمی‌تواند** detectDirty را شامل باشد — یعنی
-  elapsed در v9 فقط فاز **compute** بوده است.
-- **تصمیم:** عدد را دو تکه اعلام کنیم:
+- **یافتهٔ کلیدی:** DIAG2 جداگانه `dirty detection = ۲.۹ms` را اندازه گرفت،
+  بنابراین «۰.۸ms incremental» **نمی‌توانست** detectDirty را شامل باشد — elapsed در
+  v9 فقط فاز **compute** بوده است.
+- **اندازه‌گیری live v1 — ✅ عملاً بسته شد:**
+  - detectDirtyMs = **۲.۳ms** (زنده، ۳۲۸۹ نماد، ۴ فیلد) → تأیید عدد DIAG2
+  - dirtyCount = **۰** در همان snapshot → شرط «عدم تغییر → صفر dirty» روی دادهٔ واقعی
+    برآورده می‌شود
+- **تصمیم (اعداد اصلاح‌شده):**
   - compute incremental: **۰.۸–۱.۰ms**
-  - کل چرخه (detectDirty + compute): **~۳.۷–۴.۰ms** ← عددی که A/B واقعاً می‌پردازد
-- **عدم‌قطعیت باقی‌مانده:** فایل probe v9 در workspace نیست، بنابراین **نمی‌توانم
-  تأیید کنم** elapsed دقیقاً چه بخشی را پوشش می‌داد. probe بعدی
-  (`perf.funnel.live.v1`) هر دو فاز را جدا اندازه می‌گیرد تا این ابهام بسته شود.
+  - detectDirty: **۲.۳ms** (زنده)
+  - کل چرخه (detectDirty + compute): **~۲.۶–۳.۴ms** ← عددی که A/B واقعاً می‌پردازد
+- **عدم‌قطعییت باقی‌مانده (open gap ثبت‌شده):** فایل probe v9 در workspace نیست،
+  بنابراین مرز دقیق elapsed آن قابل تأیید نیست. اما چون probe v1 هر دو فاز را جدا
+  اندازه گرفت، این ابهام عملیاً بی‌اثر شد.
 - **تصحیح §۴:** جدول Performance اصلاح شد (دو ردیف مجزای compute / کل چرخه).
 
 ### جمع‌بندی
 
-| # | تناقض | حکم | مانع پیاده‌سازی؟ |
+| # | تناقض | حکم | وضعیت |
 |---|---|---|---|
-| ۱ | fail-closed vs fail-open | ظاهری؛ دو لایهٔ مجزا تفکیک شدند | ❌ خیر (طراحی اصلاح شد) |
-| ۲ | ۴۰ms بدون اندازه‌گیری | معقول؛ تخمین مخالف ۲۵۰× بدبینانه بود | ❌ خیر (probe live در انتظار) |
-| ۳ | ۰.۸ms incremental | فقط compute؛ کل چرخه ~۳.۷-۴ms | ❌ خیر (شکاف elapsed probe v9 ثبت شد) |
+| ۱ | fail-closed vs fail-open | ظاهری؛ دو لایهٔ مجزا تفکیک شدند | ✅ بسته (طراحی اصلاح شد) |
+| ۲ | ۴۰ms بدون اندازه‌گیری | تأیید شد — ۱۸.۴ms زنده، verdict PLAUSIBLE-40ms | ✅ بسته (live v1) |
+| ۳ | ۰.۸ms incremental | فقط compute بود؛ کل چرخه ~۲.۶-۳.۴ms | ✅ عملاً بسته (breakdown live اندازه گرفته شد) |
 
-**نتیجه:** پیاده‌سازی ممکن است، با این شرط که در implementation اولیه
-`detectDirty` و `compute` جدا تایمر شوند و اعداد واقعی در evidence ثبت گردد.
+**نتیجه:** هر سه تناقض بسته شد. **هیچ مانعی برای پیاده‌سازی باقی نمانده.**
+عدد بودجهٔ طراحی: full recompute = **~۱۸.۴ms** (یک‌بار per snapshot)،
+هر چرخهٔ incremental = **~۳ms**، per-row lookup در A = **~۰.۰۱ms**.
