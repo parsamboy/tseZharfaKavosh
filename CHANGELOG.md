@@ -146,6 +146,29 @@ The probe's new `windowSweep` answers the owner's question on live data — "if
   engine is not registered on the page yet (`window.TseBEngine` absent), so today's
   code commits have no live effect.
 
+### Added — A-registration live probe (`probes/aRegister.live.v1.js`, tag [کنسول])
+
+The remaining gate after q1: G-13 (E-026/E-053) proved that a **non-empty string**
+round-trips through the filter slot. It did not prove that the **generated A body**
+survives it — 430 bytes, 11 newlines and a non-ASCII em dash in its header comment. A
+storage layer that strips newlines or mangles non-ASCII would break the body's byte
+accounting (and therefore the 4096-byte capacity check) without breaking the JS.
+
+The probe: generate the body (from `window.TseALookup` if the module is loaded, else
+from an inline mirror that is verified byte-identical to the module) → capacity →
+syntax in the slot's `(row, mw)` signature → register in the real `mw.FilterCode` +
+`mw.SaveParams()` → **byte-for-byte round-trip** → 7 fail-open behavioural cases on the
+body that came back → rollback to the original slot value.
+
+Output contract learned the hard way: `PROBE_JSON` is the **first and only** json line
+(1715 chars against a measured 5000-char paste cap); verbose detail is opt-in via
+`window.__A_FULL`.
+
+Validated in node against five mock slots: a faithful slot → `candidate-confirmed`; a
+slot that strips newlines → caught (`identical=false`, `nl 11->0`, `firstDiffAt=81`); a
+missing `SaveParams` → caught; the real module path → confirmed, and the mirror body is
+byte-identical to the module's (430 bytes, fnv1a `38fe0c59`).
+
 ### Verified — LIVE RUN B closes q1 (E-054, owner, old.tsetmc.com 2026-10-18T09:20Z)
 
 RUN B (the correct maturity, guards on) over 1049 live option rows:
