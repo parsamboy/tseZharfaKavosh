@@ -761,3 +761,17 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `status`: `verified-live — the decision is now a product decision with real numbers`
 - `relatedGate`: `G-19 (fixed T vs real DTE) + E-045/E-047/E-049/E-050 + q1/q9`
 - `notes`: `(a) The shipped T flatters the result: 1.8% would have looked "safe to enable", but that number is produced by modelling a 3-day option as 30 days. (b) 10 of the 29 ceiling pins in RUN B are a SINGLE chain (ahram, 3 days to expiry, K=20000..46000). Verified arithmetically that this chain genuinely has no Black-Scholes solution: even at sigma=3.0 the model reaches only ~334 rial of time value for K=46000, while the market shows 1080, so the price is 2-3x the maximum the model can produce at any volatility. (c) 120 rows have no usable maturity (expired or unparseable expiry) and 17 have no underlying - both are reported separately. (d) 297 rows (28%) have neither a valid book nor a trade, i.e. no price at all; under fail-open they are never filtered, which caps the filter's real coverage. (e) The probe now also reports boundary concentration per underlying (byBase) so a single chain cannot hide inside an average.`
+### E-052 — q9 + q10 applied in code; two latent bugs found on the way
+
+- `evidenceId`: `E-052`
+- `claim`: `The owner's review accepted q9 (TMode:'dte') and q10 (a boundary pin stays visible, labelled no-iv-solution). Both are now implemented as engine defaults. Applying them exposed two latent bugs. (1) normalizeFunnelConfig mapped an ABSENT TMode to 'fixed', so flipping the default had no effect on any caller that did not pass TMode explicitly - q9 would have been silently inert. (2) The pass test used `sigma < ivMax` while atBoundary used `sigma >= 2.9999999`; the real solver returns 2.99999991 for a pin, so a real pin was simultaneously atBoundary:true and ivStatus 'ok'. A fake solver returning exactly 3.0 did NOT reproduce it, so the existing parity test could not see it.`
+- `level`: `node (local, deterministic)`
+- `source`: `probes/engine.parity.v1.js, src/engine/bEngine.v0.1.0.js, src/models/jalaliCalendar.v0.1.0.js, probes/ivfilter.borderline.live.v1.js`
+- `host`: `local`
+- `parTree`: `N/A`
+- `capturedAt`: `2026-10-18`
+- `method`: `apply the two decisions, then re-run the parity harness and the live probe in a vm sandbox with a synthetic window.mw`
+- `fixtureHash`: `N/A`
+- `status`: `verified — parity 154/154 (was 140/140); live probe in node: engineParity 200/200 agree; engine RUN B pass 201/201 with ivStatus {ok:200, no-iv-solution:1, fail-iv-range:0}`
+- `relatedGate`: `G-19 (closed) + G-08 (the calendar the engine now owns) + E-051 + q9/q10`
+- `notes`: `(a) The Jalali conversion was promoted out of the probe into src/models/jalaliCalendar.v0.1.0.js and became the engine's DEFAULT calendar, so TMode:'dte' can never silently degrade to "model everything as 30 days" and can never mean "no maturity at all". The anchors 1405/01/01 == 2026-03-21 and 1405/07/29 == 2026-10-21 are asserted in the parity harness. (b) q10 is a config flag (pinFailOpen, default true) rather than hardcoded behaviour, so it is reversible without a code change. (c) The parity fixture's expiries are now generated as today + 30 days against a PINNED clock, because a fixture with hardcoded Jalali dates goes stale the month it is written in - half of it was already in the past. (d) The probe gained a windowSweep (what a narrower ivMin/ivMax would actually remove) and ivStatus counts, which is the data the ivMin/ivMax decision needs.`

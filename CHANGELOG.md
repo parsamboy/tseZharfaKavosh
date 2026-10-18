@@ -98,6 +98,41 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 - The probe also reports **boundary concentration per underlying** (`byBase`, top 8), so a
   single chain cannot hide inside an average.
 
+### Verified — q9 + q10 applied; two latent bugs found on the way (E-052)
+
+The owner's review accepted **q9** (`TMode:'dte'`) and **q10** (a boundary pin stays
+visible and labelled). Both are now engine defaults, and applying them exposed two
+bugs that no test could see:
+
+1. **`normalizeFunnelConfig` mapped an ABSENT `TMode` to `'fixed'`.** Flipping the
+   default therefore had no effect on any caller that did not pass `TMode`
+   explicitly — q9 would have been silently inert. Now an absent key keeps the
+   default, and a parity test builds an engine with no `funnelConfig` at all.
+2. **The pass test and the boundary flag used different thresholds.** `pass` tested
+   `sigma < ivMax` while `atBoundary` tested `sigma >= 2.9999999`. The real solver
+   returns **2.99999991** for a pin, so a real pin was `atBoundary:true` AND
+   `ivStatus:'ok'` at the same time. A fake solver returning exactly `3.0` does not
+   reproduce it, which is why the existing test missed it. One predicate now decides
+   both, and the pin test runs BEFORE the window test.
+
+- **`src/models/jalaliCalendar.v0.1.0.js` (new)** — the Jalali conversion was
+  promoted out of the probe and became the engine's DEFAULT calendar, so `dte` can
+  neither degrade to "model everything as 30 days" nor mean "no maturity at all".
+  Anchors 1405/01/01 == 2026-03-21 and 1405/07/29 == 2026-10-21 are asserted in the
+  parity harness (2000-date round-trip included). This closes G-08's open question
+  ("expiry needs Jalali calendar validation vs Gregorian").
+- **q10 is a flag, not a hardcoded behaviour**: `pinFailOpen` (default `true`), so the
+  decision is reversible without touching code.
+- **The parity fixture went date-relative.** Its expiries are now generated as
+  today + 30 days against a PINNED clock; with hardcoded Jalali dates half the
+  fixture was already in the past once `dte` became the default.
+- **Parity 140/140 -> 154/154.** The live probe in node: `engineParity` 200/200 agree
+  (its own parity engine is now pinned to `TMode:'fixed'` to match its 30/365 mirror),
+  and the engine's RUN B reports `ivStatus {ok:200, no-iv-solution:1, fail-iv-range:0}`
+  with 201/201 rows passing — exactly the "logging mode" table the owner described.
+- The probe gained a **windowSweep** (what a narrower `ivMin`/`ivMax` would actually
+  remove) and **ivStatus counts**, which is the data the `ivMin`/`ivMax` decision needs.
+
 ### Verified — LIVE borderline measurement (E-051, owner, old.tsetmc.com 2026-10-18T07:18Z)
 
 The owner ran the probe live: 2983 symbols, 1049 option rows, 1710-entry underlying map.

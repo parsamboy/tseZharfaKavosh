@@ -95,6 +95,8 @@ const INDEX_SAMPLE = 16;
 // with feeding the solver an unrelated S and a non-price marketPrice. The
 // defaults below follow the G-11 probe (the best-evidenced mapping in this repo)
 // and are still PROVISIONAL until the owner decides.
+const CAL = require('./../models/jalaliCalendar.v0.1.0.js');
+
 const DEFAULT_FUNNEL_CONFIG = {
   // Maturity. 'fixed' uses T below for every option (the G-11 probe value, and the
   // shipped default). 'dte' computes the maturity per option from the parsed expiry
@@ -102,7 +104,7 @@ const DEFAULT_FUNNEL_CONFIG = {
   // fixed value can be 10x off (a 3-day option modelled as 30 days), which hides
   // boundary pinning. 'dte' needs opts.calendar; without it every row is
   // insufficient-data rather than silently modelled at the wrong maturity.
-  TMode: 'fixed',             // 'fixed' | 'dte'  (owner decision q9 - pending)
+  TMode: 'dte',               // 'fixed' | 'dte'  (owner decision q9: 'dte' - live evidence E-051)
   T: 30 / 365,                // used when TMode is 'fixed'
   r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2) - OWNER DECISION PENDING
   ivMin: IV_SOLVER_MIN,    // implied vol lower bound (== the solver floor, so a pinned IV fails)
@@ -130,7 +132,13 @@ const DEFAULT_FUNNEL_CONFIG = {
   legacyV9Mapping: false,
   // market-price sanity guards (E-045, live evidence)
   checkArbitrageBounds: true,   // reject a price outside the no-arbitrage bounds
-  maxSpreadPct: 0.20            // reject a price from a book wider than 20% (PROVISIONAL)
+  maxSpreadPct: 0.20,           // reject a price from a book wider than 20% (PROVISIONAL)
+  // OWNER DECISION 2026-10-18 (q10): a boundary pin is NOT a filtered row. It means
+  // "no Black-Scholes solution exists in the solver's range" (live: the 3-day chains
+  // whose market time value exceeds anything the model can produce at any
+  // volatility). Those rows stay VISIBLE and are labelled ivStatus:'no-iv-solution'
+  // so the UI can show them. Set false to make a pin a rejection again.
+  pinFailOpen: true             // boundary pin -> pass (fail-open) instead of reject
 };
 
 // Legacy mapping from probe B-BSIV v9 — kept ONLY so the two can be compared
@@ -294,7 +302,11 @@ function normalizeFunnelConfig(cfg) {
   out.useDeltaGamma = bool('useDeltaGamma');
   out.legacyV9Mapping = bool('legacyV9Mapping');
   out.checkArbitrageBounds = bool('checkArbitrageBounds');
-  out.TMode = (c.TMode === 'dte') ? 'dte' : 'fixed';   // whitelist: only these two modes
+  out.pinFailOpen = bool('pinFailOpen');
+  // whitelist: only these two modes, but an ABSENT key must keep the default -
+  // `(c.TMode === 'dte') ? 'dte' : 'fixed'` silently overrode the default with
+  // 'fixed' for every caller that did not pass TMode explicitly.
+  out.TMode = (c.TMode === undefined) ? out.TMode : ((c.TMode === 'dte') ? 'dte' : 'fixed');
   out.maxSpreadPct = num('maxSpreadPct', 0, 1);
   // an inverted IV window is unusable: restore the default window
   if (!(out.ivMin < out.ivMax)) {
@@ -328,7 +340,11 @@ function createBEngine(options) {
   const models = opts.models || {};
   // calendar(expiry, nowMs) -> days to expiry | null. Injected, never built in: the
   // Jalali<->Gregorian conversion is gate G-08's job, not the engine's.
-  const calendar = (typeof opts.calendar === 'function') ? opts.calendar : null;
+  // q9 made T=DTE/365 the default, so a calendar is now part of the engine, not an
+  // optional extra: the repo's own verified Jalali conversion is the default and a
+  // caller may still inject its own (the Jalali<->Gregorian work is G-08's, but a
+  // missing calendar must never silently mean "model every option as 30 days").
+  const calendar = (typeof opts.calendar === 'function') ? opts.calendar : CAL.createCalendar();
   let funnel = normalizeFunnelConfig(opts.funnelConfig);
   if (opts.legacyV9Mapping === true || funnel.legacyV9Mapping === true) {
     funnel = Object.assign({}, funnel, V9_FUNNEL_CONFIG);
@@ -583,7 +599,7 @@ function createBEngine(options) {
    */
   function resolveT(parsed) {
     if (funnel.TMode !== 'dte') return { ok: true, T: funnel.T };
-    if (!calendar) return { ok: false, reason: 'TMode=dte needs an injected calendar' };
+    if (!calendar) return { ok: false, reason: 'no calendar available' };
     const expiry = parsed && parsed.expiry ? String(parsed.expiry) : '';
     if (!expiry) return { ok: false, reason: 'no expiry on the parsed label' };
     let dte = null;
@@ -620,6 +636,7 @@ function createBEngine(options) {
         const ivOk = iv && !iv.error && iv.sigma !== undefined && iv.sigma !== null && isFinite(iv.sigma);
         return {
           status: 'ok', pass: true, reason: 'iv-filter-disabled-open-bug',
+          ivStatus: 'iv-filter-disabled',
           iv: ivOk ? iv.sigma : null,
           atBoundary: ivOk ? (iv.sigma <= 0.0100001 || iv.sigma >= 2.9999999) : null,
           iterations: ivOk ? iv.iterations : null,
@@ -632,7 +649,12 @@ function createBEngine(options) {
       }
       const g = models.bsGreeks({ S: S, K: K, T: T, r: funnel.r, sigma: iv.sigma, kind: kind });
       if (!g || g.error) return { status: 'insufficient-data', reason: 'greeks failed' };
-      const atBoundary = (iv.sigma <= 0.0100001 || iv.sigma >= 2.9999999);
+      // ONE predicate for "pinned", shared by atBoundary, ivStatus and pass. The
+      // old code tested the pass with `sigma < ivMax` but flagged atBoundary with
+      // `sigma >= 2.9999999`, so the real solver's pin (2.99999991, i.e. ivMax minus
+      // 9.1e-8) was reported as atBoundary AND passed at the same time - the filter
+      // behaved differently for a real pin than for a fake one.
+      const atBoundary = (iv.sigma <= 0.0100001 || iv.sigma >= IV_SOLVER_MAX - 1e-6);
       // owner decision q5: IV range only. delta/gamma are opt-in again.
       let pass = (iv.sigma > funnel.ivMin) && (iv.sigma < funnel.ivMax);
       if (pass && funnel.useDeltaGamma === true) {
@@ -640,14 +662,21 @@ function createBEngine(options) {
       }
       // A boundary pin means "no solution in the model's range", which is NOT the
       // same as "a valid IV outside the funnel window" (E-045 live: 13.3% pinned).
-      let reason;
-      if (pass) reason = 'pass';
-      else if (atBoundary) reason = 'no-iv-solution';
-      else reason = 'fail-iv-range';
+      // q10: a pin stays visible (fail-open) and is labelled, so a narrowed window
+      // still filters the IVs it can actually bound (ivMin..ivMax inside the solver
+      // range) while the unbounded ones are shown, not hidden.
+      // The pin test comes FIRST: with the default window (ivMax == the solver cap) a
+      // pinned IV also satisfies `sigma < ivMax`, so testing the window first would
+      // label a row "ok" that has no solution at all.
+      let ivStatus;
+      if (atBoundary) { ivStatus = 'no-iv-solution'; if (funnel.pinFailOpen) pass = true; }
+      else if (pass) ivStatus = 'ok';
+      else ivStatus = 'fail-iv-range';
       return {
         status: 'ok', pass: pass, delta: g.delta, gamma: g.gamma,
         iv: iv.sigma, iterations: iv.iterations, atBoundary: atBoundary,
-        reason: reason,
+        reason: ivStatus,
+        ivStatus: ivStatus,
         inputs: inputs
       };
     } catch (e) {

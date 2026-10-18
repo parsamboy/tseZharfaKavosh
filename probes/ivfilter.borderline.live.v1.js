@@ -213,6 +213,7 @@
       var hist = { 'at_lower':0, '<0.05':0, '0.05-0.1':0, '0.1-0.2':0, '0.2-0.5':0,
                    '0.5-1':0, '1-1.5':0, '1.5-2':0, '2-2.9':0, 'at_upper':0 };
       var samples = [];
+      var ivs = [];      // every solved IV, for the window sweep below
       var byBase = {};   // boundary concentration per underlying
       var cfg = guards === false
         ? { checkArbitrageBounds:false, maxSpreadPct:0 }
@@ -250,6 +251,7 @@
         if (!iv || !iv.sigma || !isFinite(iv.sigma)) { st.ivFailed++; continue; }
         st.ivSolved++;
         var s = iv.sigma;
+        ivs.push(s);
         if (s <= EPS_LO) { st.atLower++; hist['at_lower']++; }
         else if (s >= EPS_HI) { st.atUpper++; hist['at_upper']++; }
         else {
@@ -281,6 +283,23 @@
       st.samples = samples;
       st.guardsOn = guardsOn;
       st.tMode = Tmode;
+      // ---- window sweep: what would a narrower ivMin/ivMax actually remove? ----
+      // A pin has no solution, so q10 keeps it visible whatever the window says. A
+      // solved INTERIOR IV outside the window is the only thing a filter can remove,
+      // and this is the number the ivMin/ivMax decision needs (doc: "if the answer
+      // is zero or one, the complexity is not worth it").
+      var WINDOWS = [[0.01, 3.0], [0.05, 2.5], [0.10, 2.0], [0.20, 1.5], [0.05, 3.0], [0.01, 2.5]];
+      st.windowSweep = WINDOWS.map(function (w) {
+        var inside = 0, outside = 0, pins = 0;
+        for (var q = 0; q < ivs.length; q++) {
+          var v = ivs[q];
+          if (v <= EPS_LO || v >= EPS_HI) { pins++; continue; }
+          if (v > w[0] && v < w[1]) inside++; else outside++;
+        }
+        return { ivMin: w[0], ivMax: w[1], solved: ivs.length, pins: pins,
+                 inside: inside, wouldRemove: outside,
+                 wouldRemovePct: ivs.length ? +(outside / ivs.length * 100).toFixed(2) : 0 };
+      });
       // top boundary concentrations, so a single chain cannot hide inside an average
       st.byBase = Object.keys(byBase).map(function (k) {
         return { base: k, lower: byBase[k].lower, upper: byBase[k].upper,
@@ -324,7 +343,8 @@
         engB.run(rows, 'probe-b-dte', 'cfg-b-dte');
         var stB = { total:0, ok:0, pass:0, atLower:0, atUpper:0, normal:0,
                     srcMid:0, srcPlTraded:0, insufficient:0,
-                    guardArb:0, guardSpread:0, noS:0, noT:0, ivFailed:0 };
+                    guardArb:0, guardSpread:0, noS:0, noT:0, ivFailed:0,
+                    ivStatus:{ ok:0, 'no-iv-solution':0, 'fail-iv-range':0 } };
         var histB = { 'at_lower':0, '<0.05':0, '0.05-0.1':0, '0.1-0.2':0, '0.2-0.5':0,
                       '0.5-1':0, '1-1.5':0, '1.5-2':0, '2-2.9':0, 'at_upper':0 };
         var samplesB = [];
@@ -343,6 +363,9 @@
             continue;
           }
           stB.ok++;
+          // q10 labels every row: ok | no-iv-solution (a pin, kept visible) |
+          // fail-iv-range (a solved IV outside the window - the only removable kind)
+          if (fr.ivStatus && stB.ivStatus[fr.ivStatus] !== undefined) stB.ivStatus[fr.ivStatus]++;
           if (fr.inputs && fr.inputs.marketPriceSource === 'mid') stB.srcMid++;
           else if (fr.inputs && fr.inputs.marketPriceSource === 'pl-traded') stB.srcPlTraded++;
           if (fr.pass) stB.pass++;
@@ -372,7 +395,11 @@
         var eng = window.TseBEngine.createBEngine({
           models: { parseOptionLabel: window.tseZharfaKavosh_parseOptionLabel,
                     impliedVol: window.TseGreeks.impliedVol, bsGreeks: window.TseGreeks.bsGreeks },
-          funnelConfig: { ivFilterEnabled: true, marketPriceFrom: 'hybrid', ivMax: 3.0 }
+          // TMode:'fixed' on PURPOSE: the mirror below compares the price-resolution
+          // layer at 30/365, and the arbitrage bounds depend on T. Leaving TMode at
+          // its (q9) default 'dte' would compare a DTE engine against a 30/365 mirror
+          // and report legitimate differences as disagreements.
+          funnelConfig: { ivFilterEnabled: true, marketPriceFrom: 'hybrid', ivMax: 3.0, TMode: 'fixed' }
         });
         eng.run(rows, 'probe-parity', 'cfg-parity');
         var agree = 0, disagree = 0, checked = 0, firstDiff = null;
@@ -443,6 +470,10 @@
          ' (' + B.plPct + '%)  insufficient=' + B.srcInsufficient + ' (' + B.insufficientPct + '%)');
     line('--- IV histogram (RUN B) ---');
     console.table(B.hist);
+    line('--- window sweep (RUN B): what a narrower ivMin/ivMax would remove ---');
+    console.table(B.windowSweep);
+    line('pins are NOT removable (q10: no-iv-solution stays visible); only solved');
+    line('interior IVs outside the window can be filtered.');
     line('--- borderline samples (RUN B, up to 10) ---');
     console.table(B.samples);
     if (__out.runB_engine !== 'skipped (window.TseBEngine not loaded)') {

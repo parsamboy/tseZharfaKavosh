@@ -53,10 +53,8 @@ function makeRows(n) {
     if (isOption) {
       const kind = (i % 2 === 0) ? 'call' : 'put';
       const strike = Math.round((S * (0.85 + 0.3 * ((i % 17) / 16))) / 500) * 500;
-      const jm = 7 + (i % 3), jd = 1 + (i % 27);
       base.l18 = (kind === 'call' ? 'ض' : 'ط') + 'هرم' + strike;
-      base.l30 = (kind === 'call' ? 'اختیارخ ' : 'اختیارف ') + u + '-' + strike + '-1405/' +
-        String(jm).padStart(2, '0') + '/' + String(jd).padStart(2, '0');
+      base.l30 = (kind === 'call' ? 'اختیارخ ' : 'اختیارف ') + u + '-' + strike + '-' + fixtureExpiry(DTE_FIXTURE);
       // REALISTIC option-row price fields: pl is the OPTION's own last price,
       // pc its previous close, plc the change, pcp/plp the percentage variants.
       // (The v9 probe assumed pl was the UNDERLYING's price, which is exactly the
@@ -90,13 +88,29 @@ function makeRows(n) {
   return rows;
 }
 
+const CAL = require(path.join(ROOT, 'src/models/jalaliCalendar.v0.1.0.js'));
+// A PINNED CLOCK. TMode='dte' resolves the maturity from the expiry label against
+// "now", so a fixture with hardcoded Jalali dates would go stale the moment the
+// month turned (and half of it would be in the past). The clock is pinned and every
+// fixture expiry is generated as today + DTE_FIXTURE days, which makes the whole
+// suite deterministic and keeps the synthesized premiums consistent with the
+// maturity the engine actually resolves.
+const FIXED_NOW_MS = new Date(2026, 9, 18, 12, 0, 0).getTime();   // 1405/07/26, local noon
+const FIXED_TODAY_JDN = CAL.localDateToJDN(new Date(FIXED_NOW_MS));
+const DTE_FIXTURE = 30;   // == the old fixed T, so 'dte' reproduces the old behaviour here
+function fixtureExpiry(dte) {
+  const d = CAL.jdnToJalali(FIXED_TODAY_JDN + dte);
+  return d.jy + '/' + String(d.jm).padStart(2, '0') + '/' + String(d.jd).padStart(2, '0');
+}
+
 const models = { parseOptionLabel: OP.parseOptionLabel, impliedVol: G.impliedVol, bsGreeks: G.bsGreeks };
 const rows = makeRows(TOTAL);
 const mwMock = { RoundNo: 7, AllRows: {}, FilterCode: '' };
 rows.forEach(r => { mwMock.AllRows[r.inscode] = r; });
 
 function newEngine(overrides) {
-  return createBEngine(Object.assign({ models: models }, overrides || {}));
+  const o = Object.assign({ models: models, now: function () { return FIXED_NOW_MS; } }, overrides || {});
+  return createBEngine(o);
 }
 
 // ---------- 1. index + bitset shape ----------
@@ -537,8 +551,33 @@ const bPin = newEngine({
 });
 bPin.run(rows, 'sPin', 'cPin');
 const fPin = bPin.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
-check('ivMax=3.0 still rejects a pinned IV (backup layer)',
-  fPin.pass === false && fPin.reason === 'no-iv-solution', fPin.reason);
+check('a pinned IV is labelled no-iv-solution and stays visible (q10 fail-open)',
+  fPin.pass === true && fPin.ivStatus === 'no-iv-solution' && fPin.atBoundary === true, fPin.reason);
+check('pinFailOpen:false makes a pin a rejection again (the decision is reversible)',
+  (function () {
+    const b = newEngine({
+      models: { parseOptionLabel: OP.parseOptionLabel, impliedVol: function () { return { sigma: 3, iterations: 24 }; },
+                bsGreeks: function () { return { delta: 0.9, gamma: 0.001, price: 1 }; } },
+      funnelConfig: { ivFilterEnabled: true, pinFailOpen: false }
+    });
+    b.run(rows, 'sPinClosed', 'cPinClosed');
+    const fr = b.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+    return fr.pass === false && fr.ivStatus === 'no-iv-solution';
+  })(), 'opt-out of fail-open');
+check('the REAL solver pin (2.99999991) is no-iv-solution, not ok - the 1e-7 accident',
+  (function () {
+    // the live 3-day chains return sigma = ivMax - 9.1e-8, which satisfies
+    // `sigma < ivMax`. Before q10 the window test ran first, so a real pin was
+    // reported as ivStatus 'ok' while atBoundary was true.
+    const b = newEngine({
+      models: { parseOptionLabel: OP.parseOptionLabel, impliedVol: function () { return { sigma: 2.9999999108910558, iterations: 100 }; },
+                bsGreeks: function () { return { delta: 0.9, gamma: 0.001, price: 1 }; } },
+      funnelConfig: { ivFilterEnabled: true, ivMax: 3.0 }
+    });
+    b.run(rows, 'sRealPin', 'cRealPin');
+    const fr = b.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+    return fr.ivStatus === 'no-iv-solution' && fr.atBoundary === true && fr.pass === true;
+  })(), 'pin wins over the window');
 // a VALID IV outside the funnel window (the live case: median 1.05 > the old ivMax 1.0)
 // must be reported as fail-iv-range, NOT as no-iv-solution (a solver pin)
 const bHigh = newEngine({
@@ -568,7 +607,7 @@ check('the IV window is clamped to the solver range (an inert check is a footgun
   'ivMax<=3.0 (solver cap), ivMin>=0.01 (solver floor)');
 check('an inverted window still falls back to the proven defaults',
   (function () { const c = B.normalizeFunnelConfig({ ivMin: 2, ivMax: 0.5 }); return c.ivMin === 0.01 && c.ivMax === 3.0; })());
-check('a floor-pinned IV fails (ivMin == solver floor, strict comparison)',
+check('a floor-pinned IV is fail-open too (q10: a pin is not a rejection)',
   (function () {
     const b = newEngine({
       models: { parseOptionLabel: OP.parseOptionLabel, impliedVol: function () { return { sigma: 0.01, iterations: 24 }; },
@@ -576,8 +615,9 @@ check('a floor-pinned IV fails (ivMin == solver floor, strict comparison)',
       funnelConfig: { ivFilterEnabled: true }
     });
     b.run(rows, 'sFloor', 'cFloor');
-    return b.computeFunnel(baseRow, OP.parseOptionLabel(baseRow)).pass === false;
-  })(), 'sigma=0.01 does not pass');
+    const fr = b.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+    return fr.pass === true && fr.ivStatus === 'no-iv-solution' && fr.atBoundary === true;
+  })(), 'sigma=0.01 -> no-iv-solution, visible');
 check('ivMax stays user-configurable (normalizeFunnelConfig)',
   B.normalizeFunnelConfig({ ivMax: 1.5 }).ivMax === 1.5 &&
   B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 3.0 &&
@@ -648,8 +688,15 @@ check('a boundary pin is reported as no-iv-solution, not fail-iv-range',
     });
     pinned.run(rows, 'sP', 'cP');
     const fr = pinned.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
-    return fr.pass === false && fr.reason === 'no-iv-solution' && fr.atBoundary === true;
+    return fr.pass === true && fr.reason === 'no-iv-solution' && fr.atBoundary === true;
   })(), 'reason distinguishes no-solution from out-of-window');
+check('the filter-disabled branch also publishes ivStatus',
+  (function () {
+    const b = newEngine();
+    b.run(rows, 'sIvOff', 'cIvOff');
+    const fr = b.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+    return fr.pass === true && fr.ivStatus === 'iv-filter-disabled';
+  })(), 'ivStatus on every branch');
 
 // ---------- 7b-2. q4: r is user-configurable, validated, never trusted ----------
 section('7b-2. q4: r is user-configurable (UX-owned) and validated');
@@ -693,12 +740,22 @@ check('engine normalizes the config it is given',
   'normalized at construction');
 
 // ---------- 7b-5. q9 capability: per-option maturity (TMode 'dte') ----------
-section('7b-5. q9: per-option maturity via an injected calendar (opt-in, default off)');
+section('7b-5. q9: per-option maturity is the default (owner decision 2026-10-18)');
 // a fake calendar: expiry string -> fixed days-to-expiry, so the test is deterministic
 const FAKE_CAL = function () { return 3; };   // deterministic: every option has 3 days left
-check('TMode defaults to fixed (no behaviour change without an opt-in)',
-  B.DEFAULT_FUNNEL_CONFIG.TMode === 'fixed' && B.normalizeFunnelConfig({}).TMode === 'fixed' &&
-  B.normalizeFunnelConfig({ TMode: 'bogus' }).TMode === 'fixed', 'fixed is the shipped default');
+check('TMode defaults to dte (q9: the shipped 30/365 modelled a 3-day option as 30 days)',
+  B.DEFAULT_FUNNEL_CONFIG.TMode === 'dte' && B.normalizeFunnelConfig({}).TMode === 'dte' &&
+  B.normalizeFunnelConfig({ TMode: 'bogus' }).TMode === 'fixed' &&
+  B.normalizeFunnelConfig({ TMode: 'fixed' }).TMode === 'fixed', 'dte is the default, fixed is opt-in');
+check('an engine built with no funnelConfig at all uses dte (no silent 30-day model)',
+  (function () {
+    const b = newEngine();   // no funnelConfig -> normalizeFunnelConfig(undefined)
+    b.run(rows, 'sNoCfg', 'cNoCfg');
+    const r = JSON.parse(JSON.stringify(atmRow));
+    r.l30 = r.l30.replace(/-\d{4}\/\d{2}\/\d{2}$/, '-1405/07/29');   // 3 days out
+    const fr = b.computeFunnel(r, OP.parseOptionLabel(r));
+    return b.funnelConfig.TMode === 'dte' && fr.status === 'ok' && Math.abs(fr.inputs.T - 3 / 365) < 1e-12;
+  })(), 'T=' + '3/365 from the built-in calendar');
 check('TMode=dte is accepted and normalized',
   B.normalizeFunnelConfig({ TMode: 'dte' }).TMode === 'dte', 'dte accepted');
 const bDte = newEngine({ calendar: FAKE_CAL, funnelConfig: { TMode: 'dte', ivFilterEnabled: true } });
@@ -720,13 +777,30 @@ check('a different maturity produces a different IV on the same row',
     const b = bFixed2.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
     return a.status === 'ok' && b.status === 'ok' && a.iv !== null && b.iv !== null && Math.abs(a.iv - b.iv) > 1e-9;
   })(), 'iv(dte) vs iv(30d) differ');
-check('TMode=dte without a calendar -> insufficient-data (never a silent wrong T)',
+check('the built-in calendar resolves the maturity when none is injected',
+  (function () {
+    const b = newEngine({ funnelConfig: { TMode: 'dte', ivFilterEnabled: true } });
+    b.run(rows, 'sBuiltIn', 'cBuiltIn');
+    const r = JSON.parse(JSON.stringify(atmRow));
+    r.l30 = r.l30.replace(/-\d{4}\/\d{2}\/\d{2}$/, '-1405/07/29');   // 3 days out
+    const fr = b.computeFunnel(r, OP.parseOptionLabel(r));
+    return fr.status === 'ok' && Math.abs(fr.inputs.T - 3 / 365) < 1e-12;
+  })(), 'no calendar is no longer a silent 30-day model');
+check('an expiry in the past is insufficient-data, never a fabricated T',
   (function () {
     const b = newEngine({ funnelConfig: { TMode: 'dte' } });
-    b.run(rows, 'sNoCal', 'cNoCal');
-    const fr = b.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
-    return fr.status === 'insufficient-data' && /calendar/.test(fr.reason);
-  })(), 'fails closed on a missing calendar');
+    b.run(rows, 'sPast', 'cPast');
+    const r = JSON.parse(JSON.stringify(atmRow));
+    r.l30 = r.l30.replace(/-\d{4}\/\d{2}\/\d{2}$/, '-1400/01/01');   // long expired
+    const fr = b.computeFunnel(r, OP.parseOptionLabel(r));
+    return fr.status === 'insufficient-data' && fr.reason === 'no usable maturity';
+  })(), 'expired -> insufficient-data');
+check('an injected calendar still overrides the built-in one',
+  (function () {
+    const b = newEngine({ calendar: FAKE_CAL, funnelConfig: { TMode: 'dte', ivFilterEnabled: true } });
+    b.run(rows, 'sOverride', 'cOverride');
+    return Math.abs(b.computeFunnel(atmRow, OP.parseOptionLabel(atmRow)).inputs.T - 3 / 365) < 1e-12;
+  })(), 'injection wins');
 check('TMode=dte with an expired/unknown maturity -> insufficient-data',
   (function () {
     const b = newEngine({ calendar: function () { return -5; }, funnelConfig: { TMode: 'dte' } });
@@ -765,7 +839,44 @@ check('the guards use the per-row maturity too (bounds depend on T)',
     return fr.status === 'insufficient-data' && fr.reason === 'price-outside-arbitrage-bounds';
   })(), 'guard uses the per-row T');
 
-// ---------- 7c. scheduler + configVersion init ----------
+// ---------- 7b-6. the calendar module behind TMode=dte (q9) ----------
+section('7b-6. jalaliCalendar: the anchors that decide every maturity');
+check('1405/01/01 == 2026-03-21 (the anchor verified live)',
+  (function () { const g = CAL.jdnToGreg(CAL.jalaliToJDN(1405, 1, 1));
+    return g.y === 2026 && g.m === 3 && g.d === 21; })(),
+  JSON.stringify(CAL.jdnToGreg(CAL.jalaliToJDN(1405, 1, 1))));
+check('1405/07/29 == 2026-10-21 (3 days out at the live run)',
+  (function () { const g = CAL.jdnToGreg(CAL.jalaliToJDN(1405, 7, 29));
+    return g.y === 2026 && g.m === 10 && g.d === 21; })(),
+  JSON.stringify(CAL.jdnToGreg(CAL.jalaliToJDN(1405, 7, 29))));
+check('a 1404/12/30 leap-day expiry maps to 1405/01/01',
+  CAL.jalaliToJDN(1404, 12, 30) === CAL.jalaliToJDN(1405, 1, 1), '1404 is a leap year');
+check('Jalali<->Gregorian round-trips over 2000 random dates',
+  (function () {
+    for (let i = 0; i < 2000; i++) {
+      const jy = 1300 + (i * 7) % 300, jm = 1 + i % 12, jd = 1 + (i * 13) % 29;
+      const g = CAL.jdnToGreg(CAL.jalaliToJDN(jy, jm, jd));
+      if (CAL.gregToJDN(g.y, g.m, g.d) !== CAL.jalaliToJDN(jy, jm, jd)) return false;
+    }
+    return true;
+  })(), 'exact integer round-trip');
+check('daysToExpiry gives 3 for 1405/07/29 on 2026-10-18 (the live chain)',
+  CAL.daysToExpiry('1405/07/29', CAL.gregToJDN(2026, 10, 18)) === 3, 'DTE=3');
+check('an expired option yields a non-positive DTE (never a fabricated T)',
+  CAL.daysToExpiry('1405/07/29', CAL.gregToJDN(2026, 10, 22)) === -1, 'DTE=-1');
+check('a garbled or impossible date yields null, not a wrong maturity',
+  CAL.daysToExpiry('garbage', CAL.gregToJDN(2026, 10, 18)) === null &&
+  CAL.daysToExpiry('1405/13/01', CAL.gregToJDN(2026, 10, 18)) === null &&
+  CAL.daysToExpiry('1405/07/32', CAL.gregToJDN(2026, 10, 18)) === null &&
+  CAL.daysToExpiry('', CAL.gregToJDN(2026, 10, 18)) === null, 'null for all');
+check('createCalendar() reads today from the LOCAL date (a UTC shift moves a 1-day option)',
+  (function () {
+    const cal = CAL.createCalendar();
+    return cal('1405/07/29', Date.UTC(2026, 9, 18, 23, 30)) === 3 ||
+           cal('1405/07/29', Date.UTC(2026, 9, 18, 23, 30)) === 2;
+  })(), 'local-day based');
+
+
 section('7c. scheduler + configVersion init');
 {
   // createScheduler prefers requestIdleCallback
