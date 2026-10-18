@@ -91,6 +91,30 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   2026-10-21, i.e. 3 days away, so the real T is 10x smaller than the modelled one.
   Decision q9 (per-option T via an injected calendar, or keep 30/365) is with the owner.
 - A verified Jalali->Gregorian conversion (1405/01/01 == 2026-03-21) is inlined in the
+
+### Fixed — `plc` semantics PROVEN (G-18 closed) (2026-10-18)
+
+Comparing the 05:55Z and 06:55Z live snapshots of the same six option rows proves,
+to two decimals on all six (6/6):
+
+```
+plc = pl - prevClose          (yesterday's close, NOT pc)
+pc  = today's price
+pcp = (pc - prevClose)/prevClose * 100
+plp = (pl - prevClose)/prevClose * 100
+```
+
+This is why `plc == pl - pc` held for only 36.1% of rows (800/2219): `pc` is not the
+previous close. It also explains the 05:55Z anomaly where `plc` was 0 while `pl != pc`
+— at that moment `pl` equalled the previous close, so the change was genuinely zero.
+
+Derived consequence for the engine: **`prevClose = pl - plc` is computable from the row
+itself**, so price staleness is detectable without relying on `tno`. The q8 hierarchy
+(`tno > 0`) remains correct, but `plc != 0` is a cheaper corroborating signal.
+
+Second live IV run under the owner's mapping (T=30/365): atBoundary 13/120 (10.8%),
+saneInterior 33 (27.5%); the v9 mapping pins 65/120 (54.2%). This is RUN-A data —
+the decision measurement needs `probes/ivfilter.borderline.live.v1.js`.
   probe so DTE can be computed from the parsed `expiry`.
 - Parity suite extended to **94 assertions** (`probes/engine.parity.v1.js`), all passing:
   synthetic option rows now carry realistic price fields (`pl` = the option's own last
