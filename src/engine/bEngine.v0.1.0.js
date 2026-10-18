@@ -52,7 +52,7 @@ const VERSION = '0.1.0-bEngine-001';
 // change was its market price was never recomputed and its bit went stale. That bug
 // was caught by the stale-row test in probes/engine.parity.v1.js.
 /** allowed market-price sources (q2 chose 'pl') */
-const MARKET_PRICE_SOURCES = ['pl', 'pc', 'plc', 'pcp', 'plp', 'pd1', 'bidAskMid'];
+const MARKET_PRICE_SOURCES = ['hybrid', 'pl', 'pc', 'plc', 'pcp', 'plp', 'pd1', 'bidAskMid'];
 /** allowed underlying sources (q3 chose 'underlyingMap') */
 const UNDERLYING_SOURCES = ['underlyingMap', 'rowPl', 'none'];
 /** allowed underlying price fields */
@@ -84,7 +84,7 @@ const DEFAULT_FUNNEL_CONFIG = {
   T: 30 / 365,             // ~1 month (G-11 probe value; v9 used 0.082 - same)
   r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2) - OWNER DECISION PENDING
   ivMin: 0.01,             // implied vol lower bound
-  ivMax: 1.0,              // implied vol upper bound
+  ivMax: 3.0,              // implied vol upper bound (owner q7: covers live p90=2.14 with margin; UX-configurable)
   deltaMin: 0.3,           // |delta| lower bound (only used when useDeltaGamma)
   gammaMin: 1e-4,          // gamma lower bound (only used when useDeltaGamma)
   // OWNER DECISION 2026-10-17 (q5): pass = IV solved and inside the valid range.
@@ -97,7 +97,7 @@ const DEFAULT_FUNNEL_CONFIG = {
   // solved and echoed (with an atBoundary flag) so the live probe can read it.
   ivFilterEnabled: false,
   // OWNER DECISION 2026-10-17 (q2): the option's market price is `pl` (last trade).
-  marketPriceFrom: 'pl',           // 'pl' | 'pc' | 'plc' | 'pcp' | 'bidAskMid'
+  marketPriceFrom: 'hybrid',        // 'hybrid' (q8: mid -> pl-if-traded) | 'pl' | 'pc' | 'plc' | 'pcp' | 'plp' | 'pd1' | 'bidAskMid'
   // S source: PROVISIONAL - the round-trip test proves the underlying-map mapping
   // is correct, but the owner's answer here was ambiguous, so this stays a
   // documented default until confirmed. 'none' disables S entirely.
@@ -214,7 +214,7 @@ function createScheduler() {
  *
  * @returns {string|null} null when the price is sane, otherwise the reason code
  */
-function marketPriceProblem(row, S, K, T, r, kind, marketPrice, cfg) {
+function marketPriceProblem(row, S, K, T, r, kind, marketPrice, cfg, fromBook) {
   if (!cfg || cfg.checkArbitrageBounds !== false) {
     const disc = Math.exp(-r * T);
     let lo, hi;
@@ -226,7 +226,9 @@ function marketPriceProblem(row, S, K, T, r, kind, marketPrice, cfg) {
   const bid = toNum(row && row.pd1);
   const ask = toNum(row && row.po1);
   const maxSpread = (cfg && typeof cfg.maxSpreadPct === 'number') ? cfg.maxSpreadPct : 0.20;
-  if (bid !== null && ask !== null && bid > 0 && ask > bid && maxSpread > 0) {
+  // the spread guard only applies to a price derived FROM the book: a real executed
+  // trade (pl with tno > 0) is evidence even when the surrounding quotes are wide.
+  if (fromBook !== false && bid !== null && ask !== null && bid > 0 && ask > bid && maxSpread > 0) {
     const mid = (bid + ask) / 2;
     if (mid > 0 && (ask - bid) / mid > maxSpread) return 'book-too-wide';
   }
@@ -475,14 +477,65 @@ function createBEngine(options) {
    * insufficient-data when the book is shallow (G-05: missing 4/30) — never to a
    * fabricated price.
    */
-  function resolveMarketPrice(row) {
+  /**
+   * Resolve the option's market price.
+   *
+   * Owner decision q8 (2026-10-18) is a HYBRID hierarchy, because live data showed
+   * that neither source alone is sufficient (E-045):
+   *
+   *   1. the bid/ask mid — always fresh (the book updates every tick), guarded by
+   *      marketPriceProblem() so a noise mid from a thin book is never used;
+   *   2. `pl` only when the row actually traded today (tno > 0) — then `pl` is a
+   *      real executed price, which is more trustworthy than a fake quote;
+   *   3. otherwise nothing: insufficient-data, so A fails open and the row stays
+   *      visible rather than being filtered by a fabricated price.
+   *
+   * Explicit single-source modes ('pl', 'pc', 'plc', ...) are kept for probes and
+   * for reproducing the v9 behaviour.
+   *
+   * @returns {{ok:true, price:number, source:string}|{ok:false, reason:string}}
+   */
+  function resolveMarketPrice(row, S, K, kind) {
     const src = funnel.marketPriceFrom;
-    if (src === 'bidAskMid') {
-      const bid = toNum(row.pd1), ask = toNum(row.po1);
-      if (bid === null || ask === null || bid <= 0 || ask <= 0) return null;
-      return (bid + ask) / 2;
+    if (src !== 'hybrid') {
+      let price = null;
+      if (src === 'bidAskMid') {
+        const bid = toNum(row.pd1), ask = toNum(row.po1);
+        if (bid !== null && ask !== null && bid > 0 && ask > 0) price = (bid + ask) / 2;
+      } else {
+        price = toNum(row[src]);
+      }
+      if (price === null || price <= 0) return { ok: false, reason: 'missing market price' };
+      const problem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, price, funnel, true);
+      if (problem) return { ok: false, reason: problem };
+      return { ok: true, price: price, source: src };
     }
-    return toNum(row[src]);
+
+    // remember why a candidate was rejected, so the report can say it
+    let blocked = 'no usable market price';
+
+    // ---- priority 1: the bid/ask mid (fresh, guarded) ----
+    const bid = toNum(row.pd1), ask = toNum(row.po1);
+    if (bid !== null && ask !== null && bid > 0 && ask > 0) {
+      const mid = (bid + ask) / 2;
+      // fromBook:true also applies the spread guard (a wide book makes the mid noise)
+      const problem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, mid, funnel, true);
+      if (!problem) return { ok: true, price: mid, source: 'mid' };
+      blocked = problem;
+    }
+
+    // ---- priority 2: `pl` when the row traded today (tno > 0) ----
+    const trades = toNum(row.tno);
+    const last = toNum(row.pl);
+    if (trades !== null && trades > 0 && last !== null && last > 0) {
+      // fromBook:false skips the spread guard: a real trade beats a noisy quote
+      const problem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, last, funnel, false);
+      if (!problem) return { ok: true, price: last, source: 'pl-traded' };
+      return { ok: false, reason: problem };   // a traded price outside the bounds is an anomaly
+    }
+
+    // ---- priority 3: fail-open ----
+    return { ok: false, reason: blocked };
   }
 
   /** Resolve the underlying price S per the configured source. */
@@ -501,17 +554,17 @@ function createBEngine(options) {
       if (!parsed || parsed.status !== 'confirmed') return { status: 'insufficient-data', reason: 'not a confirmed option' };
       const S = resolveUnderlying(row, parsed);
       const K = toNum(parsed.strike);
-      const marketPrice = resolveMarketPrice(row);
       if (S === null || K === null) return { status: 'insufficient-data', reason: 'missing S/K' };
-      if (marketPrice === null) return { status: 'insufficient-data', reason: 'missing market price' };
       const kind = (parsed.kind === 'put') ? 'put' : 'call';
-      const priceProblem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, marketPrice, funnel);
-      if (priceProblem) return { status: 'insufficient-data', reason: priceProblem };
+      // the hybrid hierarchy needs S/K for its guards, so it runs after them
+      const resolved = resolveMarketPrice(row, S, K, kind);
+      if (!resolved.ok) return { status: 'insufficient-data', reason: resolved.reason };
+      const marketPrice = resolved.price;
       if (typeof models.impliedVol !== 'function' || typeof models.bsGreeks !== 'function') {
         return { status: 'error', reason: 'models not injected' };
       }
       const iv = models.impliedVol({ S: S, K: K, T: funnel.T, r: funnel.r, kind: kind, marketPrice: marketPrice });
-      const inputs = { S: S, K: K, marketPrice: marketPrice, T: funnel.T, r: funnel.r, kind: kind };
+      const inputs = { S: S, K: K, marketPrice: marketPrice, marketPriceSource: resolved.source, T: funnel.T, r: funnel.r, kind: kind };
 
       // ---- IV filter disabled (owner decision q1: 77% at-cap is an OPEN BUG) ----
       // The IV is still solved and echoed for diagnostics, but it cannot hide a

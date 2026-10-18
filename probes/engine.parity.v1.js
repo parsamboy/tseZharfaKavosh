@@ -345,8 +345,9 @@ section('7b. funnel input mapping');
   // owner mapping (q2): marketPrice = pl, S from the underlying map
   const b = newEngine({ funnelConfig: { ivFilterEnabled: true } });
   b.run(rows, 's1', 'c1');
-  check('owner decisions applied: marketPrice=pl, ivFilter off, no delta/gamma',
-    bDefault.funnelConfig.marketPriceFrom === 'pl' && bDefault.funnelConfig.ivFilterEnabled === false && bDefault.funnelConfig.useDeltaGamma === false,
+  check('owner decisions applied: marketPrice=hybrid (q8), ivMax=3.0 (q7), ivFilter off, no delta/gamma',
+    bDefault.funnelConfig.marketPriceFrom === 'hybrid' && bDefault.funnelConfig.ivMax === 3.0 &&
+    bDefault.funnelConfig.ivFilterEnabled === false && bDefault.funnelConfig.useDeltaGamma === false,
     JSON.stringify({ mp: b.funnelConfig.marketPriceFrom, iv: b.funnelConfig.ivFilterEnabled, dg: b.funnelConfig.useDeltaGamma }));
   check('IV filter disabled => every confirmed option passes (fail-open)',
     (function () {
@@ -418,7 +419,7 @@ section('7b. funnel input mapping');
   check('G-11 mapping yields interior solutions (near-zero boundary rate)',
     ivAtBound / rt.length <= 0.05, 'atBoundary=' + ivAtBound + '/' + rt.length);
   // with the IV filter ENABLED, the pass criteria are IV-range only (owner q5)
-  const bOn = newEngine({ funnelConfig: { ivFilterEnabled: true } });
+  const bOn = newEngine({ funnelConfig: { ivFilterEnabled: true, ivMax: 3.0 } });
   const repOn = bOn.run(rows, 'sOn', 'cOn');
   const passBits = (function () {
     let p = 0, f = 0;
@@ -429,8 +430,8 @@ section('7b. funnel input mapping');
     }
     return { pass: p, fail: f };
   })();
-  check('IV filter ON: pass = IV inside (0.01, 1.0) only', passBits.pass + passBits.fail > 0 && passBits.pass > 0,
-    'pass=' + passBits.pass + ' fail=' + passBits.fail + ' (pl as market price)');
+  check('IV filter ON: pass = IV inside (ivMin, ivMax=3.0) only', passBits.pass + passBits.fail > 0 && passBits.pass > 0,
+    'pass=' + passBits.pass + ' fail=' + passBits.fail + ' (hybrid price, owner window)');
   check('IV filter ON publishes a real projection', repOn.published === true);
 
   // legacy v9 mapping must reproduce the old behaviour (S=row.pl, marketPrice=row.plc, r=0.2)
@@ -464,7 +465,6 @@ section('7b. funnel input mapping');
   check('with no computed rows, A fails open for EVERY row', openCount === rows.length, 'open=' + openCount + '/' + rows.length);
 }
 
-// ---------- 7b-3. market-price sanity guards (E-045 live evidence) ----------
 // pick an at-the-money option: its premium is mostly time value, so the arbitrage
 // guard stays satisfied for both r values (a deep-ITM premium synthesized at r=0.30
 // falls below the bound at r=0.5 - the guard correctly rejects that impossible price)
@@ -478,6 +478,98 @@ const atmRow = (function () {
   }
   return best;
 })();
+// ---------- 7b-4. q8: hybrid market-price hierarchy (mid -> pl-if-traded -> insufficient) ----------
+section('7b-4. q8 hybrid price resolution: mid -> pl(traded) -> insufficient');
+const baseRow = atmRow;
+const uName = OP.parseOptionLabel(baseRow).underlying;
+const uSpot = SPOT_OF[uName];
+const mkRow = function (over) {
+  const r = JSON.parse(JSON.stringify(baseRow));
+  const pl = Number(r.pl);
+  r.pd1 = String(Math.round(pl * 0.99)); r.po1 = String(Math.round(pl * 1.01));
+  r.tno = '25'; r.pl = String(pl);
+  for (const k in (over || {})) r[k] = over[k];
+  return r;
+};
+// one engine, run() once so the underlying map exists before computeFunnel
+const priceEngine = newEngine({ funnelConfig: { ivFilterEnabled: true, ivMax: 3.0 } });
+priceEngine.run(rows, 'sPx', 'cPx');
+function priceOf(row) {
+  return priceEngine.computeFunnel(row, OP.parseOptionLabel(row));
+}
+const f1 = priceOf(mkRow());
+check('scenario 1: a sane book is used (source=mid)',
+  f1.status === 'ok' && f1.inputs.marketPriceSource === 'mid',
+  f1.status + ' src=' + (f1.inputs && f1.inputs.marketPriceSource));
+const f2 = priceOf(mkRow({ pd1: String(Math.round(uSpot * 0.5)), po1: String(Math.round(uSpot * 0.95)), tno: '40' }));
+check('scenario 2: an unusable book falls back to pl when tno>0 (source=pl-traded)',
+  f2.status === 'ok' && f2.inputs.marketPriceSource === 'pl-traded',
+  f2.status + ' src=' + (f2.inputs && f2.inputs.marketPriceSource));
+const f3 = priceOf(mkRow({ pd1: String(Math.round(uSpot * 0.5)), po1: String(Math.round(uSpot * 0.95)), tno: '0' }));
+check('scenario 3: no usable book and tno=0 -> insufficient-data (fail-open)',
+  f3.status === 'insufficient-data' && f3.reason === 'book-too-wide',
+  f3.status + ' ' + f3.reason);
+const f4 = priceOf(mkRow({ pd1: '0', po1: '0', tno: '12' }));
+check('scenario 4: an empty book with tno>0 falls back to pl',
+  f4.status === 'ok' && f4.inputs.marketPriceSource === 'pl-traded',
+  f4.status + ' src=' + (f4.inputs && f4.inputs.marketPriceSource));
+const f5 = priceOf(mkRow({ pd1: '0', po1: '0', tno: '0' }));
+check('scenario 5: an empty book with tno=0 -> insufficient-data',
+  f5.status === 'insufficient-data' && f5.reason === 'no usable market price', f5.status + ' ' + f5.reason);
+const f6 = priceOf(mkRow({ pd1: '0', po1: '0', tno: '9', pl: String(Math.round(uSpot * 1.5)) }));
+check('scenario 6: a traded price above S is an anomaly -> insufficient-data',
+  f6.status === 'insufficient-data' && f6.reason === 'price-outside-arbitrage-bounds',
+  f6.status + ' ' + f6.reason);
+const bPl = newEngine({ funnelConfig: { marketPriceFrom: 'pl', ivFilterEnabled: true, ivMax: 3.0 } });
+bPl.run(rows, 'sPl', 'cPl');
+const fPl = bPl.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+check('explicit marketPriceFrom=pl still resolves the raw pl',
+  fPl.status === 'ok' && fPl.inputs.marketPriceSource === 'pl', fPl.status + ' ' + (fPl.inputs && fPl.inputs.marketPriceSource));
+const bMid = newEngine({ funnelConfig: { marketPriceFrom: 'bidAskMid', ivFilterEnabled: true, ivMax: 3.0 } });
+bMid.run(rows, 'sMid', 'cMid');
+const fMid = bMid.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+check('explicit marketPriceFrom=bidAskMid still resolves the mid',
+  fMid.status === 'ok' && fMid.inputs.marketPriceSource === 'bidAskMid', fMid.status + ' ' + (fMid.inputs && fMid.inputs.marketPriceSource));
+const bPin = newEngine({
+  models: { parseOptionLabel: OP.parseOptionLabel, impliedVol: function () { return { sigma: 3, iterations: 24 }; },
+            bsGreeks: function () { return { delta: 0.9, gamma: 0.001, price: 1 }; } },
+  funnelConfig: { ivFilterEnabled: true, ivMax: 3.0 }
+});
+bPin.run(rows, 'sPin', 'cPin');
+const fPin = bPin.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+check('ivMax=3.0 still rejects a pinned IV (backup layer)',
+  fPin.pass === false && fPin.reason === 'no-iv-solution', fPin.reason);
+// a VALID IV outside the funnel window (the live case: median 1.05 > the old ivMax 1.0)
+// must be reported as fail-iv-range, NOT as no-iv-solution (a solver pin)
+const bHigh = newEngine({
+  models: { parseOptionLabel: OP.parseOptionLabel, impliedVol: function () { return { sigma: 2.5, iterations: 20 }; },
+            bsGreeks: function () { return { delta: 0.9, gamma: 0.001, price: 1 }; } },
+  funnelConfig: { ivFilterEnabled: true, ivMax: 1.0 }
+});
+bHigh.run(rows, 'sHigh', 'cHigh');
+const fHigh = bHigh.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
+check('a valid IV above ivMax is fail-iv-range, not no-iv-solution',
+  fHigh.pass === false && fHigh.reason === 'fail-iv-range' && fHigh.atBoundary === false, fHigh.reason);
+check('with ivMax=3.0 that same IV passes (owner q7 window)',
+  (function () {
+    const b3 = newEngine({
+      models: { parseOptionLabel: OP.parseOptionLabel, impliedVol: function () { return { sigma: 2.5, iterations: 20 }; },
+                bsGreeks: function () { return { delta: 0.9, gamma: 0.001, price: 1 }; } },
+      funnelConfig: { ivFilterEnabled: true, ivMax: 3.0 }
+    });
+    b3.run(rows, 's3', 'c3');
+    return b3.computeFunnel(baseRow, OP.parseOptionLabel(baseRow)).pass === true;
+  })(), 'iv 2.5 inside (0.01, 3.0)');
+check('ivMax stays user-configurable (normalizeFunnelConfig)',
+  B.normalizeFunnelConfig({ ivMax: 1.5 }).ivMax === 1.5 &&
+  B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 3.0 &&
+  B.normalizeFunnelConfig({}).ivMax === 3.0, 'window from UX, defaults 3.0');
+check('hybrid is the default and stays user-configurable',
+  B.DEFAULT_FUNNEL_CONFIG.marketPriceFrom === 'hybrid' &&
+  B.normalizeFunnelConfig({ marketPriceFrom: 'pl' }).marketPriceFrom === 'pl' &&
+  B.normalizeFunnelConfig({ marketPriceFrom: 'nope' }).marketPriceFrom === 'hybrid', 'hybrid default');
+
+// ---------- 7b-3. market-price sanity guards (E-045 live evidence) ----------
 section('7b-3. market-price sanity guards (arbitrage bounds + book width)');
 const MPP = B.marketPriceProblem;
 const gS = 70164, gK = 24000, gT = 30 / 365, gR = 0.30;
@@ -518,6 +610,7 @@ const badRow = (function () {
   const r = JSON.parse(JSON.stringify(atmRow));
   r.pd1 = String(Math.round(SPOT_OF[OP.parseOptionLabel(atmRow).underlying] * 0.5));
   r.po1 = String(Math.round(SPOT_OF[OP.parseOptionLabel(atmRow).underlying] * 0.95));
+  r.tno = '0';   // no trade today -> the hybrid hierarchy cannot fall back to pl
   return r;
 })();
 const frGuard = bGuard.computeFunnel(badRow, OP.parseOptionLabel(badRow));
@@ -557,13 +650,13 @@ check('normalizeFunnelConfig coerces switches to real booleans',
   N({ ivFilterEnabled: 'no' }).ivFilterEnabled === false && N({ ivFilterEnabled: 1 }).ivFilterEnabled === false &&
   N({ useDeltaGamma: true }).useDeltaGamma === true, 'booleans coerced');
 check('normalizeFunnelConfig rejects unknown sources',
-  N({ marketPriceFrom: 'nope' }).marketPriceFrom === 'pl' &&
+  N({ marketPriceFrom: 'nope' }).marketPriceFrom === 'hybrid' &&
   N({ underlyingFrom: 'nope' }).underlyingFrom === 'underlyingMap', 'whitelist enforced');
 check('normalizeFunnelConfig never mutates DEFAULT_FUNNEL_CONFIG',
   (function () {
     const before = B.DEFAULT_FUNNEL_CONFIG.r;
     N({ r: 0.01, ivMin: 0.9, marketPriceFrom: 'pc' });
-    return B.DEFAULT_FUNNEL_CONFIG.r === before && B.DEFAULT_FUNNEL_CONFIG.marketPriceFrom === 'pl';
+    return B.DEFAULT_FUNNEL_CONFIG.r === before && B.DEFAULT_FUNNEL_CONFIG.marketPriceFrom === 'hybrid';
   })());
 // a user r must actually reach the funnel and change the IV
 const bR02 = newEngine({ funnelConfig: { ivFilterEnabled: true, r: 0.2 } });

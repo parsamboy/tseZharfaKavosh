@@ -44,6 +44,27 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   half of the live options — the IV window needs an owner decision before the filter
   can be enabled (see design doc §12, decisions q7/q8).
 - Parity suite extended to **114 assertions**, all passing.
+
+### Changed — owner decisions q7/q8: ivMax 3.0 + hybrid price hierarchy (2026-10-18)
+
+- `ivMax: 1.0 -> 3.0` (owner q7, UX-configurable): the live median IV is 1.0522 and
+  p90 is 2.1424, so the old window would have rejected about half of the live options.
+  The price guard stays the primary layer; `ivMax` is a backup that only rejects 1-2%
+  (an IV above 300% is an anomaly). 5.0 was rejected because it equals the solver's
+  own cap, which would make the check meaningless.
+- `marketPriceFrom: 'pl' -> 'hybrid'` (owner q8), a three-level hierarchy:
+  1. the bid/ask mid, guarded by `marketPriceProblem()` (arbitrage bounds + spread);
+  2. `pl` only when `tno > 0` (the row actually traded today) — the spread guard is
+     skipped on this path because a real executed trade is evidence even when the
+     surrounding quotes are wide;
+  3. otherwise `insufficient-data`, so A fails open and the row stays visible.
+- Every rejection now carries its reason (`missing market price`,
+  `price-outside-arbitrage-bounds`, `book-too-wide`), and the chosen source is echoed
+  as `inputs.marketPriceSource` (`mid` | `pl-traded` | the explicit source name).
+- Backlog: `plc == pl - pc` for only 37.2% of live rows, so `plc` is not the price
+  change (most likely `plc = pl - py`) — recorded as gate G-18; no decision may be
+  built on `plc` until it is settled (the q8 hierarchy uses `tno > 0`, not `plc`).
+- Parity suite extended to **127 assertions**, all passing.
 - Parity suite extended to **94 assertions** (`probes/engine.parity.v1.js`), all passing:
   synthetic option rows now carry realistic price fields (`pl` = the option's own last
   price), the round-trip test runs under the owner mapping (mean IV 0.3456 vs true 0.35,
