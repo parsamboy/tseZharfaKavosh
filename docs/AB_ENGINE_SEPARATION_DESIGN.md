@@ -655,7 +655,7 @@ const DEFAULT_FUNNEL_CONFIG = {
   useDeltaGamma: false,               // q5
   ivFilterEnabled: false,             // q1 - open bug, no IV-based hiding
   marketPriceFrom: 'pl',              // q2
-  underlyingFrom: 'underlyingMap',    // q3 - PROVISIONAL, answer was ambiguous
+  underlyingFrom: 'underlyingMap',    // q3 - CONFIRMED by the owner
   underlyingPriceField: 'pc',
   legacyV9Mapping: false
 };
