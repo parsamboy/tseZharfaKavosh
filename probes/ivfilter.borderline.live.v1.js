@@ -182,6 +182,9 @@
       return {ok:false, reason:blocked};
     }
 
+    // the conversion is also offered to the real engine below (RUN B via the engine)
+    __out.calendar = { jalaliToJDN: jalaliToJDN, gregToJDN: gregToJDN };
+
     // ---------- data ----------
     var mw = window.mw;
     var AllRows = mw && mw.AllRows;
@@ -274,6 +277,62 @@
     __out.dteHistogram = B.dteHist;
     __out.T_range_real = { min: B.tMin, max: B.tMax };
 
+    // ---------- RUN B through the REAL engine (TMode 'dte') ----------
+    // The local measurement above proves the mechanism; this branch measures the
+    // shipped path with the correct maturity, so the decision rests on engine output.
+    __out.runB_engine = 'skipped (window.TseBEngine not loaded)';
+    if (window.TseBEngine && window.TseGreeks && window.tseZharfaKavosh_parseOptionLabel) {
+      try {
+        var engB = window.TseBEngine.createBEngine({
+          models: { parseOptionLabel: window.tseZharfaKavosh_parseOptionLabel,
+                    impliedVol: window.TseGreeks.impliedVol, bsGreeks: window.TseGreeks.bsGreeks },
+          calendar: function (expiry) { var d = dteDays(expiry, todayJDN); return (d !== null && d > 0) ? d : null; },
+          funnelConfig: { ivFilterEnabled: true, marketPriceFrom: 'hybrid', ivMax: 3.0, TMode: 'dte' }
+        });
+        engB.run(rows, 'probe-b-dte', 'cfg-b-dte');
+        var stB = { total:0, ok:0, pass:0, atLower:0, atUpper:0, normal:0,
+                    srcMid:0, srcPlTraded:0, insufficient:0,
+                    guardArb:0, guardSpread:0, noS:0, noT:0, ivFailed:0 };
+        var histB = { 'at_lower':0, '<0.05':0, '0.05-0.1':0, '0.1-0.2':0, '0.2-0.5':0,
+                      '0.5-1':0, '1-1.5':0, '1.5-2':0, '2-2.9':0, 'at_upper':0 };
+        var samplesB = [];
+        for (var i=0;i<rows.length;i++){
+          var row = rows[i], parsed = parseOptionLabel(row);
+          if (parsed.status !== 'confirmed') continue;
+          stB.total++;
+          var fr = engB.computeFunnel(row, parsed);
+          if (fr.status !== 'ok') {
+            stB.insufficient++;
+            if (fr.reason === 'price-outside-arbitrage-bounds') stB.guardArb++;
+            else if (fr.reason === 'book-too-wide') stB.guardSpread++;
+            else if (fr.reason === 'missing S/K') stB.noS++;
+            else if (/maturity|calendar/.test(fr.reason || '')) stB.noT++;
+            else stB.ivFailed++;
+            continue;
+          }
+          stB.ok++;
+          if (fr.inputs && fr.inputs.marketPriceSource === 'mid') stB.srcMid++;
+          else if (fr.inputs && fr.inputs.marketPriceSource === 'pl-traded') stB.srcPlTraded++;
+          if (fr.pass) stB.pass++;
+          var sg = fr.iv;
+          if (sg === null || sg === undefined) { stB.ivFailed++; continue; }
+          if (sg <= 0.011) { stB.atLower++; histB['at_lower']++; }
+          else if (sg >= 2.99) { stB.atUpper++; histB['at_upper']++; }
+          else { stB.normal++; histB[sg<0.05?'<0.05':sg<0.1?'0.05-0.1':sg<0.2?'0.1-0.2':sg<0.5?'0.2-0.5':sg<1?'0.5-1':sg<1.5?'1-1.5':sg<2?'1.5-2':'2-2.9']++; }
+          if ((sg <= 0.011 || sg >= 2.99) && samplesB.length < 10) {
+            samplesB.push({ l18:String(row.l18), base:parsed.underlying, S:Math.round(fr.inputs.S), K:parsed.strike,
+              T:+fr.inputs.T.toFixed(6), price:Math.round(fr.inputs.marketPrice), src:fr.inputs.marketPriceSource,
+              iv:Math.round(sg*10000)/10000, side: sg<=0.011?'lower':'upper' });
+          }
+        }
+        stB.borderline = stB.atLower + stB.atUpper;
+        stB.borderlinePct = +(stB.borderline / (stB.ok||1) * 100).toFixed(1);
+        stB.passPct = +(stB.pass / (stB.ok||1) * 100).toFixed(1);
+        stB.hist = histB; stB.samples = samplesB;
+        __out.runB_engine = stB;
+      } catch(e) { __out.runB_engine = 'error: ' + String(e && e.message || e); }
+    }
+
     // ---------- parity against the real engine, if it is loaded ----------
     __out.engineParity = 'skipped (window.TseBEngine not loaded)';
     if (window.TseBEngine && window.TseGreeks && window.tseZharfaKavosh_parseOptionLabel) {
@@ -308,7 +367,8 @@
     }
 
     // ---------- decision helper ----------
-    var worst = Math.max(A.borderlinePct, B.borderlinePct);
+    var worst = Math.max(A.borderlinePct, B.borderlinePct,
+      (__out.runB_engine && __out.runB_engine.borderlinePct) || 0);
     __out.decision = worst < 3 ? 'SAFE-TO-ENABLE (borderline ' + worst + '% < 3%)'
                   : worst <= 8 ? 'PRODUCT-DECISION (borderline ' + worst + '% in 3-8%)'
                   : 'STILL-BROKEN (borderline ' + worst + '% > 8%)';
@@ -344,6 +404,16 @@
     console.table(B.hist);
     line('--- borderline samples (RUN B, up to 10) ---');
     console.table(B.samples);
+    if (__out.runB_engine !== 'skipped (window.TseBEngine not loaded)') {
+      var rb = __out.runB_engine;
+      line('--- RUN B through the REAL engine (TMode=dte) ---');
+      console.table(rb && rb.total !== undefined ? { total:rb.total, ok:rb.ok, pass:rb.pass, passPct:rb.passPct,
+        mid:rb.srcMid, plTraded:rb.srcPlTraded, insufficient:rb.insufficient, guardArb:rb.guardArb,
+        guardSpread:rb.guardSpread, noS:rb.noS, noT:rb.noT, ivFailed:rb.ivFailed,
+        atLower:rb.atLower, atUpper:rb.atUpper, borderlinePct:rb.borderlinePct } : rb);
+      if (rb && rb.samples) { line('--- RUN B (engine) borderline samples ---'); console.table(rb.samples); }
+      if (rb && rb.hist) { line('--- RUN B (engine) IV histogram ---'); console.table(rb.hist); }
+    }
     line('--- layer diagnosis (RUN B) ---');
     console.table(__out.layerDiagnosis);
     line('DECISION: ' + __out.decision);

@@ -96,7 +96,14 @@ const INDEX_SAMPLE = 16;
 // defaults below follow the G-11 probe (the best-evidenced mapping in this repo)
 // and are still PROVISIONAL until the owner decides.
 const DEFAULT_FUNNEL_CONFIG = {
-  T: 30 / 365,             // ~1 month (G-11 probe value; v9 used 0.082 - same)
+  // Maturity. 'fixed' uses T below for every option (the G-11 probe value, and the
+  // shipped default). 'dte' computes the maturity per option from the parsed expiry
+  // through the injected calendar - live evidence (E-047/G-19) shows the shipped
+  // fixed value can be 10x off (a 3-day option modelled as 30 days), which hides
+  // boundary pinning. 'dte' needs opts.calendar; without it every row is
+  // insufficient-data rather than silently modelled at the wrong maturity.
+  TMode: 'fixed',             // 'fixed' | 'dte'  (owner decision q9 - pending)
+  T: 30 / 365,                // used when TMode is 'fixed'
   r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2) - OWNER DECISION PENDING
   ivMin: IV_SOLVER_MIN,    // implied vol lower bound (== the solver floor, so a pinned IV fails)
   ivMax: IV_SOLVER_MAX,      // implied vol upper bound (owner q7; UX-configurable — see IV_SOLVER_MAX)
@@ -287,6 +294,7 @@ function normalizeFunnelConfig(cfg) {
   out.useDeltaGamma = bool('useDeltaGamma');
   out.legacyV9Mapping = bool('legacyV9Mapping');
   out.checkArbitrageBounds = bool('checkArbitrageBounds');
+  out.TMode = (c.TMode === 'dte') ? 'dte' : 'fixed';   // whitelist: only these two modes
   out.maxSpreadPct = num('maxSpreadPct', 0, 1);
   // an inverted IV window is unusable: restore the default window
   if (!(out.ivMin < out.ivMax)) {
@@ -318,6 +326,9 @@ function normalizeFunnelConfig(cfg) {
 function createBEngine(options) {
   const opts = options || {};
   const models = opts.models || {};
+  // calendar(expiry, nowMs) -> days to expiry | null. Injected, never built in: the
+  // Jalali<->Gregorian conversion is gate G-08's job, not the engine's.
+  const calendar = (typeof opts.calendar === 'function') ? opts.calendar : null;
   let funnel = normalizeFunnelConfig(opts.funnelConfig);
   if (opts.legacyV9Mapping === true || funnel.legacyV9Mapping === true) {
     funnel = Object.assign({}, funnel, V9_FUNNEL_CONFIG);
@@ -513,7 +524,7 @@ function createBEngine(options) {
    *
    * @returns {{ok:true, price:number, source:string}|{ok:false, reason:string}}
    */
-  function resolveMarketPrice(row, S, K, kind) {
+  function resolveMarketPrice(row, S, K, T, kind) {
     const src = funnel.marketPriceFrom;
     if (src !== 'hybrid') {
       let price = null;
@@ -524,7 +535,7 @@ function createBEngine(options) {
         price = toNum(row[src]);
       }
       if (price === null || price <= 0) return { ok: false, reason: 'missing market price' };
-      const problem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, price, funnel, true);
+      const problem = marketPriceProblem(row, S, K, T, funnel.r, kind, price, funnel, true);
       if (problem) return { ok: false, reason: problem };
       return { ok: true, price: price, source: src };
     }
@@ -537,7 +548,7 @@ function createBEngine(options) {
     if (bid !== null && ask !== null && bid > 0 && ask > 0) {
       const mid = (bid + ask) / 2;
       // fromBook:true also applies the spread guard (a wide book makes the mid noise)
-      const problem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, mid, funnel, true);
+      const problem = marketPriceProblem(row, S, K, T, funnel.r, kind, mid, funnel, true);
       if (!problem) return { ok: true, price: mid, source: 'mid' };
       blocked = problem;
     }
@@ -547,7 +558,7 @@ function createBEngine(options) {
     const last = toNum(row.pl);
     if (trades !== null && trades > 0 && last !== null && last > 0) {
       // fromBook:false skips the spread guard: a real trade beats a noisy quote
-      const problem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, last, funnel, false);
+      const problem = marketPriceProblem(row, S, K, T, funnel.r, kind, last, funnel, false);
       if (!problem) return { ok: true, price: last, source: 'pl-traded' };
       return { ok: false, reason: problem };   // a traded price outside the bounds is an anomaly
     }
@@ -566,6 +577,21 @@ function createBEngine(options) {
     return (price === undefined) ? null : price;
   }
 
+  /**
+   * Resolve the maturity for THIS row.
+   * @returns {{ok:true, T:number}|{ok:false, reason:string}}
+   */
+  function resolveT(parsed) {
+    if (funnel.TMode !== 'dte') return { ok: true, T: funnel.T };
+    if (!calendar) return { ok: false, reason: 'TMode=dte needs an injected calendar' };
+    const expiry = parsed && parsed.expiry ? String(parsed.expiry) : '';
+    if (!expiry) return { ok: false, reason: 'no expiry on the parsed label' };
+    let dte = null;
+    try { dte = calendar(expiry, now()); } catch (e) { return { ok: false, reason: 'calendar failed' }; }
+    if (dte === null || !isFinite(dte) || dte <= 0) return { ok: false, reason: 'no usable maturity' };
+    return { ok: true, T: dte / 365 };
+  }
+
   function computeFunnel(row, parsed) {
     try {
       if (!row || typeof row !== 'object') return { status: 'error', reason: 'row not object' };
@@ -573,16 +599,19 @@ function createBEngine(options) {
       const S = resolveUnderlying(row, parsed);
       const K = toNum(parsed.strike);
       if (S === null || K === null) return { status: 'insufficient-data', reason: 'missing S/K' };
+      const tRes = resolveT(parsed);
+      if (!tRes.ok) return { status: 'insufficient-data', reason: tRes.reason };
+      const T = tRes.T;
       const kind = (parsed.kind === 'put') ? 'put' : 'call';
       // the hybrid hierarchy needs S/K for its guards, so it runs after them
-      const resolved = resolveMarketPrice(row, S, K, kind);
+      const resolved = resolveMarketPrice(row, S, K, T, kind);
       if (!resolved.ok) return { status: 'insufficient-data', reason: resolved.reason };
       const marketPrice = resolved.price;
       if (typeof models.impliedVol !== 'function' || typeof models.bsGreeks !== 'function') {
         return { status: 'error', reason: 'models not injected' };
       }
-      const iv = models.impliedVol({ S: S, K: K, T: funnel.T, r: funnel.r, kind: kind, marketPrice: marketPrice });
-      const inputs = { S: S, K: K, marketPrice: marketPrice, marketPriceSource: resolved.source, T: funnel.T, r: funnel.r, kind: kind };
+      const iv = models.impliedVol({ S: S, K: K, T: T, r: funnel.r, kind: kind, marketPrice: marketPrice });
+      const inputs = { S: S, K: K, marketPrice: marketPrice, marketPriceSource: resolved.source, T: T, r: funnel.r, kind: kind };
 
       // ---- IV filter disabled (owner decision q1: 77% at-cap is an OPEN BUG) ----
       // The IV is still solved and echoed for diagnostics, but it cannot hide a
@@ -601,7 +630,7 @@ function createBEngine(options) {
       if (!iv || iv.error || iv.sigma === undefined || iv.sigma === null || !isFinite(iv.sigma)) {
         return { status: 'insufficient-data', reason: 'iv failed' };
       }
-      const g = models.bsGreeks({ S: S, K: K, T: funnel.T, r: funnel.r, sigma: iv.sigma, kind: kind });
+      const g = models.bsGreeks({ S: S, K: K, T: T, r: funnel.r, sigma: iv.sigma, kind: kind });
       if (!g || g.error) return { status: 'insufficient-data', reason: 'greeks failed' };
       const atBoundary = (iv.sigma <= 0.0100001 || iv.sigma >= 2.9999999);
       // owner decision q5: IV range only. delta/gamma are opt-in again.

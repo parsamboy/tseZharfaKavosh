@@ -692,6 +692,79 @@ check('engine normalizes the config it is given',
   bR02.funnelConfig.r === 0.2 && newEngine({ funnelConfig: { r: 'x' } }).funnelConfig.r === 0.30,
   'normalized at construction');
 
+// ---------- 7b-5. q9 capability: per-option maturity (TMode 'dte') ----------
+section('7b-5. q9: per-option maturity via an injected calendar (opt-in, default off)');
+// a fake calendar: expiry string -> fixed days-to-expiry, so the test is deterministic
+const FAKE_CAL = function () { return 3; };   // deterministic: every option has 3 days left
+check('TMode defaults to fixed (no behaviour change without an opt-in)',
+  B.DEFAULT_FUNNEL_CONFIG.TMode === 'fixed' && B.normalizeFunnelConfig({}).TMode === 'fixed' &&
+  B.normalizeFunnelConfig({ TMode: 'bogus' }).TMode === 'fixed', 'fixed is the shipped default');
+check('TMode=dte is accepted and normalized',
+  B.normalizeFunnelConfig({ TMode: 'dte' }).TMode === 'dte', 'dte accepted');
+const bDte = newEngine({ calendar: FAKE_CAL, funnelConfig: { TMode: 'dte', ivFilterEnabled: true } });
+bDte.run(rows, 'sDte', 'cDte');
+const frDte = bDte.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+check('TMode=dte uses the per-option maturity (echoed in inputs.T)',
+  frDte.status === 'ok' && Math.abs(frDte.inputs.T - 3 / 365) < 1e-12,
+  'T=' + (frDte.inputs && frDte.inputs.T) + ' expected ' + (3 / 365));
+const bFixedHere = newEngine();
+bFixedHere.run(rows, 'sFix', 'cFix');   // build the underlying map first
+const frFixed = bFixedHere.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+check('the same row under TMode=fixed uses 30/365 (the shipped approximation)',
+  frFixed.status === 'ok' && Math.abs(frFixed.inputs.T - 30 / 365) < 1e-12, 'T=' + (frFixed.inputs && frFixed.inputs.T));
+check('a different maturity produces a different IV on the same row',
+  (function () {
+    const a = bDte.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+    const bFixed2 = newEngine();
+    bFixed2.run(rows, 'sFix2', 'cFix2');
+    const b = bFixed2.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+    return a.status === 'ok' && b.status === 'ok' && a.iv !== null && b.iv !== null && Math.abs(a.iv - b.iv) > 1e-9;
+  })(), 'iv(dte) vs iv(30d) differ');
+check('TMode=dte without a calendar -> insufficient-data (never a silent wrong T)',
+  (function () {
+    const b = newEngine({ funnelConfig: { TMode: 'dte' } });
+    b.run(rows, 'sNoCal', 'cNoCal');
+    const fr = b.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+    return fr.status === 'insufficient-data' && /calendar/.test(fr.reason);
+  })(), 'fails closed on a missing calendar');
+check('TMode=dte with an expired/unknown maturity -> insufficient-data',
+  (function () {
+    const b = newEngine({ calendar: function () { return -5; }, funnelConfig: { TMode: 'dte' } });
+    b.run(rows, 'sExp', 'cExp');
+    const fr = b.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+    return fr.status === 'insufficient-data' && fr.reason === 'no usable maturity';
+  })(), 'negative DTE rejected');
+check('a throwing calendar is contained (no crash)',
+  (function () {
+    const b = newEngine({ calendar: function () { throw new Error('boom'); }, funnelConfig: { TMode: 'dte' } });
+    b.run(rows, 'sThrow', 'cThrow');
+    const fr = b.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+    return fr.status === 'insufficient-data' && /calendar/.test(fr.reason);
+  })(), 'try/catch around the injected calendar');
+check('TMode=dte still publishes a full cycle (the option rows are computed)',
+  (function () {
+    const b = newEngine({ calendar: FAKE_CAL, funnelConfig: { TMode: 'dte' } });
+    const rep = b.run(rows, 'sDte2', 'cDte2');
+    return rep.published === true && rep.computed > 0;
+  })(), 'published with per-option T');
+check('the guards use the per-row maturity too (bounds depend on T)',
+  (function () {
+    // a price that is valid at 30d can be below the bound at 3d: the guard must use T
+    const b = newEngine({ calendar: function () { return 3; }, funnelConfig: { TMode: 'dte', marketPriceFrom: 'bidAskMid' } });
+    b.run(rows, 'sDte3', 'cDte3');
+    const row = JSON.parse(JSON.stringify(atmRow));
+    const S = SPOT_OF[OP.parseOptionLabel(atmRow).underlying];
+    const K = OP.parseOptionLabel(atmRow).strike;
+    const disc3 = Math.exp(-0.30 * 3 / 365);
+    const lo3 = Math.max(0, S - K * disc3);
+    // put the MID below the 3-day lower bound (the bid alone is not what is checked),
+    // and keep the book narrow so only the bound check can reject it
+    row.pd1 = String(Math.round(lo3 * 0.94));
+    row.po1 = String(Math.round(lo3 * 0.99));
+    const fr = b.computeFunnel(row, OP.parseOptionLabel(row));
+    return fr.status === 'insufficient-data' && fr.reason === 'price-outside-arbitrage-bounds';
+  })(), 'guard uses the per-row T');
+
 // ---------- 7c. scheduler + configVersion init ----------
 section('7c. scheduler + configVersion init');
 {

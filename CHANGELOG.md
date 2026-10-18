@@ -71,6 +71,27 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   them instead of trusting a meaningless setting.
 - Parity suite extended to **130 assertions**, all passing.
 
+### Added — per-option maturity capability (q9), off by default; probe measures the real engine (2026-10-18)
+
+- `TMode: 'fixed' | 'dte'` in the funnel config. `'fixed'` (the shipped default) keeps
+  `T = 30/365`; `'dte'` computes the maturity per option from the parsed expiry through
+  an **injected** calendar (`opts.calendar`), so the Jalali<->Gregorian conversion stays
+  outside the engine (gate G-08's job). Without a calendar, `'dte'` returns
+  insufficient-data rather than silently modelling the wrong maturity.
+- The market-price guards and the IV solver now use the per-row maturity, because the
+  arbitrage bounds depend on `T`: a price that is valid at 30 days can be below the
+  bound at 3 days. `inputs.T` echoes the maturity actually used.
+- `probes/ivfilter.borderline.live.v1.js` now measures RUN B through the real engine
+  (`TMode: 'dte'`) instead of a local re-implementation, and reports the engine's own
+  counts. Validated in node: the engine's RUN B matches the probe's local RUN B exactly
+  (total 33, ok 22, atUpper 2, borderlinePct 9.1%) and the price-resolution parity check
+  against `computeFunnel` stays 33/33.
+- Three real bugs found and fixed while wiring this: `resolveMarketPrice` did not
+  receive `T`; `normalizeFunnelConfig` could never write `'dte'`; two parity tests
+  referenced a block-scoped engine from another scope.
+- Parity suite extended to **140 assertions**, all passing. The shipped default is
+  unchanged (`TMode: 'fixed'`, `T = 30/365`).
+
 ### Added — IV borderline probe (live, [console]) + the fixed-T defect it exposes (2026-10-18)
 
 - `probes/ivfilter.borderline.live.v1.js` [console] decides whether `ivFilterEnabled`
