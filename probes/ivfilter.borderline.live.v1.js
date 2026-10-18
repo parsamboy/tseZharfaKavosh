@@ -507,8 +507,9 @@
     // decisive numbers. The JSON line is the deliverable; the tables are the reading aid.
     console.log('PROBE_JSON ' + JSON.stringify(slim));
     function line(t){ console.log(t); }
-    line('=== IV borderline probe (post q7+q8) — copy the PROBE_JSON line above (' +
-         JSON.stringify(slim).length + ' chars, paste cap is ~5000) ===');
+    line('=== IV borderline probe (post q7+q8) ===');
+    line('COPY THIS LINE -> PROBE_JSON ' + JSON.stringify(slim).length + ' chars (paste cap ~5000). ' +
+         'It is the ONLY json line printed; for the verbose object set window.__B_PROBE_FULL = true.');
     line('host=' + __out.host + '  symbols=' + __out.totalSymbols + '  underlyingMap=' + __out.underlyingMapSize + '  today=' + __out.today);
     line('--- DTE distribution (real maturities) ---');
     console.table(__out.dteHistogram);
@@ -559,6 +560,17 @@
   } catch (e) {
     __out.error = String(e && e.message || e) + ' @ ' + (e && e.stack || '').split('\n')[1];
   }
-  // the un-slimmed object, for reference only: it is too big to paste in one go
-  console.log('PROBE_JSON_FULL ' + JSON.stringify(__out));
+  // The un-slimmed object is NOT printed by default. A live run showed why: with two
+  // JSON lines in the output, the last (bigger) one is the one that gets copied, and it
+  // is ~15KB against a 5000-char paste cap - the same truncation all over again. One
+  // JSON line, first in the output, is the only safe shape. Ask for the detail
+  // explicitly: set window.__B_PROBE_FULL = true and it is printed in 4000-char chunks
+  // that each survive a paste.
+  if (typeof window !== 'undefined' && window.__B_PROBE_FULL === true) {
+    var fullJson = JSON.stringify(__out), CH = 4000;
+    var parts = Math.ceil(fullJson.length / CH);
+    for (var ci = 0; ci < parts; ci++) {
+      console.log('PROBE_JSON_FULL ' + (ci + 1) + '/' + parts + ' ' + fullJson.slice(ci * CH, (ci + 1) * CH));
+    }
+  }
 })();

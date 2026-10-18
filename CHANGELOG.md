@@ -135,9 +135,13 @@ The probe's new `windowSweep` answers the owner's question on live data — "if
   2. Moving it to the first line was **not enough** — the paste was cut at the same
      place, because the real cap is on **length**: exactly 5001 characters (measured).
      The full JSON was ~15KB.
-  The probe now prints a **slim projection first** (every decision number; samples
-  capped at 3; sweep entries as arrays; structurally bounded size) — **2810 chars** on
-  synthetic data — and still prints the un-slimmed object last as `PROBE_JSON_FULL`.
+  3. The verbose object was still printed as a second json line at the end, and the next
+     live run (VM6589:563) copied **that** line — 5001 chars of a ~15KB line, cut in the
+     same place again. Two json lines in the output is what made that possible.
+  Shipped shape: **exactly one json line**, the slim projection, printed first — 2799
+  chars on synthetic data, structurally bounded. The verbose object is opt-in
+  (`window.__B_PROBE_FULL = true`) and is then emitted in 4000-char chunks that each
+  survive a paste (reassembly verified in node).
 - Outstanding: RUN B (real DTE) and `runB_engine` still need one clean live run; the
   engine is not registered on the page yet (`window.TseBEngine` absent), so today's
   code commits have no live effect.
