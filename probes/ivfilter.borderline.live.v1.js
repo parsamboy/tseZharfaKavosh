@@ -213,6 +213,7 @@
       var hist = { 'at_lower':0, '<0.05':0, '0.05-0.1':0, '0.1-0.2':0, '0.2-0.5':0,
                    '0.5-1':0, '1-1.5':0, '1.5-2':0, '2-2.9':0, 'at_upper':0 };
       var samples = [];
+      var byBase = {};   // boundary concentration per underlying
       var cfg = guards === false
         ? { checkArbitrageBounds:false, maxSpreadPct:0 }
         : { checkArbitrageBounds:true, maxSpreadPct:0.20 };
@@ -255,6 +256,12 @@
           st.normal++;
           hist[s<0.05?'<0.05':s<0.1?'0.05-0.1':s<0.2?'0.1-0.2':s<0.5?'0.2-0.5':s<1?'0.5-1':s<1.5?'1-1.5':s<2?'1.5-2':'2-2.9']++;
         }
+        if (s <= EPS_LO || s >= EPS_HI) {
+          var bb = byBase[parsed.underlying] || (byBase[parsed.underlying] = { lower:0, upper:0, dtes:{} });
+          if (s <= EPS_LO) bb.lower++; else bb.upper++;
+          var dk = (dte === null ? '?' : (dte <= 7 ? '0-7d' : (dte <= 30 ? '8-30d' : (dte <= 90 ? '31-90d' : '>90d'))));
+          bb.dtes[dk] = (bb.dtes[dk] || 0) + 1;
+        }
         if ((s <= EPS_LO || s >= EPS_HI) && samples.length < 10) {
           samples.push({ l18:String(row.l18), base:parsed.underlying, S:Math.round(S), K:K,
             dte:dte, price:Math.round(pr.price), src:pr.source,
@@ -274,6 +281,11 @@
       st.samples = samples;
       st.guardsOn = guardsOn;
       st.tMode = Tmode;
+      // top boundary concentrations, so a single chain cannot hide inside an average
+      st.byBase = Object.keys(byBase).map(function (k) {
+        return { base: k, lower: byBase[k].lower, upper: byBase[k].upper,
+                 total: byBase[k].lower + byBase[k].upper, dtes: byBase[k].dtes };
+      }).sort(function (a, b) { return b.total - a.total; }).slice(0, 8);
       return st;
     }
 
@@ -442,6 +454,8 @@
         atLower:rb.atLower, atUpper:rb.atUpper, borderlinePct:rb.borderlinePct } : rb);
       if (rb && rb.samples) { line('--- RUN B (engine) borderline samples ---'); console.table(rb.samples); }
       if (rb && rb.hist) { line('--- RUN B (engine) IV histogram ---'); console.table(rb.hist); }
+    line('--- RUN B boundary concentration by underlying (top 8) ---');
+    console.table(B.byBase);
     }
     line('--- layer diagnosis (RUN B) ---');
     console.table(__out.layerDiagnosis);

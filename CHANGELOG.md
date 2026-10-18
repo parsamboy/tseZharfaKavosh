@@ -95,6 +95,32 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   shipped T (they rescue everything, as the owner predicted), but only from 37.5% to 9.1%
   at the correct maturity — they cannot finish the job there. This is the direct test of
   the owner's "all boundary rows are rescued" claim.
+- The probe also reports **boundary concentration per underlying** (`byBase`, top 8), so a
+  single chain cannot hide inside an average.
+
+### Verified — LIVE borderline measurement (E-051, owner, old.tsetmc.com 2026-10-18T07:18Z)
+
+The owner ran the probe live: 2983 symbols, 1049 option rows, 1710-entry underlying map.
+
+| | guards ON | guards OFF | guards rescue |
+|---|---|---|---|
+| **A: T = 30/365 (shipped)** | **1.8%** (8/442) | 17.3% (124/715) | 116 of 124 (93.5%) |
+| **B: T = DTE/365 (correct)** | **7.3%** (30/411) | 11.9% (73/615) | 43 of 73 (59%) |
+
+- The shipped maturity **flatters the result**: 1.8% would have looked "safe to enable",
+  but it is produced by modelling 3-day options as 30 days. Live maturities span 3 to 87
+  days (0-7d 91, 8-30d 265, 31-90d 556 rows).
+- At the correct maturity the guards are much less effective (59% vs 93.5% rescue), so
+  **the q9 (maturity) decision must precede the q1 (filter) decision**.
+- 10 of the 29 ceiling pins at RUN B are a **single chain** (one underlying, 3 days to
+  expiry, K=20000..46000). Verified arithmetically that this chain has no Black-Scholes
+  solution at all: even at sigma=3.0 the model produces only ~334 rial of time value for
+  K=46000 while the market shows 1080 - the price is 2-3x the model's maximum.
+- 47.8% of live option rows have **no usable price** (17 no underlying, 120 no usable
+  maturity, 297 with neither a valid book nor a trade), so under fail-open they bypass the
+  filter entirely - that caps the filter's real coverage regardless of the decision.
+- Verdict: **PRODUCT-DECISION** (7.3% is inside the owner's 3-8% band). `ivFilterEnabled`
+  stays `false` until the owner decides what a no-solution row should do.
 - Parity suite extended to **140 assertions**, all passing. The shipped default is
   unchanged (`TMode: 'fixed'`, `T = 30/365`).
 
