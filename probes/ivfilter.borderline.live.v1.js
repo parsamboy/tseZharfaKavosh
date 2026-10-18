@@ -443,15 +443,72 @@
             'atUpper>atLower -> ceiling pinning (a large mid or a wide book that slipped through)'
     };
 
+    // ---------- SLIM projection: what actually has to survive a 5000-char paste ----------
+    // The console's pasteable output is capped at ~5000 characters. The full JSON with
+    // samples, byBase and the verbose per-arm objects ran to ~15KB, so two live runs
+    // came back truncated in the middle of runA_fixedT30_noGuard - before RUN B, which
+    // is the decisive arm. This projection keeps every number a decision needs and
+    // drops only the reading aids (they remain in the tables and in PROBE_JSON_FULL).
+    function slimSamples(list){
+      return list.slice(0, 3).map(function (x) {
+        return [String(x.l18), x.base, x.K, x.dte, x.iv, x.side];
+      });
+    }
+    function slimArm(st, detail){
+      var o = { total: st.total, solved: st.ivSolved, borderline: st.borderline,
+                borderlinePct: st.borderlinePct, atLower: st.atLower, atUpper: st.atUpper,
+                mid: st.srcMid, plTraded: st.srcPlTraded, insufficient: st.srcInsufficient,
+                guardArb: st.guardArb, guardSpread: st.guardSpread, guardOther: st.guardOther,
+                noS: st.noS, tMode: st.tMode, guardsOn: st.guardsOn };
+      if (detail) {
+        o.hist = st.hist;
+        // [ivMin, ivMax, solved, pins, wouldRemove, wouldRemovePct]
+        o.sweep = st.windowSweep.map(function (w) {
+          return [w.ivMin, w.ivMax, w.solved, w.pins, w.wouldRemove, w.wouldRemovePct];
+        });
+        o.samples = slimSamples(st.samples);
+      }
+      return o;
+    }
+    var slim = {
+      probe: __out.probe, tag: __out.tag, host: __out.host, capturedAt: __out.capturedAt,
+      totalSymbols: __out.totalSymbols, optionRows: A.total, underlyingMapSize: __out.underlyingMapSize,
+      today: __out.today,
+      A_shippedT30: slimArm(A, true),
+      A_shippedT30_noGuard: slimArm(A_ng, false),
+      B_realDTE: slimArm(B, true),
+      B_realDTE_noGuard: slimArm(B_ng, false),
+      dteHistogram: B.dteHist, T_range_real: [B.tMin, B.tMax],
+      guardImpact: __out.guardImpact,
+      decision: __out.decision,
+      layerDiagnosis: __out.layerDiagnosis
+    };
+    if (__out.runB_engine && __out.runB_engine.total !== undefined) {
+      var e = __out.runB_engine;
+      slim.runB_engine = { total: e.total, ok: e.ok, pass: e.pass, passPct: e.passPct,
+        ivStatus: e.ivStatus, atLower: e.atLower, atUpper: e.atUpper, borderline: e.borderline,
+        borderlinePct: e.borderlinePct, insufficient: e.insufficient, guardArb: e.guardArb,
+        guardSpread: e.guardSpread, noS: e.noS, noT: e.noT };
+    } else {
+      slim.runB_engine = __out.runB_engine;   // 'skipped ...' or an error string
+    }
+    if (__out.engineParity && __out.engineParity.checked !== undefined) {
+      slim.engineParity = { checked: __out.engineParity.checked, agree: __out.engineParity.agree,
+        disagree: __out.engineParity.disagree };
+    } else {
+      slim.engineParity = __out.engineParity;
+    }
+
     // ---------- console report ----------
     // PROBE_JSON IS PRINTED FIRST, BEFORE EVERY TABLE. The human-readable tables below
     // run to hundreds of lines, and the console's copyable output is capped (~500
     // lines): with the windowSweep and byBase tables added, the JSON line was pushed
     // past that cap and two live runs came back truncated exactly at RUN B - the
     // decisive numbers. The JSON line is the deliverable; the tables are the reading aid.
-    console.log('PROBE_JSON ' + JSON.stringify(__out));
+    console.log('PROBE_JSON ' + JSON.stringify(slim));
     function line(t){ console.log(t); }
-    line('=== IV borderline probe (post q7+q8) — PROBE_JSON is the line above ===');
+    line('=== IV borderline probe (post q7+q8) — copy the PROBE_JSON line above (' +
+         JSON.stringify(slim).length + ' chars, paste cap is ~5000) ===');
     line('host=' + __out.host + '  symbols=' + __out.totalSymbols + '  underlyingMap=' + __out.underlyingMapSize + '  today=' + __out.today);
     line('--- DTE distribution (real maturities) ---');
     console.table(__out.dteHistogram);
@@ -502,5 +559,6 @@
   } catch (e) {
     __out.error = String(e && e.message || e) + ' @ ' + (e && e.stack || '').split('\n')[1];
   }
-  console.log('PROBE_JSON ' + JSON.stringify(__out));
+  // the un-slimmed object, for reference only: it is too big to paste in one go
+  console.log('PROBE_JSON_FULL ' + JSON.stringify(__out));
 })();

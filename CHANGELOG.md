@@ -128,12 +128,16 @@ The probe's new `windowSweep` answers the owner's question on live data — "if
   clean. G-13 was already `confirmed` on 2026-10-15 (E-026); the probe's own
   `bestChoice` text ("owner may promote E-026 to confirmed") predates that promotion
   and is stale.
-- **Probe fix (regression introduced by the sweep itself)**: PROBE_JSON was printed
-  *after* the human-readable tables, and the two tables the sweep added pushed that
-  line past the console's copyable output cap. Two live runs came back truncated at
-  the same line (VM6037:499, VM6369:499), losing exactly RUN B. **PROBE_JSON is now the
-  first line of the report**, before any table, so a truncated paste can no longer lose
-  the decisive numbers.
+- **Probe fix (regression introduced by the sweep itself), two attempts**:
+  1. PROBE_JSON was printed *after* the human-readable tables, so the tables the sweep
+     added pushed it past the console's line cap. Two live runs came back truncated at
+     the same line (VM6037:499, VM6369:499).
+  2. Moving it to the first line was **not enough** — the paste was cut at the same
+     place, because the real cap is on **length**: exactly 5001 characters (measured).
+     The full JSON was ~15KB.
+  The probe now prints a **slim projection first** (every decision number; samples
+  capped at 3; sweep entries as arrays; structurally bounded size) — **2810 chars** on
+  synthetic data — and still prints the un-slimmed object last as `PROBE_JSON_FULL`.
 - Outstanding: RUN B (real DTE) and `runB_engine` still need one clean live run; the
   engine is not registered on the page yet (`window.TseBEngine` absent), so today's
   code commits have no live effect.
