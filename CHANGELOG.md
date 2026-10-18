@@ -89,6 +89,12 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 - Three real bugs found and fixed while wiring this: `resolveMarketPrice` did not
   receive `T`; `normalizeFunnelConfig` could never write `'dte'`; two parity tests
   referenced a block-scoped engine from another scope.
+- The probe now measures a **2x2 factorial** (maturity x guards), which isolates what
+  the guards actually rescue: the same rows are measured with the guards on and off, in
+  both T modes. On synthetic data the guards cut the boundary rate from 6.3% to 0% at the
+  shipped T (they rescue everything, as the owner predicted), but only from 37.5% to 9.1%
+  at the correct maturity — they cannot finish the job there. This is the direct test of
+  the owner's "all boundary rows are rescued" claim.
 - Parity suite extended to **140 assertions**, all passing. The shipped default is
   unchanged (`TMode: 'fixed'`, `T = 30/365`).
 

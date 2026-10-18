@@ -203,7 +203,9 @@
 
     // ---------- one measurement pass ----------
     // Tmode: 'fixed30' (engine default) or 'dte' (correct maturity)
-    function measure(Tmode){
+    // guards=false reproduces the OLD probe (raw mid, no sanity checks), which is how
+    // the guard's contribution is isolated: the same rows, measured with and without it.
+    function measure(Tmode, guards){
       var st = { total:0, srcMid:0, srcPlTraded:0, srcInsufficient:0,
                  guardArb:0, guardSpread:0, guardOther:0,
                  noS:0, noT:0, ivSolved:0, ivFailed:0, atLower:0, atUpper:0, normal:0,
@@ -211,7 +213,10 @@
       var hist = { 'at_lower':0, '<0.05':0, '0.05-0.1':0, '0.1-0.2':0, '0.2-0.5':0,
                    '0.5-1':0, '1-1.5':0, '1.5-2':0, '2-2.9':0, 'at_upper':0 };
       var samples = [];
-      var cfg = { checkArbitrageBounds:true, maxSpreadPct:0.20 };
+      var cfg = guards === false
+        ? { checkArbitrageBounds:false, maxSpreadPct:0 }
+        : { checkArbitrageBounds:true, maxSpreadPct:0.20 };
+      var guardsOn = guards !== false;
       var EPS_LO = 0.011, EPS_HI = 2.99;
       for (var i=0;i<rows.length;i++){
         var row = rows[i];
@@ -267,13 +272,28 @@
       st.guardHitPct = +((st.guardArb + st.guardSpread) / (st.total||1) * 100).toFixed(1);
       st.hist = hist;
       st.samples = samples;
+      st.guardsOn = guardsOn;
+      st.tMode = Tmode;
       return st;
     }
 
-    var A = measure('fixed30');
-    var B = measure('dte');
+    // 2x2 factorial: maturity x guards. A_noGuard reproduces the old probe (13/120 at
+    // T=30/365); A_guard is the shipped path; B_* is the same with the correct maturity.
+    var A = measure('fixed30', true);
+    var A_ng = measure('fixed30', false);
+    var B = measure('dte', true);
+    var B_ng = measure('dte', false);
     __out.runA_fixedT30 = A;
+    __out.runA_fixedT30_noGuard = A_ng;
     __out.runB_realDTE = B;
+    __out.runB_realDTE_noGuard = B_ng;
+    // the guard's contribution, isolated
+    __out.guardImpact = {
+      at_fixedT: { withGuard: A.borderlinePct, withoutGuard: A_ng.borderlinePct,
+                   rescued: (A_ng.borderline - A.borderline) + ' of ' + A_ng.borderline + ' boundary rows' },
+      at_realDTE: { withGuard: B.borderlinePct, withoutGuard: B_ng.borderlinePct,
+                    rescued: (B_ng.borderline - B.borderline) + ' of ' + B_ng.borderline + ' boundary rows' }
+    };
     __out.dteHistogram = B.dteHist;
     __out.T_range_real = { min: B.tMin, max: B.tMax };
 
@@ -398,6 +418,15 @@
     console.table({ total:B.total, mid:B.srcMid, plTraded:B.srcPlTraded, insufficient:B.srcInsufficient,
       guardArb:B.guardArb, guardSpread:B.guardSpread, noS:B.noS, noT:B.noT,
       ivSolved:B.ivSolved, ivFailed:B.ivFailed, atLower:B.atLower, atUpper:B.atUpper, borderlinePct:B.borderlinePct });
+    line('--- 2x2: maturity x guards (isolating what the guards actually rescue) ---');
+    console.table({
+      'A fixed-T=30d guards ON (shipped)': A.borderlinePct,
+      'A fixed-T=30d guards OFF (old probe)': A_ng.borderlinePct,
+      'B real-DTE guards ON': B.borderlinePct,
+      'B real-DTE guards OFF': B_ng.borderlinePct
+    });
+    line('guard rescues at fixed T: ' + __out.guardImpact.at_fixedT.rescued +
+         '  |  at real DTE: ' + __out.guardImpact.at_realDTE.rescued);
     line('--- price source (RUN B) --- mid=' + B.srcMid + ' (' + B.midPct + '%)  pl-traded=' + B.srcPlTraded +
          ' (' + B.plPct + '%)  insufficient=' + B.srcInsufficient + ' (' + B.insufficientPct + '%)');
     line('--- IV histogram (RUN B) ---');
