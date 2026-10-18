@@ -63,7 +63,13 @@ function makeRows(n) {
       // mapping error the round-trip test exposes.)
       const g = G.bsGreeks({ S, K: strike, T, r: R, sigma: TRUE_SIGMA, kind });
       const premium = Math.max(1, g.price);
-      const last = premium * (1 + ((i % 7) - 3) * 0.01);   // noisy last trade
+      // A real trade price respects the no-arbitrage bounds: clamp the noise into
+      // [lower bound, upper bound] so the generator never emits an impossible price
+      // (the engine's arbitrage guard now rejects those on purpose).
+      const disc = Math.exp(-R * T);
+      const arbLo = kind === 'put' ? Math.max(0, strike * disc - S) : Math.max(0, S - strike * disc);
+      const arbHi = kind === 'put' ? strike * disc : S;
+      const last = Math.min(arbHi, Math.max(arbLo, premium * (1 + ((i % 7) - 3) * 0.01)));
       base.pl = last;
       base.pc = premium * 0.98;
       base.plc = last - base.pc;                            // change, if plc means change
@@ -458,6 +464,82 @@ section('7b. funnel input mapping');
   check('with no computed rows, A fails open for EVERY row', openCount === rows.length, 'open=' + openCount + '/' + rows.length);
 }
 
+// ---------- 7b-3. market-price sanity guards (E-045 live evidence) ----------
+// pick an at-the-money option: its premium is mostly time value, so the arbitrage
+// guard stays satisfied for both r values (a deep-ITM premium synthesized at r=0.30
+// falls below the bound at r=0.5 - the guard correctly rejects that impossible price)
+const atmRow = (function () {
+  let best = null, bestDist = Infinity;
+  for (let i = 0; i < rows.length; i++) {
+    const pr = OP.parseOptionLabel(rows[i]);
+    if (pr.status !== 'confirmed') continue;
+    const d = Math.abs(SPOT_OF[pr.underlying] - pr.strike);
+    if (d < bestDist) { bestDist = d; best = rows[i]; }
+  }
+  return best;
+})();
+section('7b-3. market-price sanity guards (arbitrage bounds + book width)');
+const MPP = B.marketPriceProblem;
+const gS = 70164, gK = 24000, gT = 30 / 365, gR = 0.30;
+check('a price below the no-arbitrage lower bound is rejected',
+  MPP({}, gS, gK, gT, gR, 'call', 46000, {}) === 'price-outside-arbitrage-bounds',
+  'live sample: mid 46000 vs bound 46749');
+check('a price above S is rejected (call cannot exceed the underlying)',
+  MPP({}, gS, gK, gT, gR, 'call', gS + 500, {}) === 'price-outside-arbitrage-bounds');
+check('a put price above K*disc is rejected',
+  MPP({}, gS, gK, gT, gR, 'put', gK * Math.exp(-gR * gT) + 500, {}) === 'price-outside-arbitrage-bounds');
+check('a price inside the bounds is accepted',
+  MPP({}, gS, gK, gT, gR, 'call', 47000, {}) === null);
+check('a 1-rial tolerance keeps integer rial prices valid',
+  (function () {
+    const lo = gS - gK * Math.exp(-gR * gT);
+    return MPP({}, gS, gK, gT, gR, 'call', lo - 0.5, {}) === null &&
+           MPP({}, gS, gK, gT, gR, 'call', lo - 2, {}) === 'price-outside-arbitrage-bounds';
+  })());
+check('a wide book is rejected (live sample: 23-32% spreads)',
+  MPP({ pd1: 49600, po1: 65555 }, gS, 20000, gT, gR, 'call', 57577.5, {}) === 'book-too-wide',
+  '27.7% spread');
+check('a normal book is accepted',
+  MPP({ pd1: 50900, po1: 51100 }, gS, 20000, gT, gR, 'call', 51000, {}) === null);
+check('checkArbitrageBounds:false disables the bound check only',
+  MPP({}, gS, gK, gT, gR, 'call', 1, { checkArbitrageBounds: false }) === null &&
+  MPP({ pd1: 49600, po1: 65555 }, gS, 20000, gT, gR, 'call', 57577.5, { checkArbitrageBounds: false }) === 'book-too-wide',
+  'spread guard still active');
+check('maxSpreadPct:0 disables the spread check only',
+  MPP({ pd1: 49600, po1: 65555 }, gS, 20000, gT, gR, 'call', 57577.5, { maxSpreadPct: 0 }) === null &&
+  MPP({}, gS, gK, gT, gR, 'call', 46000, { maxSpreadPct: 0 }) === 'price-outside-arbitrage-bounds');
+check('a missing/zero book does not trip the spread guard',
+  MPP({ pd1: '', po1: '' }, gS, gK, gT, gR, 'call', 47000, {}) === null &&
+  MPP({ pd1: 0, po1: 0 }, gS, gK, gT, gR, 'call', 47000, {}) === null);
+// the funnel must report these as insufficient-data, never publish a fabricated IV
+const bGuard = newEngine({ funnelConfig: { ivFilterEnabled: true } });
+bGuard.run(rows, 'sG', 'cG');
+const badRow = (function () {
+  const r = JSON.parse(JSON.stringify(atmRow));
+  r.pd1 = String(Math.round(SPOT_OF[OP.parseOptionLabel(atmRow).underlying] * 0.5));
+  r.po1 = String(Math.round(SPOT_OF[OP.parseOptionLabel(atmRow).underlying] * 0.95));
+  return r;
+})();
+const frGuard = bGuard.computeFunnel(badRow, OP.parseOptionLabel(badRow));
+check('an impossible price yields insufficient-data, not a fabricated IV',
+  frGuard.status === 'insufficient-data' &&
+  (frGuard.reason === 'price-outside-arbitrage-bounds' || frGuard.reason === 'book-too-wide'),
+  frGuard.status + ' ' + frGuard.reason);
+check('a boundary pin is reported as no-iv-solution, not fail-iv-range',
+  (function () {
+    const pinned = newEngine({
+      models: {
+        parseOptionLabel: OP.parseOptionLabel,
+        impliedVol: function () { return { sigma: 3, iterations: 24 }; },
+        bsGreeks: function () { return { delta: 0.9, gamma: 0.001, price: 1 }; }
+      },
+      funnelConfig: { ivFilterEnabled: true }
+    });
+    pinned.run(rows, 'sP', 'cP');
+    const fr = pinned.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+    return fr.pass === false && fr.reason === 'no-iv-solution' && fr.atBoundary === true;
+  })(), 'reason distinguishes no-solution from out-of-window');
+
 // ---------- 7b-2. q4: r is user-configurable, validated, never trusted ----------
 section('7b-2. q4: r is user-configurable (UX-owned) and validated');
 const N = B.normalizeFunnelConfig;
@@ -488,9 +570,8 @@ const bR02 = newEngine({ funnelConfig: { ivFilterEnabled: true, r: 0.2 } });
 bR02.run(rows, 'sR02', 'cR02');
 const bR05 = newEngine({ funnelConfig: { ivFilterEnabled: true, r: 0.5 } });
 bR05.run(rows, 'sR05', 'cR05');
-const row0 = (function () { for (let i = 0; i < rows.length; i++) if (/^[\u0636\u0637]/.test(rows[i].l18)) return rows[i]; })();
-const ivR02 = bR02.computeFunnel(row0, OP.parseOptionLabel(row0));
-const ivR05 = bR05.computeFunnel(row0, OP.parseOptionLabel(row0));
+const ivR02 = bR02.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
+const ivR05 = bR05.computeFunnel(atmRow, OP.parseOptionLabel(atmRow));
 check('a user-supplied r changes the solved IV (q4 wired end-to-end)',
   ivR02.status === 'ok' && ivR05.status === 'ok' &&
   Math.abs(ivR02.inputs.r - 0.2) < 1e-12 && Math.abs(ivR05.inputs.r - 0.5) < 1e-12 &&

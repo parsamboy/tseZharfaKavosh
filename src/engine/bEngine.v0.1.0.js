@@ -105,7 +105,10 @@ const DEFAULT_FUNNEL_CONFIG = {
   // which field of the underlying row is its price (G-11 used pc)
   underlyingPriceField: 'pc',      // 'pc' | 'pl'
   // reproduce the v9 probe mapping for comparison
-  legacyV9Mapping: false
+  legacyV9Mapping: false,
+  // market-price sanity guards (E-045, live evidence)
+  checkArbitrageBounds: true,   // reject a price outside the no-arbitrage bounds
+  maxSpreadPct: 0.20            // reject a price from a book wider than 20% (PROVISIONAL)
 };
 
 // Legacy mapping from probe B-BSIV v9 — kept ONLY so the two can be compared
@@ -193,6 +196,44 @@ function createScheduler() {
 }
 
 /**
+ * Is this market price a legitimate Black-Scholes input?
+ *
+ * Live evidence (E-045, old.tsetmc.com, 2026-10-18): 13.3% of option rows carry a
+ * market price that NO volatility in the model's [0.01, 3.0] range can reproduce.
+ * Two causes, both detectable before solving:
+ *
+ *  1. the price is outside the no-arbitrage bounds - e.g. a call with S=70164,
+ *     K=24000, r=0.30, T=30/365 has a lower bound of 46749, yet the bid/ask mid is
+ *     46000 (below the bound, so it is not a real price);
+ *  2. the book is so wide that the mid is meaningless - the same page shows calls
+ *     with 23-32% spreads, whose mid implies a vol above 300%.
+ *
+ * Solving an IV from such a price fabricates a signal, so these rows are reported
+ * as insufficient-data (never computed, never published). In A that means
+ * fail-open: the row simply stays visible instead of being hidden by a fake signal.
+ *
+ * @returns {string|null} null when the price is sane, otherwise the reason code
+ */
+function marketPriceProblem(row, S, K, T, r, kind, marketPrice, cfg) {
+  if (!cfg || cfg.checkArbitrageBounds !== false) {
+    const disc = Math.exp(-r * T);
+    let lo, hi;
+    if (kind === 'put') { lo = Math.max(0, K * disc - S); hi = K * disc; }
+    else { lo = Math.max(0, S - K * disc); hi = S; }
+    // a 1-rial tolerance: rial prices are integers, never sub-rial
+    if (marketPrice < lo - 1 || marketPrice > hi + 1) return 'price-outside-arbitrage-bounds';
+  }
+  const bid = toNum(row && row.pd1);
+  const ask = toNum(row && row.po1);
+  const maxSpread = (cfg && typeof cfg.maxSpreadPct === 'number') ? cfg.maxSpreadPct : 0.20;
+  if (bid !== null && ask !== null && bid > 0 && ask > bid && maxSpread > 0) {
+    const mid = (bid + ask) / 2;
+    if (mid > 0 && (ask - bid) / mid > maxSpread) return 'book-too-wide';
+  }
+  return null;
+}
+
+/**
  * Validate/normalize a funnel config that comes from the USER (UX settings).
  *
  * The owner decided (q4) that `r` is user-configurable, so the values reaching the
@@ -225,6 +266,8 @@ function normalizeFunnelConfig(cfg) {
   out.ivFilterEnabled = bool('ivFilterEnabled');
   out.useDeltaGamma = bool('useDeltaGamma');
   out.legacyV9Mapping = bool('legacyV9Mapping');
+  out.checkArbitrageBounds = bool('checkArbitrageBounds');
+  out.maxSpreadPct = num('maxSpreadPct', 0, 1);
   // an inverted IV window is unusable: restore the default window
   if (!(out.ivMin < out.ivMax)) {
     out.ivMin = DEFAULT_FUNNEL_CONFIG.ivMin;
@@ -462,6 +505,8 @@ function createBEngine(options) {
       if (S === null || K === null) return { status: 'insufficient-data', reason: 'missing S/K' };
       if (marketPrice === null) return { status: 'insufficient-data', reason: 'missing market price' };
       const kind = (parsed.kind === 'put') ? 'put' : 'call';
+      const priceProblem = marketPriceProblem(row, S, K, funnel.T, funnel.r, kind, marketPrice, funnel);
+      if (priceProblem) return { status: 'insufficient-data', reason: priceProblem };
       if (typeof models.impliedVol !== 'function' || typeof models.bsGreeks !== 'function') {
         return { status: 'error', reason: 'models not injected' };
       }
@@ -493,10 +538,16 @@ function createBEngine(options) {
       if (pass && funnel.useDeltaGamma === true) {
         pass = (Math.abs(g.delta) > funnel.deltaMin) && (g.gamma > funnel.gammaMin);
       }
+      // A boundary pin means "no solution in the model's range", which is NOT the
+      // same as "a valid IV outside the funnel window" (E-045 live: 13.3% pinned).
+      let reason;
+      if (pass) reason = 'pass';
+      else if (atBoundary) reason = 'no-iv-solution';
+      else reason = 'fail-iv-range';
       return {
         status: 'ok', pass: pass, delta: g.delta, gamma: g.gamma,
         iv: iv.sigma, iterations: iv.iterations, atBoundary: atBoundary,
-        reason: pass ? 'pass' : 'fail-iv-range',
+        reason: reason,
         inputs: inputs
       };
     } catch (e) {
@@ -737,9 +788,11 @@ function createBEngine(options) {
 
 module.exports = {
   createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, V9_FUNNEL_CONFIG,
-  INDEX_SAMPLE, createScheduler, buildUnderlyingMap, normalizeFunnelConfig
+  INDEX_SAMPLE, createScheduler, buildUnderlyingMap, normalizeFunnelConfig,
+  marketPriceProblem
 };
 if (typeof window !== 'undefined') window.TseBEngine = {
   createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, V9_FUNNEL_CONFIG,
-  INDEX_SAMPLE, createScheduler, buildUnderlyingMap, normalizeFunnelConfig
+  INDEX_SAMPLE, createScheduler, buildUnderlyingMap, normalizeFunnelConfig,
+  marketPriceProblem
 };

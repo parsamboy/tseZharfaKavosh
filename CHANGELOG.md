@@ -22,6 +22,28 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   to the proven defaults (fail-closed), switches coerced to booleans, unknown sources
   rejected, `DEFAULT_FUNNEL_CONFIG` never mutated.
 - Parity suite extended to **102 assertions**, all passing.
+
+### Added — live field-semantics + IV diagnostic evidence and market-price guards (2026-10-18)
+
+- The owner ran `probes/fieldsem.ivdiagnostic.live.v1.js` [console] on old.tsetmc.com
+  (E-045): `plc == pl - pc` for only 37.2% of rows, and `pl == pc` in every sampled
+  row with a non-zero `plc` — the last price is stale whenever the option has not traded.
+- IV boundary pinning on live data: the owner's mapping (underlying `pc` + bid/ask mid,
+  r=0.30) pins **13.3%** of rows at the interval bound, the v9 mapping **40%** — the
+  input mapping, not a data signal, caused the original 77% at-cap warning.
+- Those 13.3% are provably impossible prices: outside the no-arbitrage bounds (call
+  S=70164, K=24000, r=0.30, T=30/365 -> lower bound 46749 vs a mid of 46000) or from a
+  23-32% wide book whose mid needs a vol above 300%.
+- New `marketPriceProblem()` guard: `price-outside-arbitrage-bounds` and
+  `book-too-wide` now return `insufficient-data` (never computed, never published), so
+  A fails open and the row stays visible instead of hiding behind a fabricated IV.
+  Configurable via `checkArbitrageBounds` and `maxSpreadPct` (0.20, PROVISIONAL).
+- A boundary pin is now reported as `no-iv-solution`, distinct from
+  `fail-iv-range` (a valid IV outside the funnel window).
+- Live median IV is 1.0522 (p90 2.1424), so the funnel's `ivMax=1.0` would reject about
+  half of the live options — the IV window needs an owner decision before the filter
+  can be enabled (see design doc §12, decisions q7/q8).
+- Parity suite extended to **114 assertions**, all passing.
 - Parity suite extended to **94 assertions** (`probes/engine.parity.v1.js`), all passing:
   synthetic option rows now carry realistic price fields (`pl` = the option's own last
   price), the round-trip test runs under the owner mapping (mean IV 0.3456 vs true 0.35,
