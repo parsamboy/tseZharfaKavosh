@@ -51,6 +51,13 @@ const VERSION = '0.1.0-bEngine-001';
 // NOTE: the original 4-field set (tvol/pl/tno/pcp) missed `plc`, so a row whose only
 // change was its market price was never recomputed and its bit went stale. That bug
 // was caught by the stale-row test in probes/engine.parity.v1.js.
+/** allowed market-price sources (q2 chose 'pl') */
+const MARKET_PRICE_SOURCES = ['pl', 'pc', 'plc', 'pcp', 'plp', 'pd1', 'bidAskMid'];
+/** allowed underlying sources (q3 chose 'underlyingMap') */
+const UNDERLYING_SOURCES = ['underlyingMap', 'rowPl', 'none'];
+/** allowed underlying price fields */
+const UNDERLYING_PRICE_FIELDS = ['pc', 'pl', 'pd1', 'po1', 'bidAskMid'];
+
 const DIRTY_FIELDS = ['pl', 'plc', 'l18', 'l30', 'tvol', 'tno', 'pcp'];
 
 // How many inscodes are sampled to decide whether the cached index is still valid
@@ -186,6 +193,56 @@ function createScheduler() {
 }
 
 /**
+ * Validate/normalize a funnel config that comes from the USER (UX settings).
+ *
+ * The owner decided (q4) that `r` is user-configurable, so the values reaching the
+ * engine can no longer be trusted. Every numeric field is range-checked and a value
+ * that is missing, NaN, or out of range falls back to DEFAULT_FUNNEL_CONFIG. The
+ * switches are coerced to real booleans. This is deliberately fail-CLOSED on garbage
+ * (use the proven defaults) rather than fail-open, because a silently wrong r shifts
+ * every IV in the snapshot.
+ *
+ * @param {object} [cfg] raw overrides from the settings layer
+ * @returns {object} a safe funnel config (never mutates DEFAULT_FUNNEL_CONFIG)
+ */
+function normalizeFunnelConfig(cfg) {
+  const out = Object.assign({}, DEFAULT_FUNNEL_CONFIG);
+  const c = cfg || {};
+  const num = function (key, min, max) {
+    const v = c[key];
+    if (typeof v !== 'number' || !isFinite(v) || v < min || v > max) return out[key];
+    return v;
+  };
+  const bool = function (key) {
+    return c[key] === undefined ? out[key] : c[key] === true;
+  };
+  out.T = num('T', 0, 10);                 // years; 0..10 covers 0d..10y
+  out.r = num('r', 0, 5);                  // 0%..500% risk-free
+  out.ivMin = num('ivMin', 0.001, 1);
+  out.ivMax = num('ivMax', 0.001, 5);
+  out.deltaMin = num('deltaMin', 0, 1);
+  out.gammaMin = num('gammaMin', 0, 1);
+  out.ivFilterEnabled = bool('ivFilterEnabled');
+  out.useDeltaGamma = bool('useDeltaGamma');
+  out.legacyV9Mapping = bool('legacyV9Mapping');
+  // an inverted IV window is unusable: restore the default window
+  if (!(out.ivMin < out.ivMax)) {
+    out.ivMin = DEFAULT_FUNNEL_CONFIG.ivMin;
+    out.ivMax = DEFAULT_FUNNEL_CONFIG.ivMax;
+  }
+  if (typeof c.marketPriceFrom === 'string' && MARKET_PRICE_SOURCES.indexOf(c.marketPriceFrom) >= 0) {
+    out.marketPriceFrom = c.marketPriceFrom;
+  }
+  if (typeof c.underlyingFrom === 'string' && UNDERLYING_SOURCES.indexOf(c.underlyingFrom) >= 0) {
+    out.underlyingFrom = c.underlyingFrom;
+  }
+  if (typeof c.underlyingPriceField === 'string' && UNDERLYING_PRICE_FIELDS.indexOf(c.underlyingPriceField) >= 0) {
+    out.underlyingPriceField = c.underlyingPriceField;
+  }
+  return out;
+}
+
+/**
  * Create a B engine instance.
  * @param {object} [options]
  * @param {object} [options.models] { parseOptionLabel, impliedVol, bsGreeks } — injected
@@ -198,7 +255,7 @@ function createScheduler() {
 function createBEngine(options) {
   const opts = options || {};
   const models = opts.models || {};
-  let funnel = Object.assign({}, DEFAULT_FUNNEL_CONFIG, opts.funnelConfig || {});
+  let funnel = normalizeFunnelConfig(opts.funnelConfig);
   if (opts.legacyV9Mapping === true || funnel.legacyV9Mapping === true) {
     funnel = Object.assign({}, funnel, V9_FUNNEL_CONFIG);
   }
@@ -680,9 +737,9 @@ function createBEngine(options) {
 
 module.exports = {
   createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, V9_FUNNEL_CONFIG,
-  INDEX_SAMPLE, createScheduler, buildUnderlyingMap
+  INDEX_SAMPLE, createScheduler, buildUnderlyingMap, normalizeFunnelConfig
 };
 if (typeof window !== 'undefined') window.TseBEngine = {
   createBEngine, VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, V9_FUNNEL_CONFIG,
-  INDEX_SAMPLE, createScheduler, buildUnderlyingMap
+  INDEX_SAMPLE, createScheduler, buildUnderlyingMap, normalizeFunnelConfig
 };

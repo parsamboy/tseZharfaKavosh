@@ -18,7 +18,8 @@ const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');
 
-const { createBEngine, VERSION: B_VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG } = require(path.join(ROOT, 'src/engine/bEngine.v0.1.0.js'));
+const { createBEngine, VERSION: B_VERSION, DIRTY_FIELDS, DEFAULT_FUNNEL_CONFIG, normalizeFunnelConfig } = require(path.join(ROOT, 'src/engine/bEngine.v0.1.0.js'));
+const B = require(path.join(ROOT, 'src/engine/bEngine.v0.1.0.js'));
 const A = require(path.join(ROOT, 'src/engine/aLookup.v0.1.0.js'));
 const OP = require(path.join(ROOT, 'src/optionParser.v0.1.0.js'));
 const G = require(path.join(ROOT, 'src/models/greeks.v0.1.0.js'));
@@ -456,6 +457,48 @@ section('7b. funnel input mapping');
   for (let i = 0; i < rows.length; i++) if (A.evaluateRow(rows[i], pubN) === true) openCount++;
   check('with no computed rows, A fails open for EVERY row', openCount === rows.length, 'open=' + openCount + '/' + rows.length);
 }
+
+// ---------- 7b-2. q4: r is user-configurable, validated, never trusted ----------
+section('7b-2. q4: r is user-configurable (UX-owned) and validated');
+const N = B.normalizeFunnelConfig;
+check('normalizeFunnelConfig keeps a valid user r',
+  N({ r: 0.2 }).r === 0.2 && N({ r: 0 }).r === 0 && N({ r: 0.35 }).r === 0.35,
+  JSON.stringify(N({ r: 0.2 }).r));
+check('normalizeFunnelConfig falls back on garbage r (fail-closed)',
+  N({ r: 'abc' }).r === 0.30 && N({ r: NaN }).r === 0.30 &&
+  N({ r: -1 }).r === 0.30 && N({ r: 99 }).r === 0.30 && N({}).r === 0.30 &&
+  N({ r: undefined }).r === 0.30,
+  JSON.stringify([N({ r: 'abc' }).r, N({ r: -1 }).r, N({ r: 99 }).r]));
+check('normalizeFunnelConfig repairs an inverted IV window',
+  (function () { const c = N({ ivMin: 2, ivMax: 0.5 }); return c.ivMin < c.ivMax; })());
+check('normalizeFunnelConfig coerces switches to real booleans',
+  N({ ivFilterEnabled: 'no' }).ivFilterEnabled === false && N({ ivFilterEnabled: 1 }).ivFilterEnabled === false &&
+  N({ useDeltaGamma: true }).useDeltaGamma === true, 'booleans coerced');
+check('normalizeFunnelConfig rejects unknown sources',
+  N({ marketPriceFrom: 'nope' }).marketPriceFrom === 'pl' &&
+  N({ underlyingFrom: 'nope' }).underlyingFrom === 'underlyingMap', 'whitelist enforced');
+check('normalizeFunnelConfig never mutates DEFAULT_FUNNEL_CONFIG',
+  (function () {
+    const before = B.DEFAULT_FUNNEL_CONFIG.r;
+    N({ r: 0.01, ivMin: 0.9, marketPriceFrom: 'pc' });
+    return B.DEFAULT_FUNNEL_CONFIG.r === before && B.DEFAULT_FUNNEL_CONFIG.marketPriceFrom === 'pl';
+  })());
+// a user r must actually reach the funnel and change the IV
+const bR02 = newEngine({ funnelConfig: { ivFilterEnabled: true, r: 0.2 } });
+bR02.run(rows, 'sR02', 'cR02');
+const bR05 = newEngine({ funnelConfig: { ivFilterEnabled: true, r: 0.5 } });
+bR05.run(rows, 'sR05', 'cR05');
+const row0 = (function () { for (let i = 0; i < rows.length; i++) if (/^[\u0636\u0637]/.test(rows[i].l18)) return rows[i]; })();
+const ivR02 = bR02.computeFunnel(row0, OP.parseOptionLabel(row0));
+const ivR05 = bR05.computeFunnel(row0, OP.parseOptionLabel(row0));
+check('a user-supplied r changes the solved IV (q4 wired end-to-end)',
+  ivR02.status === 'ok' && ivR05.status === 'ok' &&
+  Math.abs(ivR02.inputs.r - 0.2) < 1e-12 && Math.abs(ivR05.inputs.r - 0.5) < 1e-12 &&
+  ivR02.iv !== ivR05.iv,
+  'iv(r=0.2)=' + ivR02.iv + ' iv(r=0.5)=' + ivR05.iv);
+check('engine normalizes the config it is given',
+  bR02.funnelConfig.r === 0.2 && newEngine({ funnelConfig: { r: 'x' } }).funnelConfig.r === 0.30,
+  'normalized at construction');
 
 // ---------- 7c. scheduler + configVersion init ----------
 section('7c. scheduler + configVersion init');

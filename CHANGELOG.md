@@ -15,9 +15,13 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   `bidAskMid` available for comparison.
 - `useDeltaGamma: false` (owner q5) — pass = "IV solved and inside (ivMin, ivMax)";
   `deltaMin`/`gammaMin` remain in the config but are not applied.
-- `underlyingFrom` and `r` remain provisional (`underlyingMap`, `0.30`) because the
-  owner's answers for those two questions were ambiguous; both are flagged
-  OWNER-DECISION-PENDING in the design doc §12.
+- Owner follow-up answers applied: q3 is CONFIRMED as `underlyingFrom:'underlyingMap'`
+  (S from the underlying row via the l30-built map, price field `pc`); q4 is
+  "user-configurable", so `r` (and `T`/thresholds) now come from the UX settings layer
+  and pass through the new `normalizeFunnelConfig()`: range-checked, garbage falls back
+  to the proven defaults (fail-closed), switches coerced to booleans, unknown sources
+  rejected, `DEFAULT_FUNNEL_CONFIG` never mutated.
+- Parity suite extended to **102 assertions**, all passing.
 - Parity suite extended to **94 assertions** (`probes/engine.parity.v1.js`), all passing:
   synthetic option rows now carry realistic price fields (`pl` = the option's own last
   price), the round-trip test runs under the owner mapping (mean IV 0.3456 vs true 0.35,
