@@ -560,6 +560,24 @@ check('with ivMax=3.0 that same IV passes (owner q7 window)',
     b3.run(rows, 's3', 'c3');
     return b3.computeFunnel(baseRow, OP.parseOptionLabel(baseRow)).pass === true;
   })(), 'iv 2.5 inside (0.01, 3.0)');
+check('the IV window is clamped to the solver range (an inert check is a footgun)',
+  B.normalizeFunnelConfig({ ivMax: 5 }).ivMax === 3.0 &&
+  B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 3.0 &&
+  B.normalizeFunnelConfig({ ivMin: 0.001 }).ivMin === 0.01 &&
+  B.normalizeFunnelConfig({ ivMin: 0 }).ivMin === 0.01,
+  'ivMax<=3.0 (solver cap), ivMin>=0.01 (solver floor)');
+check('an inverted window still falls back to the proven defaults',
+  (function () { const c = B.normalizeFunnelConfig({ ivMin: 2, ivMax: 0.5 }); return c.ivMin === 0.01 && c.ivMax === 3.0; })());
+check('a floor-pinned IV fails (ivMin == solver floor, strict comparison)',
+  (function () {
+    const b = newEngine({
+      models: { parseOptionLabel: OP.parseOptionLabel, impliedVol: function () { return { sigma: 0.01, iterations: 24 }; },
+                bsGreeks: function () { return { delta: 0.05, gamma: 0.001, price: 1 }; } },
+      funnelConfig: { ivFilterEnabled: true }
+    });
+    b.run(rows, 'sFloor', 'cFloor');
+    return b.computeFunnel(baseRow, OP.parseOptionLabel(baseRow)).pass === false;
+  })(), 'sigma=0.01 does not pass');
 check('ivMax stays user-configurable (normalizeFunnelConfig)',
   B.normalizeFunnelConfig({ ivMax: 1.5 }).ivMax === 1.5 &&
   B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 3.0 &&

@@ -51,6 +51,21 @@ const VERSION = '0.1.0-bEngine-001';
 // NOTE: the original 4-field set (tvol/pl/tno/pcp) missed `plc`, so a row whose only
 // change was its market price was never recomputed and its bit went stale. That bug
 // was caught by the stale-row test in probes/engine.parity.v1.js.
+/**
+ * The IV solver's own bisection window (src/models/greeks.v0.1.0.js:
+ * `let low=0.01, high=3.0`). Any IV the engine can ever see lies inside it, so a
+ * funnel window set outside this range can never reject anything.
+ *
+ * Owner decision q7 (2026-10-18): ivMax = 3.0, NOT 5.0. 5.0 equals the solver cap,
+ * so the check would be inert — it could never fire. 3.0 keeps ivMax a real backup
+ * layer on top of the price guards: if a price slips past the arbitrage/spread
+ * guards (e.g. a 20%-wide book whose mid is still reachable), an IV above 300% is
+ * the anomaly signal. Live evidence: iv p50 = 1.0522, p90 = 2.1424 (E-045), so 3.0
+ * covers the live distribution with margin and rejects only 1-2%.
+ */
+const IV_SOLVER_MIN = 0.01;
+const IV_SOLVER_MAX = 3.0;
+
 /** allowed market-price sources (q2 chose 'pl') */
 const MARKET_PRICE_SOURCES = ['hybrid', 'pl', 'pc', 'plc', 'pcp', 'plp', 'pd1', 'bidAskMid'];
 /** allowed underlying sources (q3 chose 'underlyingMap') */
@@ -83,8 +98,8 @@ const INDEX_SAMPLE = 16;
 const DEFAULT_FUNNEL_CONFIG = {
   T: 30 / 365,             // ~1 month (G-11 probe value; v9 used 0.082 - same)
   r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2) - OWNER DECISION PENDING
-  ivMin: 0.01,             // implied vol lower bound
-  ivMax: 3.0,              // implied vol upper bound (owner q7: covers live p90=2.14 with margin; UX-configurable)
+  ivMin: IV_SOLVER_MIN,    // implied vol lower bound (== the solver floor, so a pinned IV fails)
+  ivMax: IV_SOLVER_MAX,      // implied vol upper bound (owner q7; UX-configurable — see IV_SOLVER_MAX)
   deltaMin: 0.3,           // |delta| lower bound (only used when useDeltaGamma)
   gammaMin: 1e-4,          // gamma lower bound (only used when useDeltaGamma)
   // OWNER DECISION 2026-10-17 (q5): pass = IV solved and inside the valid range.
@@ -261,8 +276,11 @@ function normalizeFunnelConfig(cfg) {
   };
   out.T = num('T', 0, 10);                 // years; 0..10 covers 0d..10y
   out.r = num('r', 0, 5);                  // 0%..500% risk-free
-  out.ivMin = num('ivMin', 0.001, 1);
-  out.ivMax = num('ivMax', 0.001, 5);
+  // the window is clamped to the solver's own range: an ivMax above 3.0 could never
+  // reject anything (the solver cannot return more), and an ivMin below 0.01 would
+  // let a floor-pinned IV pass. Both are footguns, not user freedoms.
+  out.ivMin = num('ivMin', IV_SOLVER_MIN, IV_SOLVER_MAX);
+  out.ivMax = num('ivMax', IV_SOLVER_MIN, IV_SOLVER_MAX);
   out.deltaMin = num('deltaMin', 0, 1);
   out.gammaMin = num('gammaMin', 0, 1);
   out.ivFilterEnabled = bool('ivFilterEnabled');

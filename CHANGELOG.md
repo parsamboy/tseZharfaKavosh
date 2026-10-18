@@ -64,7 +64,12 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 - Backlog: `plc == pl - pc` for only 37.2% of live rows, so `plc` is not the price
   change (most likely `plc = pl - py`) — recorded as gate G-18; no decision may be
   built on `plc` until it is settled (the q8 hierarchy uses `tno > 0`, not `plc`).
-- Parity suite extended to **127 assertions**, all passing.
+- The IV window is now clamped to the solver's own bisection range
+  (`IV_SOLVER_MIN = 0.01`, `IV_SOLVER_MAX = 3.0`): an `ivMax` above 3.0 could never
+  reject anything (the solver cannot return more), and an `ivMin` below 0.01 would
+  let a floor-pinned IV pass. Both are footguns, so `normalizeFunnelConfig` clamps
+  them instead of trusting a meaningless setting.
+- Parity suite extended to **130 assertions**, all passing.
 - Parity suite extended to **94 assertions** (`probes/engine.parity.v1.js`), all passing:
   synthetic option rows now carry realistic price fields (`pl` = the option's own last
   price), the round-trip test runs under the owner mapping (mean IV 0.3456 vs true 0.35,
