@@ -146,6 +146,28 @@ The probe's new `windowSweep` answers the owner's question on live data — "if
   engine is not registered on the page yet (`window.TseBEngine` absent), so today's
   code commits have no live effect.
 
+### Verified — LIVE A-registration (E-055, owner, old.tsetmc.com 2026-10-18T09:39Z) — and one thing it did NOT prove
+
+The generated A body registered through the real filter slot and came back
+**byte-for-byte unchanged**: 430 bytes, 11 newlines preserved, fnv1a `38fe0c59` both ways,
+`firstDiffAt = -1`, compiles in the slot's `(row, mw)` signature, all 7 fail-open
+behavioural cases pass, rollback restored the original empty slot.
+
+**But the persistence path is still unproven.** The active slot is `Settings.FilterNo = 1`
+of 3, and after `SaveParams()` the entry still reads `Settings.Filters[1].FilterCode` len 0
+(`entryMatches: false`). E-026 records `SaveParams` as
+`setData("MarketWatchSettings", JSON.stringify(mw.Settings))` — persistence goes through
+`mw.Settings`, not through `mw.FilterCode`. Setting `mw.FilterCode` and reading it back is
+a plain property assignment: it proves the slot accepts the bytes, not that they were
+stored. The G-13 v3 probe's "trace valid" check validated a trace array the probe itself
+synthesised, so it never tested persistence either.
+
+Also: `FilterNo` was 1 here and 8 in E-026 — the slot index is not stable across page
+loads, so a registration must target `Settings.FilterNo`, never a hardcoded index.
+
+New gate **G-21**: resolve `PrepareFilterCode`'s real signature and prove the body lands
+in the active slot.
+
 ### Added — A-registration live probe (`probes/aRegister.live.v1.js`, tag [کنسول])
 
 The remaining gate after q1: G-13 (E-026/E-053) proved that a **non-empty string**
