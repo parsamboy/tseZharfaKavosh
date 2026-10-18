@@ -553,6 +553,11 @@ B هرگز داخل RenderData اجرا نمی‌شود.
    round-trip تأیید می‌کند (E-026).
    **تصحیح (E-056):** `mw.FilterCode` یک آینهٔ نوشتنی است و به `Settings.Filters[FilterNo]`
    نمی‌رسد؛ `SaveParams` فقط `mw.Settings` را ذخیره می‌کند. پس ثبت درست **دو نوشتن + ذخیره** است:
+   **تصحیح دوم (E-057):** ثبت درست کافی نیست. بدنهٔ ابزارگذاری‌شده با همین مسیر در اسلات
+   فعال ماند (`stillRegisteredAtEnd: true`) ولی در ۴ ثانیه **هرگز اجرا نشد** (`runs: 0`).
+   یعنی سایت فیلتر را در لحظهٔ خودش compile می‌کند و نتیجه را cache می‌کند؛ نوشتن روی
+   `mw.Settings` آن cache را باطل نمی‌کند. پس ثبت واقعی A = **کشف trigger کامپایل (G-23)** و
+   بعد عبور دادن بدنه از همان مسیر، نه نوشتن مستقیم روی تنظیمات.
    ```js
    var fno = mw.Settings.FilterNo;
    var code = mw.PrepareFilterCode(A.buildFilterCodeBody());

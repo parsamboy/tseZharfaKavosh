@@ -3,6 +3,27 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE A-scope probe v1 (E-057, owner, old.tsetmc.com 2026-10-18T09:53Z): storing a filter body does NOT make it run
+
+- `probes/aScope.live.v1.js` (tag `کانسول`) registers an instrumented, fail-open body
+  through the E-056 two-write path and polls its global counters for 4s at
+  `UpdateSpeed: 1000`. Live result: `runs: 0`, `firstRunAtMs: -1`, `evaluated: false`,
+  `bodyError: null`, while `stillRegisteredAtEnd: true` (the code was still in the active
+  slot) and `rollback.restored: true`.
+- **Consequence for the design:** the E-056 registration path is necessary but not
+  sufficient. The site compiles the filter at some moment of its own and caches the
+  compiled function; writing `mw.Settings` afterwards does not invalidate that cache.
+  Registering A for real therefore requires finding the compile trigger first.
+- **Consequence for E-055:** its `candidate-confirmed` proved a body can be *stored* and
+  round-trips byte-for-byte. It never proved the site *executes* it. Storage and
+  execution are two separate steps and only the first one is now known.
+- Gates: **G-22 stays open but is now blocked on the new G-23** (what triggers
+  compilation). G-23 opened; the trigger probe is `probes/aTrigger.live.v1.js`
+  (read-only recon of every `mw` function mentioning `FilterCode`/`FilterResult` plus the
+  filter DOM, then four independently-rolled-back activation tests).
+- No product change: `window.TseBEngine` is still not registered on the page.
+  Engine parity unchanged at **156/156**.
+
 
 ### Changed — owner decisions applied to the funnel config (2026-10-17)
 

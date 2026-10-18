@@ -832,3 +832,18 @@ Baselineهای canonical v5.0 باید با commit و clause مربوط ثبت �
 - `status`: `verified-live - three of the design doc's open gates are now closed`
 - `relatedGate`: `G-21 (opened by E-055) + G-12/G-13 (E-026) + E-055`
 - `notes`: `(a) The registration path for A is therefore TWO writes plus a save: mw.Settings.Filters[mw.Settings.FilterNo].FilterCode = mw.PrepareFilterCode(body); mw.FilterCode = <the same code>; mw.SaveParams(); - the first for persistence, the second for the current session, and neither implies the other. (b) PrepareFilterCode(RawCode) is the site's own DSL compiler: it rewrites the (l18)/(l30)/(tno) shorthand into row[...] accessors. A body written in plain JS passes through unchanged, which is what the 430-byte body does. (c) The page also exposes QueryWindowSaveFilter / QueryWindowNewFilter / QueryWindowCheckFilter / SelectFilter, which are the UI-level save path; not needed if the two writes above are used. (d) REMAINING unknown (design doc open gate 2): whether the filter body's execution context can see mw. The 61 rules prove `row` is in scope; nothing yet proves `mw` is. (e) This also re-frames E-026/G-13: their round-trip proved the property is writable, which is now known to be a mirror, so "FilterCode round-trips" was never evidence of persistence.`
+
+### E-057 — LIVE A scope probe v1 (owner, old.tsetmc.com 2026-10-18T09:53Z): storing the body does NOT make it run
+
+- `evidenceId`: `E-057`
+- `claim`: `probes/aScope.live.v1.js ran live. The instrumented body (1489 bytes, fail-open, same guards as the real 430-byte body) was registered through the E-056 path - `mw.Settings.Filters[mw.Settings.FilterNo].FilterCode = mw.PrepareFilterCode(BODY)` plus `mw.FilterCode = BODY` plus `mw.SaveParams()` - with FilterNo 1 of 3, `compiledIdentical: true`, `savedLen: 0`. Its counters were then polled every 250ms for 4000ms at `UpdateSpeed: 1000`. Result: `runs: 0`, `firstRunAtMs: -1`, `evaluated: false`, `bodyError: null`, `sawRow: false` - the body was NEVER executed, while `stillRegisteredAtEnd: true` proves the code was still sitting in the active slot, and `rollback: { restored: true }` proves the page was put back. Verdict: `not-evaluated`.
+- `level`: `live (owner-run console injection)`
+- `source`: `probes/aScope.live.v1.js`
+- `host`: `old.tsetmc.com`
+- `parTree`: `15131F`
+- `capturedAt`: `2026-10-18T09:53:55Z`
+- `method`: `register an instrumented body through the E-056 two-write path, poll its global counters for 4s, roll back, print one JSON line`
+- `fixtureHash`: `N/A - live probe JSON`
+- `status`: `verified-live - the registration path alone is NOT sufficient; a compile/activation step is missing`
+- `relatedGate`: `G-22 (opened by E-056) + G-21 (E-056) + E-055/E-056`
+- `notes`: `(a) This re-frames E-055 too: its "candidate-confirmed" proved the body can be STORED and round-trips byte-for-byte; it never proved the site EXECUTES it. Storage and execution are separate steps. (b) Because the code was still in the slot at the end of the wait, the site must compile the filter at some other moment (its own UI save path, or filter selection) and cache the compiled function - writing the settings object afterwards does not invalidate that cache. (c) G-22 is therefore still open and now has two halves: (i) what triggers compilation - opened as G-23; (ii) whether the body's execution context can see mw, which cannot be answered until (i) is known. (d) The probe is safe: the body always returns true, so no row is ever hidden, and the rollback restores both copies and calls SaveParams.`
