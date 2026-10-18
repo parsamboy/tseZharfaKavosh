@@ -70,6 +70,28 @@ All notable changes to `tseZharfaKavosh` are recorded here.
   let a floor-pinned IV pass. Both are footguns, so `normalizeFunnelConfig` clamps
   them instead of trusting a meaningless setting.
 - Parity suite extended to **130 assertions**, all passing.
+
+### Added — IV borderline probe (live, [console]) + the fixed-T defect it exposes (2026-10-18)
+
+- `probes/ivfilter.borderline.live.v1.js` [console] decides whether `ivFilterEnabled`
+  can be enabled. It mirrors bEngine/greeks/optionParser verbatim, measures the real
+  engine path, and reports every field the owner's decision table needs: the price
+  source split (mid / pl-traded / insufficient), guard hits (arbitrage vs spread),
+  noS/noT, ivSolved/ivFailed, atLower/atUpper, a 10-bucket IV histogram, up to 10
+  borderline samples, and a single DECISION line applying the <3% / 3-8% / >8% rule.
+- The probe runs the measurement TWICE — RUN A with the shipped `T = 30/365` and
+  RUN B with the correct `T = DTE/365` — because the shipped T is a fixed
+  approximation inherited from probe G-11.
+- Validated in node against a fake live page: the probe runs end-to-end and its
+  price-resolution layer agrees with the real engine's `computeFunnel` on 33/33 rows.
+  A parity bug in the first draft (comparing across different T values, while the
+  arbitrage bounds depend on T) was found and fixed.
+- On synthetic data RUN A reports 0% borderline while RUN B reports 9.1% — the fixed
+  T hides the problem. Gate **G-19** opened: the live expiry 1405/07/29 is
+  2026-10-21, i.e. 3 days away, so the real T is 10x smaller than the modelled one.
+  Decision q9 (per-option T via an injected calendar, or keep 30/365) is with the owner.
+- A verified Jalali->Gregorian conversion (1405/01/01 == 2026-03-21) is inlined in the
+  probe so DTE can be computed from the parsed `expiry`.
 - Parity suite extended to **94 assertions** (`probes/engine.parity.v1.js`), all passing:
   synthetic option rows now carry realistic price fields (`pl` = the option's own last
   price), the round-trip test runs under the owner mapping (mean IV 0.3456 vs true 0.35,
