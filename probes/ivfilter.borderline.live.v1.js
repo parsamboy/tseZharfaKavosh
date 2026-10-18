@@ -444,8 +444,14 @@
     };
 
     // ---------- console report ----------
+    // PROBE_JSON IS PRINTED FIRST, BEFORE EVERY TABLE. The human-readable tables below
+    // run to hundreds of lines, and the console's copyable output is capped (~500
+    // lines): with the windowSweep and byBase tables added, the JSON line was pushed
+    // past that cap and two live runs came back truncated exactly at RUN B - the
+    // decisive numbers. The JSON line is the deliverable; the tables are the reading aid.
+    console.log('PROBE_JSON ' + JSON.stringify(__out));
     function line(t){ console.log(t); }
-    line('=== IV borderline probe (post q7+q8) ===');
+    line('=== IV borderline probe (post q7+q8) — PROBE_JSON is the line above ===');
     line('host=' + __out.host + '  symbols=' + __out.totalSymbols + '  underlyingMap=' + __out.underlyingMapSize + '  today=' + __out.today);
     line('--- DTE distribution (real maturities) ---');
     console.table(__out.dteHistogram);

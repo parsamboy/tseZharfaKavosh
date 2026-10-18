@@ -128,8 +128,15 @@ The probe's new `windowSweep` answers the owner's question on live data — "if
   clean. G-13 was already `confirmed` on 2026-10-15 (E-026); the probe's own
   `bestChoice` text ("owner may promote E-026 to confirmed") predates that promotion
   and is stale.
-- Outstanding: RUN B (real DTE) and `runB_engine` were truncated in the paste; the
-  engine is still not registered on the page (`window.TseBEngine` absent).
+- **Probe fix (regression introduced by the sweep itself)**: PROBE_JSON was printed
+  *after* the human-readable tables, and the two tables the sweep added pushed that
+  line past the console's copyable output cap. Two live runs came back truncated at
+  the same line (VM6037:499, VM6369:499), losing exactly RUN B. **PROBE_JSON is now the
+  first line of the report**, before any table, so a truncated paste can no longer lose
+  the decisive numbers.
+- Outstanding: RUN B (real DTE) and `runB_engine` still need one clean live run; the
+  engine is not registered on the page yet (`window.TseBEngine` absent), so today's
+  code commits have no live effect.
 
 ### Verified — q9 + q10 applied; two latent bugs found on the way (E-052)
 
