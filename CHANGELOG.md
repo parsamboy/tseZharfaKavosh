@@ -146,6 +146,34 @@ The probe's new `windowSweep` answers the owner's question on live data — "if
   engine is not registered on the page yet (`window.TseBEngine` absent), so today's
   code commits have no live effect.
 
+### Verified — LIVE RUN B closes q1 (E-054, owner, old.tsetmc.com 2026-10-18T09:20Z)
+
+RUN B (the correct maturity, guards on) over 1049 live option rows:
+
+- **ivSolved 453, borderline 23 = 5.1%** (atLower 3, atUpper 20) → verdict
+  **PRODUCT-DECISION** (the owner's 3-8% band). The same ~4-5x factor as E-051
+  (7.3% vs 1.8%): the shipped maturity hides the boundary population.
+- IV histogram: 0.5-1 → 240, 1-1.5 → 107, 0.2-0.5 → 24, 1.5-2 → 30, 2-2.9 → 27.
+- **windowSweep at the correct maturity** — the number q1 was waiting for:
+
+  | window | removes | of solved |
+  |---|---|---|
+  | `[0.01, 3.0]` | **0** | 0% |
+  | `[0.05, 3.0]` | 1 | 0.22% |
+  | `[0.01, 2.5]` | 9 | 1.99% |
+  | `[0.05, 2.5]` | 10 | 2.2% |
+  | `[0.10, 2.0]` | 28 | 6.18% |
+  | `[0.20, 1.5]` | 59 | 13.02% |
+
+- All 10 borderline samples are **one chain** (اهرم, 3 days, K=20000..46000, S=70911, all
+  iv=3.0 ceiling) — 10 of the 20 ceiling pins. q10 keeps them visible.
+- 43.8% of live option rows have no usable price, so the filter's real coverage is at
+  most 56% whatever the window says.
+
+**Applied**: `ivFilterEnabled: true` (the default window removes nothing, so this is pure
+labelling) with `ivMin: 0.05` / `ivMax: 2.5` (10 rows, 2.2%), per the owner's stated rule
+"if the probe shows an effect". Parity **156/156**.
+
 ### Verified — q9 + q10 applied; two latent bugs found on the way (E-052)
 
 The owner's review accepted **q9** (`TMode:'dte'`) and **q10** (a boundary pin stays

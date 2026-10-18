@@ -107,19 +107,24 @@ const DEFAULT_FUNNEL_CONFIG = {
   TMode: 'dte',               // 'fixed' | 'dte'  (owner decision q9: 'dte' - live evidence E-051)
   T: 30 / 365,                // used when TMode is 'fixed'
   r: 0.30,                 // risk-free (G-11 probe; v9 used 0.2) - OWNER DECISION PENDING
-  ivMin: IV_SOLVER_MIN,    // implied vol lower bound (== the solver floor, so a pinned IV fails)
-  ivMax: IV_SOLVER_MAX,      // implied vol upper bound (owner q7; UX-configurable — see IV_SOLVER_MAX)
+  // OWNER DECISION 2026-10-18 (q1 + window): live windowSweep at the CORRECT maturity
+  // (E-054, 453 solved rows) — [0.01, 3.0] removes 0 rows, [0.05, 2.5] removes 10 (2.2%).
+  // The filter is therefore ON as an IV computation + labelling layer with the narrow
+  // window. The 23 boundary pins stay visible either way (q10).
+  ivMin: 0.05,               // implied vol lower bound (rejects a near-zero time value)
+  ivMax: 2.5,                // implied vol upper bound (owner q7; UX-configurable, clamped to the solver range)
   deltaMin: 0.3,           // |delta| lower bound (only used when useDeltaGamma)
   gammaMin: 1e-4,          // gamma lower bound (only used when useDeltaGamma)
   // OWNER DECISION 2026-10-17 (q5): pass = IV solved and inside the valid range.
   // delta/gamma thresholds are kept in config but NOT applied until re-enabled.
   useDeltaGamma: false,
-  // OWNER DECISION 2026-10-17 (q1): the "77% IV at cap" signal is an OPEN BUG.
-  // Until the live diagnostic probe shows how many live rows are boundary-pinned,
-  // no IV-based filtering happens: every confirmed option is computed and passes,
-  // which is exactly the fail-open behaviour the owner asked for. The IV is still
-  // solved and echoed (with an atBoundary flag) so the live probe can read it.
-  ivFilterEnabled: false,
+  // OWNER DECISION 2026-10-18 (q1): the live windowSweep settled it. At the CORRECT
+  // maturity (E-054, 453 solved rows) the default window [0.01, 3.0] removes 0 rows and
+  // the narrow [0.05, 2.5] removes 10 (2.2%), so the filter is ON as an IV computation
+  // + labelling layer: it computes the IV, publishes ivStatus, and removes only the
+  // solved interior IVs outside the window. The 23 boundary pins stay visible (q10).
+  // Set false to return to the old "compute and pass everything" behaviour.
+  ivFilterEnabled: true,
   // OWNER DECISION 2026-10-17 (q2): the option's market price is `pl` (last trade).
   marketPriceFrom: 'hybrid',        // 'hybrid' (q8: mid -> pl-if-traded) | 'pl' | 'pc' | 'plc' | 'pcp' | 'plp' | 'pd1' | 'bidAskMid'
   // S source: PROVISIONAL - the round-trip test proves the underlying-map mapping

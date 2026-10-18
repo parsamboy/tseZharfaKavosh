@@ -359,21 +359,36 @@ section('7b. funnel input mapping');
   // owner mapping (q2): marketPrice = pl, S from the underlying map
   const b = newEngine({ funnelConfig: { ivFilterEnabled: true } });
   b.run(rows, 's1', 'c1');
-  check('owner decisions applied: marketPrice=hybrid (q8), ivMax=3.0 (q7), ivFilter off, no delta/gamma',
-    bDefault.funnelConfig.marketPriceFrom === 'hybrid' && bDefault.funnelConfig.ivMax === 3.0 &&
-    bDefault.funnelConfig.ivFilterEnabled === false && bDefault.funnelConfig.useDeltaGamma === false,
-    JSON.stringify({ mp: b.funnelConfig.marketPriceFrom, iv: b.funnelConfig.ivFilterEnabled, dg: b.funnelConfig.useDeltaGamma }));
-  check('IV filter disabled => every confirmed option passes (fail-open)',
+  check('owner decisions applied: hybrid (q8), window [0.05, 2.5] (q1+q7), filter ON as logging, no delta/gamma',
+    bDefault.funnelConfig.marketPriceFrom === 'hybrid' && bDefault.funnelConfig.ivMin === 0.05 &&
+    bDefault.funnelConfig.ivMax === 2.5 && bDefault.funnelConfig.ivFilterEnabled === true &&
+    bDefault.funnelConfig.useDeltaGamma === false && bDefault.funnelConfig.TMode === 'dte',
+    JSON.stringify({ mp: b.funnelConfig.marketPriceFrom, lo: b.funnelConfig.ivMin, hi: b.funnelConfig.ivMax,
+                     iv: b.funnelConfig.ivFilterEnabled, dg: b.funnelConfig.useDeltaGamma, T: b.funnelConfig.TMode }));
+  check('with the default window every sane option passes (the live sweep says 0 removed)',
     (function () {
       let passCount = 0, optCount = 0;
       for (let i = 0; i < rows.length; i++) {
         if (!/^[\u0636\u0637]/.test(rows[i].l18)) continue;
         optCount++;
         const fr = bDefault.computeFunnel(rows[i], OP.parseOptionLabel(rows[i]));
-        if (fr.status === 'ok' && fr.pass === true && fr.reason === 'iv-filter-disabled-open-bug') passCount++;
+        if (fr.status === 'ok' && fr.pass === true && fr.ivStatus === 'ok') passCount++;
       }
       return optCount > 0 && passCount === optCount;
-    })(), 'all options pass while the IV bug is open');
+    })(), 'all options pass inside [0.05, 2.5]');
+  check('ivFilterEnabled:false is still the explicit opt-out (every row passes, ivStatus iv-filter-disabled)',
+    (function () {
+      const bOff = newEngine({ funnelConfig: { ivFilterEnabled: false } });
+      bOff.run(rows, 'sOff2', 'cOff2');
+      let passCount = 0, optCount = 0;
+      for (let i = 0; i < rows.length; i++) {
+        if (!/^[\u0636\u0637]/.test(rows[i].l18)) continue;
+        optCount++;
+        const fr = bOff.computeFunnel(rows[i], OP.parseOptionLabel(rows[i]));
+        if (fr.status === 'ok' && fr.pass === true && fr.ivStatus === 'iv-filter-disabled') passCount++;
+      }
+      return optCount > 0 && passCount === optCount;
+    })(), 'the old behaviour is one flag away');
   check('IV filter disabled still echoes the IV + atBoundary diagnostic',
     (function () {
       for (let i = 0; i < rows.length; i++) {
@@ -599,14 +614,20 @@ check('with ivMax=3.0 that same IV passes (owner q7 window)',
     b3.run(rows, 's3', 'c3');
     return b3.computeFunnel(baseRow, OP.parseOptionLabel(baseRow)).pass === true;
   })(), 'iv 2.5 inside (0.01, 3.0)');
+check('the shipped window is the narrow one the live sweep measured (q1)',
+  B.DEFAULT_FUNNEL_CONFIG.ivMin === 0.05 && B.DEFAULT_FUNNEL_CONFIG.ivMax === 2.5 &&
+  B.normalizeFunnelConfig({}).ivMin === 0.05 && B.normalizeFunnelConfig({}).ivMax === 2.5,
+  'window [0.05, 2.5]');
 check('the IV window is clamped to the solver range (an inert check is a footgun)',
-  B.normalizeFunnelConfig({ ivMax: 5 }).ivMax === 3.0 &&
-  B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 3.0 &&
-  B.normalizeFunnelConfig({ ivMin: 0.001 }).ivMin === 0.01 &&
-  B.normalizeFunnelConfig({ ivMin: 0 }).ivMin === 0.01,
-  'ivMax<=3.0 (solver cap), ivMin>=0.01 (solver floor)');
+  B.normalizeFunnelConfig({ ivMax: 5 }).ivMax === 2.5 &&      // out of range -> the DEFAULT
+  B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 2.5 &&
+  B.normalizeFunnelConfig({ ivMin: 0.001 }).ivMin === 0.05 &&
+  B.normalizeFunnelConfig({ ivMin: 0 }).ivMin === 0.05 &&
+  B.normalizeFunnelConfig({ ivMax: 3.0 }).ivMax === 3.0 &&     // exactly at the cap is legal
+  B.normalizeFunnelConfig({ ivMin: 0.01 }).ivMin === 0.01,     // exactly at the floor is legal
+  'ivMax<=3.0 (solver cap), ivMin>=0.01 (solver floor), out of range -> the default');
 check('an inverted window still falls back to the proven defaults',
-  (function () { const c = B.normalizeFunnelConfig({ ivMin: 2, ivMax: 0.5 }); return c.ivMin === 0.01 && c.ivMax === 3.0; })());
+  (function () { const c = B.normalizeFunnelConfig({ ivMin: 2, ivMax: 0.5 }); return c.ivMin === 0.05 && c.ivMax === 2.5; })());
 check('a floor-pinned IV is fail-open too (q10: a pin is not a rejection)',
   (function () {
     const b = newEngine({
@@ -620,8 +641,9 @@ check('a floor-pinned IV is fail-open too (q10: a pin is not a rejection)',
   })(), 'sigma=0.01 -> no-iv-solution, visible');
 check('ivMax stays user-configurable (normalizeFunnelConfig)',
   B.normalizeFunnelConfig({ ivMax: 1.5 }).ivMax === 1.5 &&
-  B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 3.0 &&
-  B.normalizeFunnelConfig({}).ivMax === 3.0, 'window from UX, defaults 3.0');
+  B.normalizeFunnelConfig({ ivMax: 99 }).ivMax === 2.5 &&     // garbage -> the default
+  B.normalizeFunnelConfig({ ivMax: 3.0 }).ivMax === 3.0 &&     // the solver cap is reachable
+  B.normalizeFunnelConfig({}).ivMax === 2.5, 'window from UX, default 2.5');
 check('hybrid is the default and stays user-configurable',
   B.DEFAULT_FUNNEL_CONFIG.marketPriceFrom === 'hybrid' &&
   B.normalizeFunnelConfig({ marketPriceFrom: 'pl' }).marketPriceFrom === 'pl' &&
@@ -692,7 +714,7 @@ check('a boundary pin is reported as no-iv-solution, not fail-iv-range',
   })(), 'reason distinguishes no-solution from out-of-window');
 check('the filter-disabled branch also publishes ivStatus',
   (function () {
-    const b = newEngine();
+    const b = newEngine({ funnelConfig: { ivFilterEnabled: false } });
     b.run(rows, 'sIvOff', 'cIvOff');
     const fr = b.computeFunnel(baseRow, OP.parseOptionLabel(baseRow));
     return fr.pass === true && fr.ivStatus === 'iv-filter-disabled';
