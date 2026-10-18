@@ -551,19 +551,33 @@ B هرگز داخل RenderData اجرا نمی‌شود.
 3. A: بدنهٔ ۴۳۰ بایتی (buildFilterCodeBody) از طریق PrepareFilterCode ثبت می‌شود.
 4. PrepareFilterCode آن را در FilterCode authoritative می‌نشاند و SaveParams
    round-trip تأیید می‌کند (E-026).
+   **تصحیح (E-056):** `mw.FilterCode` یک آینهٔ نوشتنی است و به `Settings.Filters[FilterNo]`
+   نمی‌رسد؛ `SaveParams` فقط `mw.Settings` را ذخیره می‌کند. پس ثبت درست **دو نوشتن + ذخیره** است:
+   ```js
+   var fno = mw.Settings.FilterNo;
+   var code = mw.PrepareFilterCode(A.buildFilterCodeBody());
+   mw.Settings.Filters[fno].FilterCode = code;   // پایدار
+   mw.FilterCode = code;                          // نشست جاری
+   mw.SaveParams();
+   ```
 5. هر RenderData، A برای هر ردیف فقط بیت را می‌خواند.
 ```
 
 ### آنچه هنوز باز است (gate بعدی)
 
-1. **API دقیق ثبت TextArea** — نام تابع/پارامترهای `PrepareFilterCode` و نحوهٔ
-   تحویل بدنه در این repo ثبت نشده (probe های v9 فایلشان در workspace نیست).
+1. ~~**API دقیق ثبت TextArea**~~ — **بسته شد (E-056).** `mw.PrepareFilterCode(RawCode)` با
+   `argCount: 1`، ۶۱ قانون `.replace()`، بدون `eval`/`new Function`؛ کامپایلر DSL خود سایت است
+   (`(l18)` → `row["l18"]`, `(tno)` → `parseInt(row["tno"],10)`). بدنهٔ JS ساده دست‌نخورده رد می‌شود.
 2. **آیا بدنهٔ filter به `mw` دسترسی دارد؟** v9 این کار را کرد، ولی باید دوباره
    روی صفحهٔ زنده تأیید شود. اگر دسترسی نباشد، B باید projection را در یک متغیر
    سراسری قابل دسترسی از context فیلتر منتشر کند (مثلاً `window.__B_*` به جای
    `mw.__B_*`) — این تنها نقطهٔ وابستگی بین A و B است و باید قطعی شود.
-3. **۶۱ قانون `.replace()`** باید در برابر بدنهٔ ۴۳۰ بایتی ما تست شود (مثلاً اگر
-   قاعده‌ای شناسه‌های `__` را دستکاری کند).
+   **وضعیت (E-056): هنوز باز — گیت G-22.** آنچه می‌دانیم: `row` در scope است (۶۱ قانون
+   روی آن حساب می‌کنند) و بدنهٔ ما از PrepareFilterCode دست‌نخورده رد می‌شود؛ آنچه
+   نمی‌دانیم: آیا `mw` (یعنی `mw.__B_index`) از داخل بدنهٔ فیلتر قابل دید باشد.
+3. ~~**۶۱ قانون `.replace()`**~~ — **بسته شد (E-056).** روی بدنهٔ واقعی اجرا شد:
+   `resultLen 430`، `resultIdentical: true`. هیچ قانونی شناسه‌های `__` یا ساختار بدنه را
+   دستکاری نمی‌کند.
 4. **`roundTick`** — اگر `suggestTrade` در B پیاده شود، `roundTick71` لازم است؛
    در حال حاضر در طراحی A/B وجود ندارد و باید به‌عنوان وابستگی ثبت شود.
 
