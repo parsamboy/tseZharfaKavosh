@@ -558,6 +558,19 @@ B هرگز داخل RenderData اجرا نمی‌شود.
    یعنی سایت فیلتر را در لحظهٔ خودش compile می‌کند و نتیجه را cache می‌کند؛ نوشتن روی
    `mw.Settings` آن cache را باطل نمی‌کند. پس ثبت واقعی A = **کشف trigger کامپایل (G-23)** و
    بعد عبور دادن بدنه از همان مسیر، نه نوشتن مستقیم روی تنظیمات.
+   **تصحیح سوم (E-058) — مسیر کامل ثبت، نهایی:**
+   ```js
+   var fno  = mw.Settings.FilterNo;
+   var code = mw.PrepareFilterCode(A.buildFilterCodeBody());
+   mw.Settings.Filters[fno].FilterCode = code;   // پایدار
+   mw.FilterCode                    = code;       // نشست جاری
+   mw.SaveParams();                              // ذخیره
+   mw.RenderData();                              // compile + اجرا — بدون این مرحله هیچ‌چیز اتفاق نمی‌افتد
+   ```
+   `RenderData` هم‌زمان نیست: بدنه حدود یک ثانیه بعد از بازگشت آن شروع به اجرا می‌کند
+   (`firstRunAt 1251ms`)، پس بعد از ثبت باید منتظر ماند. مسیر UI (پر کردن TextArea و
+   `QueryWindowSaveFilter`) headless کار نمی‌کند: در DOM هیچ textarea نیست تا وقتی دیالوگ
+   فیلتر باز نباشد.
    ```js
    var fno = mw.Settings.FilterNo;
    var code = mw.PrepareFilterCode(A.buildFilterCodeBody());
@@ -573,13 +586,11 @@ B هرگز داخل RenderData اجرا نمی‌شود.
 1. ~~**API دقیق ثبت TextArea**~~ — **بسته شد (E-056).** `mw.PrepareFilterCode(RawCode)` با
    `argCount: 1`، ۶۱ قانون `.replace()`، بدون `eval`/`new Function`؛ کامپایلر DSL خود سایت است
    (`(l18)` → `row["l18"]`, `(tno)` → `parseInt(row["tno"],10)`). بدنهٔ JS ساده دست‌نخورده رد می‌شود.
-2. **آیا بدنهٔ filter به `mw` دسترسی دارد؟** v9 این کار را کرد، ولی باید دوباره
-   روی صفحهٔ زنده تأیید شود. اگر دسترسی نباشد، B باید projection را در یک متغیر
-   سراسری قابل دسترسی از context فیلتر منتشر کند (مثلاً `window.__B_*` به جای
-   `mw.__B_*`) — این تنها نقطهٔ وابستگی بین A و B است و باید قطعی شود.
-   **وضعیت (E-056): هنوز باز — گیت G-22.** آنچه می‌دانیم: `row` در scope است (۶۱ قانون
-   روی آن حساب می‌کنند) و بدنهٔ ما از PrepareFilterCode دست‌نخورده رد می‌شود؛ آنچه
-   نمی‌دانیم: آیا `mw` (یعنی `mw.__B_index`) از داخل بدنهٔ فیلتر قابل دید باشد.
+2. ~~**آیا بدنهٔ filter به `mw` دسترسی دارد؟**~~ — **بسته شد (E-058): `scope-ok`.**
+   بدنهٔ ابزارگذاری‌شده با `mw.RenderData()` اجرا شد (`runs 2132`، `firstRunAt 1251ms`) و
+   `sawMw: true` گزارش کرد. پس `mw` از داخل context فیلتر قابل دید است و خواندن
+   `mw.__B_index` بدون گارد در بدنهٔ A کار می‌کند؛ B **نیازی ندارد** projection را به
+   `window.__B_*` منتقل کند. این تنها نقطهٔ وابستگی بین A و B قطعی شد.
 3. ~~**۶۱ قانون `.replace()`**~~ — **بسته شد (E-056).** روی بدنهٔ واقعی اجرا شد:
    `resultLen 430`، `resultIdentical: true`. هیچ قانونی شناسه‌های `__` یا ساختار بدنه را
    دستکاری نمی‌کند.

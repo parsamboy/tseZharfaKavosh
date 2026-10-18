@@ -3,6 +3,33 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE A trigger probe (E-058, owner, old.tsetmc.com 2026-10-18T10:05Z): the registration path is complete, and A can read mw
+
+- `probes/aTrigger.live.v1.js` (tag `کانسول`) ran live. Recon: 9 `mw` functions mention
+  `FilterCode`, 0 properties already hold a compiled body, `FilterNo` 1 of 3, and **no
+  textarea exists in the DOM** until the filter dialog is opened. Four activation tests,
+  each rolled back independently:
+  - `T1 mw.SelectFilter(1)` -> `runs 0` — not the trigger.
+  - `T2` TextArea path -> skipped (no textarea); `QueryWindowSaveFilter()` throws
+    `Cannot read properties of undefined (reading 'replace')` while the dialog is closed,
+    so the UI path is not usable headlessly.
+  - `T3` mirror + `SaveParams` -> `runs 0` — confirms E-057.
+  - `T4 mw.RenderData()` -> **`runs 2132`, `firstRunAt 1251ms`, `sawMw true`, `sawRow true`**.
+- **G-22 closed, answer `scope-ok`:** the filter body's execution context can see `mw`, so
+  A's unguarded `mw.__B_index` read is viable and B does **not** have to publish the
+  projection on `window.__B_*`. The only A/B coupling is now pinned down.
+- **G-23 closed, answer `mw.RenderData()`:** the complete registration path is
+  `Settings.Filters[FilterNo].FilterCode = PrepareFilterCode(body)` + `mw.FilterCode = same`
+  + `SaveParams()` + **`RenderData()`**. Without the last call nothing happens at all.
+  `RenderData` is not synchronous — the body starts running about a second after it returns,
+  so registration must be followed by a wait.
+- **G-24 opened:** whether the real 430-byte body, registered through this path, hides
+  exactly the rows the projection marks and fails open when the projection is gone. Probe:
+  `probes/aRegisterReal.live.v1.js`.
+- No product change: `window.TseBEngine` is still not registered on the page.
+  Engine parity unchanged at **156/156**.
+
+
 ### Verified — LIVE A-scope probe v1 (E-057, owner, old.tsetmc.com 2026-10-18T09:53Z): storing a filter body does NOT make it run
 
 - `probes/aScope.live.v1.js` (tag `کانسول`) registers an instrumented, fail-open body
