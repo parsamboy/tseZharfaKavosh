@@ -98,6 +98,39 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 - The probe also reports **boundary concentration per underlying** (`byBase`, top 8), so a
   single chain cannot hide inside an average.
 
+### Verified — LIVE window sweep (E-053, owner, old.tsetmc.com 2026-10-18T08:41Z)
+
+The probe's new `windowSweep` answers the owner's question on live data — "if
+`ivFilterEnabled=true` with `[0.05, 2.5]`, how many rows are removed?":
+
+| window | would remove | of solved |
+|---|---|---|
+| `[0.01, 3.0]` (shipped) | **0** | 0% |
+| `[0.05, 3.0]` | 4 | 0.86% |
+| `[0.01, 2.5]` | 4 | 0.86% |
+| `[0.05, 2.5]` | 8 | 1.73% |
+| `[0.10, 2.0]` | 40 | 8.64% |
+| `[0.20, 1.5]` | 108 | 23.33% |
+
+- **Enabling `ivFilterEnabled` today is pure logging**: at the default window it removes
+  exactly zero rows, so there is no behavioural risk in turning it on to collect the
+  `ivStatus` labels.
+- RUN A (shipped maturity, guards on): 463 solved of 1049 rows, borderline 5 (1.1%).
+  Guards off: 755 solved, 147 borderline (19.5%) — of which **140 are floor pins**. The
+  same 3-day chains that ceiling-pin at the correct maturity floor-pin at 30/365: a pin
+  is a property of the market price versus the model, not of the maturity choice.
+- The diagnostic probe (n=120, T=30/365) independently confirms the no-solution
+  population: **15 rows (12.5%) carry a price no volatility in [0.01, 3.0] can produce**
+  (G-11 mapping). v9: 62 (51.7%). The price guards absorb most of these (292 of 1049
+  rows rejected as arbitrage/spread), which is why the funnel only sees 5.
+- **G-13 v3 live (reconfirmation)**: non-empty FilterCode round-trips (sent == observed,
+  len 23), trace valid (submit → accepted → running → done), rollback + slot restore
+  clean. G-13 was already `confirmed` on 2026-10-15 (E-026); the probe's own
+  `bestChoice` text ("owner may promote E-026 to confirmed") predates that promotion
+  and is stale.
+- Outstanding: RUN B (real DTE) and `runB_engine` were truncated in the paste; the
+  engine is still not registered on the page (`window.TseBEngine` absent).
+
 ### Verified — q9 + q10 applied; two latent bugs found on the way (E-052)
 
 The owner's review accepted **q9** (`TMode:'dte'`) and **q10** (a boundary pin stays
