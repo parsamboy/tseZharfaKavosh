@@ -3,6 +3,31 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE re-run surfaces a persisted probe body (E-059, owner, old.tsetmc.com 2026-10-20T07:20Z) + slot hygiene probe
+
+- The owner re-ran `probes/aRegister.live.v1.js` two days after E-058. It reported
+  `slot.originalLen: 1409` with the preview `var FilterResult = true;\ntry {\n  var __g =
+  (typeof window !=` — verified in-repo to be, byte for byte, the head of the **instrumented
+  body of `probes/aTrigger.live.v1.js`** (exactly 1409 bytes). So the ACTIVE filter slot
+  (`FilterNo` 1 of 3) still held a probe body, and because the page had been reloaded, that
+  body had been **persisted**.
+- **Persistence confirmed** the hard way: two writes + `SaveParams` really does survive a
+  reload.
+- **Governance correction:** "rollback restored" in E-055/E-057/E-058 meant the **in-memory**
+  `mw.Settings` was restored — never that the persisted copy was clean. A later
+  restore + `SaveParams` can be lost (debounce, or the site re-serialising from its own
+  copy). From now on a probe must read `getData('MarketWatchSettings')` after rollback and
+  only claim clean when memory **and** storage are clean.
+- E-055's `entryMatches: false` is re-read as an artefact: this run's `identical: true`,
+  `firstDiffAt: -1`, `afterLen: 1409` shows the write reaches the slot and round-trips.
+- Added `probes/aSlotHygiene.live.v1.js` (tag `کانسول`, no waiting): read-only classification
+  of every slot, the mirror and the persisted copy, plus an opt-in clean mode
+  (`window.__A_CLEAN = true`) that clears **only** slots classified as `probe-body` and
+  never touches the owner's own site-dsl filters. Validated in both modes in a vm harness.
+- G-24 still open: `probes/aRegisterReal.live.v1.js` is the end-to-end test that calls
+  `RenderData()`. No product change; parity unchanged at **156/156**.
+
+
 ### Verified — LIVE A trigger probe (E-058, owner, old.tsetmc.com 2026-10-18T10:05Z): the registration path is complete, and A can read mw
 
 - `probes/aTrigger.live.v1.js` (tag `کانسول`) ran live. Recon: 9 `mw` functions mention

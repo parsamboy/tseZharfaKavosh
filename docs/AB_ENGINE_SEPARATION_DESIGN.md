@@ -571,6 +571,12 @@ B هرگز داخل RenderData اجرا نمی‌شود.
    (`firstRunAt 1251ms`)، پس بعد از ثبت باید منتظر ماند. مسیر UI (پر کردن TextArea و
    `QueryWindowSaveFilter`) headless کار نمی‌کند: در DOM هیچ textarea نیست تا وقتی دیالوگ
    فیلتر باز نباشد.
+   **قاعده rollback (E-059):** «rollback restored» در E-055/E-057/E-058 فقط یعنی شیء
+   `mw.Settings` در حافظه برگشته است. `SaveParams` در لحظهٔ فراخوانی `mw.Settings` را
+   می‌نویسد و یک restore + SaveParams بعدی می‌تواند از دست برود (debounce یا serialize از
+   کپی خودِ سایت). بنابراین هر probe بعد از rollback باید **نسخهٔ ذخیره‌شده را هم بخواند**
+   (`getData('MarketWatchSettings')`) و فقط وقتی پاک اعلان کند که حافظه و storage هر دو
+   پاک باشند. `probes/aSlotHygiene.live.v1.js` این کار را می‌کند و فقط اسلات‌هایی را پاک می‌کند که امضای probe-body داشته باشند.
    ```js
    var fno = mw.Settings.FilterNo;
    var code = mw.PrepareFilterCode(A.buildFilterCodeBody());
