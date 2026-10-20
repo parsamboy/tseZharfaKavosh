@@ -3,6 +3,40 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE real registration v2 (E-061, owner, old.tsetmc.com 2026-10-20T07:51Z): the execution mechanism is known from the site's own source, and A works
+
+`probes/aRegisterRealV2.live.v1.js` captured the exact call site inside `RenderData`:
+
+```js
+if (mw.FilterCode.length != 0) { var FilterResult;
+  try { FilterResult = eval(mw.FilterCode) } catch (e) { FilterResult = false }
+  if (!FilterResult) { if (document.getElementById(row.inscode) != null) { /* hide */ } } }
+```
+
+- The site evaluates **the mirror** `mw.FilterCode` with `eval()`, in a scope where `row` **and**
+  `mw` are both visible — G-22 is now confirmed at source level, not just behaviourally.
+- **The site is fail-CLOSED on exception**: any `throw` in the body yields `FilterResult=false`,
+  i.e. the row is hidden. This is the opposite of our fail-open law and is now a hard
+  constraint on A (the body must never throw) and on B (the published projection must never
+  be able to make it throw).
+- The row element's **`id` is the inscode** (`document.getElementById(row.inscode)`) — that is
+  the correct DOM hook; the `[inscode]` attribute v1 looked for does not exist.
+- Result: the unchanged 430-byte body was invoked 16 times over 12 distinct inscodes and
+  **every row it was invoked on got the correct verdict** (3 keep, 3 hide, 2 fail-open on
+  `known=0`); dropping `__B_index` produced **zero** reads, i.e. fail-open at the body's own
+  guard. Rollback restored slot, mirror and projection.
+- `runs-but-wrong-verdicts` was a **sampling artefact**: the probe sampled the first 12 keys of
+  `mw.AllRows` (2896 keys) and 4 of them never reached the filter because `RenderData`'s own
+  pre-filters (the `heven` bounds; `ViewMode`/`Market` were 0) excluded them first. So the
+  status was wrong, the data was right: **8/8 on evaluated rows**.
+- Gates: **G-24 closed** (A works end to end). **G-25 opened** for whole-population
+  confirmation. New probe `probes/aRegisterRealV3.live.v1.js` publishes the projection over
+  *every* `AllRows` inscode and runs all-fail → all-pass → fail-open → rollback, counting
+  visible rows through the `id=inscode` hook. Validated against three page shapes in a vm
+  harness.
+- No product change; parity unchanged at **156/156**.
+
+
 ### Verified — LIVE hygiene + real-registration v1 (E-060, owner, old.tsetmc.com 2026-10-20T07:40Z/07:41Z): slots clean, path executable, measurement redone
 
 - `probes/aSlotHygiene.live.v1.js` read-only: the Filters array has **two** slots
