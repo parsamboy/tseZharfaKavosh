@@ -567,6 +567,8 @@ B هرگز داخل RenderData اجرا نمی‌شود.
    mw.SaveParams();                              // ذخیره
    mw.RenderData();                              // compile + اجرا — بدون این مرحله هیچ‌چیز اتفاق نمی‌افتد
    ```
+   **تصحیح E-060:** `mw.SelectFilter(FilterNo)` در سورس زنده این است:
+   `function(FilterNo){if(FilterNo==-1||FilterNo>=mw.Settings.Filters.length||mw.Settings.Filters.length==0){mw.FilterCode="";mw.Settings.Filter...` — یعنی **اسلات فعال را در آینه می‌خواند**، نه اینکه render کند. و `mw.UpdateMarketWatch` هم `mw.FilterCode.length` را می‌خواند. پس آینه فقط یک کپی تفننی نیست: منطق خودِ صفحه به آن وابسته است و هر ثبت باید هر دو را بنویسد.
    `RenderData` هم‌زمان نیست: بدنه حدود یک ثانیه بعد از بازگشت آن شروع به اجرا می‌کند
    (`firstRunAt 1251ms`)، پس بعد از ثبت باید منتظر ماند. مسیر UI (پر کردن TextArea و
    `QueryWindowSaveFilter`) headless کار نمی‌کند: در DOM هیچ textarea نیست تا وقتی دیالوگ

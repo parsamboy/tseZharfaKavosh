@@ -3,6 +3,37 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE hygiene + real-registration v1 (E-060, owner, old.tsetmc.com 2026-10-20T07:40Z/07:41Z): slots clean, path executable, measurement redone
+
+- `probes/aSlotHygiene.live.v1.js` read-only: the Filters array has **two** slots
+  (`فیلتر شماره 4` at i=0, `فیلتر شماره 2` at i=1 active) and **both are empty**; the
+  persisted copy is 795 chars with both empty; the mirror matches the active slot. The
+  1409-byte probe body found at 07:20Z is gone — the owner's filters are clean. Only the
+  page-level marks remain (`__A_SCOPE_RUNS` 1188432, `__A_SCOPE`).
+- `probes/aRegisterReal.live.v1.js`: the registration path executed cleanly (body verified
+  430 B / fnv1a `38fe0c59` / 11 newlines, `compiledIdentical`, `compiledLen 430`, `written`,
+  `renderCalled`, rollback `slotRestored`/`mirrorRestored`/`cleaned`) — **but its row
+  measurement was invalid**: it keyed the projection on `Object.keys(mw.AllRows)` and looked
+  the rows up in the DOM as `[inscode="..."]`, and all ten read `absent` at *baseline*, before
+  anything was registered. `match:false` therefore proves nothing.
+- New knowledge from the live function sources:
+  - `RenderData` iterates `for (var key in mw.AllRows) { var row = mw.AllRows[key]; … row.inscode … }`
+    — **AllRows is keyed by something else; the inscode lives on the row.**
+  - `SelectFilter(FilterNo)` guards an empty `Filters` and then sets `mw.FilterCode = ""` —
+    it **reads the active slot into the mirror**. This corrects E-058: T1's `runs 0` was
+    because the slot was empty, not because SelectFilter is inert. G-23 restated.
+  - `QueryWindowCheckFilter` reads `#InputFilterCode`, `QueryWindowSaveFilter` reads
+    `#InputFilterName` — the filter editor's DOM ids are now known.
+  - `UpdateMarketWatch` reads `mw.FilterCode.length` — the mirror is load-bearing for the
+    page's own logic, so every registration must write both copies.
+- Added `probes/aRegisterRealV2.live.v1.js`: registers the **unchanged** 430-byte body and
+  measures its verdicts by publishing `__B_index` / `__B_known` / `__B_bitset` as
+  **read-logging Proxies**, so the per-row verdict is observed directly instead of through
+  the DOM. Validated against three page shapes in a vm harness (the harness caught a real
+  bug: the first version's numeric-key guard silently skipped non-digit inscodes).
+- G-24 still open. No product change; parity unchanged at **156/156**.
+
+
 ### Verified — LIVE re-run surfaces a persisted probe body (E-059, owner, old.tsetmc.com 2026-10-20T07:20Z) + slot hygiene probe
 
 - The owner re-ran `probes/aRegister.live.v1.js` two days after E-058. It reported
