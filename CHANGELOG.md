@@ -3,6 +3,33 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE real registration v3 (E-062, owner, old.tsetmc.com 2026-10-20T08:19Z): DOM row counting is retired as a measurement
+
+`probes/aRegisterRealV3.live.v1.js` published a projection over all 2896 inscodes and counted
+visible rows with `document.getElementById(inscode)`. Registration worked (`compiledIdentical`,
+`compiledLen 430`, `renderCalled`, rollback `slotRestored`/`mirrorRestored`/`cleaned`), but the
+counts were **0 / 0 / 538 / 0 / 2096** for baseline, all-fail, all-pass, fail-open and rollback.
+
+- All-pass (keep every row) showed **538** visible rows while the rollback, with **no filter at
+  all**, showed **2096**. A filter that keeps everything cannot show fewer visible rows than no
+  filter, so those numbers measure render timing, not A.
+- The market watch renders asynchronously and re-renders on its own timer (`UpdateSpeed` 1000),
+  so a count taken 2.2s after `RenderData` races with the page: baseline and all-fail were taken
+  before the page had built its rows (`absent 2896`), all-pass caught a partial render, and the
+  rollback a fuller one.
+- The `id=inscode` hook is real (2096 elements exist once rendered) but is **not a usable
+  measurement on this page**.
+- **Retired:** DOM row counting. **Valid instrument:** the read-tally Proxy on
+  `__B_index` / `__B_known` / `__B_bitset`, which observes each verdict at the moment the body
+  computes it and cannot race with a render.
+- Added `probes/aRegisterRealV4.live.v1.js`: the tally applied to the **whole** population —
+  all-fail must make every evaluated row `hide`, all-pass must make every one `keep`, fail-open
+  must produce zero reads. Validated against three page shapes in a vm harness (the harness
+  caught a cumulative-tally bug that made fail-open look like 500 reads).
+- G-25 still open. Note: the owner's slot i=1 still holds the 1409-byte probe body (non-active;
+  `FilterNo` is 2) — it has survived every probe since E-059. Parity unchanged at **156/156**.
+
+
 ### Verified — LIVE real registration v2 (E-061, owner, old.tsetmc.com 2026-10-20T07:51Z): the execution mechanism is known from the site's own source, and A works
 
 `probes/aRegisterRealV2.live.v1.js` captured the exact call site inside `RenderData`:
