@@ -3,6 +3,32 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE slot hygiene clean mode (E-064, owner, old.tsetmc.com 2026-10-21T06:22Z): the owner's page is clean, in memory and in storage
+
+`probes/aSlotHygiene.live.v1.js` ran in clean mode (`window.__A_CLEAN = true`).
+
+- Before: slot `i=1` (active, `FilterNo` 1) held the 1409-byte probe body with fnv1a
+  `f3eaeaf0` — verified in-repo to be **exactly** the instrumented body of
+  `probes/aTrigger.live.v1.js`. The mirror matched it, and the persisted copy (2348 chars)
+  held it too.
+- After: **all four slots empty**, the persisted copy down to **889 chars with all slots
+  empty**, `afterCounts {memory 0, persisted 0, cleanedSlots 1}`. Status `cleaned`.
+- The clean mode touched **one** slot and left the other three — and every filter the owner
+  had saved — untouched, which is what the classification guard was for.
+- **New datum:** the page reported `__A_SCOPE_RUNS: 418545`. The instrumented body was
+  evaluated **418,545 times** by the site's own render loop while it sat in the active slot.
+  That independently corroborates E-061's mechanism (the site really does
+  `eval(mw.FilterCode)` per row, on every render, indefinitely) and shows its cost side: a
+  body in the active slot runs at the page's cadence for as long as it stays there, so A
+  must stay cheap per row (~12.9 µs local / 16.2 µs live).
+- Page state after this run: no probe body in memory or storage, no `mw.__B_*`, no
+  `window.TseBEngine` — the page is exactly as the owner left it, and nothing of ours runs.
+
+Parity unchanged at **156/156**. The A registration chain (G-21/G-22/G-23/G-24/G-25) is
+complete and the live page is clean; what remains is the product work: B publishing a real
+projection and A being registered permanently.
+
+
 ### Verified — LIVE real registration v4 (E-063, owner, old.tsetmc.com 2026-10-21T06:13Z): **A works on the whole population — G-25 closed**
 
 `probes/aRegisterRealV4.live.v1.js` published a projection over **every** inscode in
