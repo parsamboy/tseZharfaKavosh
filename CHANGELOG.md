@@ -3,6 +3,42 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE real registration v4 (E-063, owner, old.tsetmc.com 2026-10-21T06:13Z): **A works on the whole population — G-25 closed**
+
+`probes/aRegisterRealV4.live.v1.js` published a projection over **every** inscode in
+`mw.AllRows` (2753 rows, 345 bytes) as read-tallying Proxies, and registered the unchanged
+430-byte body through the full path (`compiledIdentical`, `compiledLen 430`, `renderCalled`):
+
+| phase | reads | distinct | verdicts | result |
+|---|---|---|---|---|
+| all-fail (`known=1, bit=0`) | 3930 | 1965 | `hide 1965`, keep 0 | **allHidden** |
+| all-pass (`known=1, bit=1`) | 3930 | 1965 | `keep 1965`, hide 0 | **allKept**, samePopulation |
+| fail-open (`__B_index = null`) | **0** | 0 | — | **noReads** |
+
+Rollback: `slotRestored`, `mirrorRestored`, `cleaned` all true. Status
+`works-on-the-whole-population`.
+
+**Two numbers that matter for B:**
+- **Coverage:** only 1965 of 2753 rows (71.4%) reach the filter; the other 788 are removed by
+  `RenderData`'s own pre-filters before A is consulted. B's projection only needs to cover the
+  rows the site actually renders.
+- **3930 reads is exactly 2 × 1965**, i.e. `RenderData` ran twice inside the 2.2 s window — the
+  page's own timer re-rendered during our wait, independently confirming E-062. Since the page
+  re-renders without us, the projection must be published **atomically and immutably**, which is
+  what the A/B design asked for from the start.
+
+**The A registration chain is now complete end to end:**
+`PrepareFilterCode` → two writes → `SaveParams()` → `RenderData()`, with `mw` visible to the
+body (G-22), fail-open on a missing projection, **fail-CLOSED on an exception** (a hard
+constraint on both A and B), and a verified rollback. G-22/G-23/G-24/G-25 are all closed.
+
+Also: the tally's `bytesSeen` map (690 keys) bloated the JSON to tens of KB; it is now replaced
+by a traffic summary plus a 12-entry sample, which cut the probe output to ~3.7 KB.
+
+Note: the owner's slot `i=1` still holds the 1409-byte probe body (non-active) — it has survived
+every probe since E-059. Parity unchanged at **156/156**.
+
+
 ### Verified — LIVE real registration v3 (E-062, owner, old.tsetmc.com 2026-10-20T08:19Z): DOM row counting is retired as a measurement
 
 `probes/aRegisterRealV3.live.v1.js` published a projection over all 2896 inscodes and counted

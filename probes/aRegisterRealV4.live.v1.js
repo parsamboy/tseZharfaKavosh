@@ -130,8 +130,19 @@
     T.byteReads = 0; T.bytesSeen = {}; T.sample = [];
   }
   function tallyReport() {
+    var seen = Object.keys(T.bytesSeen), sample = [];
+    for (var i = 0; i < seen.length && i < 12; i++) sample.push({ key: seen[i], value: T.bytesSeen[seen[i]] });
+    var allKnown255 = true, allBitsZero = true, allBits255 = true;
+    for (var k in T.bytesSeen) {
+      if (T.bytesSeen.hasOwnProperty(k)) {
+        if (k.charAt(0) === 'b') { if (T.bytesSeen[k] !== 0) allBitsZero = false; if (T.bytesSeen[k] !== 255) allBits255 = false; }
+        else if (T.bytesSeen[k] !== 255) allKnown255 = false;
+      }
+    }
     return { reads: T.reads, distinctCount: Object.keys(T.distinct).length,
-             verdicts: T.verdicts, byteReads: T.byteReads, bytesSeen: T.bytesSeen,
+             verdicts: T.verdicts, byteReads: T.byteReads,
+             distinctBytesRead: seen.length, byteSample: sample,
+             byteValues: { allKnown255: allKnown255, allBitsZero: allBitsZero, allBits255: allBits255 },
              sample: T.sample.slice(0, 10) };
   }
   function domCounts(codes) {
