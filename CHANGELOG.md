@@ -3,6 +3,61 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE the real engine projection end to end (E-065, owner, old.tsetmc.com 2026-10-21T07:09:51Z): the A<->B chain holds on real data; the engine judges 11 of 2753 rows
+
+`probes/aRealProjection.live.v1.js` ran live after pasting the generated
+`src/engine/tseEngine.browser.v1.js` bundle.
+
+| phase | reads | distinct | verdicts | expected | result |
+|---|---|---|---|---|---|
+| REAL | 3930 | 1965 | `keep 11, hide 0, failOpen 1954` | identical | **verdictsMatchProjection** |
+| INVERTED | 3930 | 1965 | `keep 0, hide 11, failOpen 1954` | — | **flipsExactly**, mismatches 0 |
+| CLEARED | 0 | 0 | — | — | **noReads** |
+
+Rollback restored the slot, the mirror **and** storage: the persisted
+`MarketWatchSettings` stayed at 889 chars with an empty active slot, byte-count
+identical to before the run, so the E-064 clean state survived.
+
+- **The chain works.** First time the *real* engine output met the *real*
+  repo-generated body (430 B, fnv1a `38fe0c59`, `compiledIdentical`) on *real*
+  data. A is a pure function of the published projection.
+- **Coverage reproduced exactly:** 1965 of 2753 rows (71.4%) reach the filter —
+  identical to E-063, so 71.4% is a stable property of this page.
+- **3930 reads = exactly 2 x 1965** again, independently reproducing E-063/E-062:
+  the page re-renders on its own timer inside the measurement window.
+- **The dual-trigger guard worked live:** the second `run()` with the same
+  snapshotId/configHash returned `{published: false, reason: 'no-change'}`.
+- **The finding:** the engine judged **11 of 2753** rows (0.4%) and hid **0**.
+  Today the real engine is a no-op filter on this page — and that contradicts
+  E-045/E-046, which counted 605 and 1049 option rows here and solved 411-615.
+
+### Added — `probes/aFunnelDiagnostic.live.v1.js` (G-27, E-066): why are 2742 rows insufficient-data?
+
+The v1 probe cannot answer that, and this is a measurement defect rather than a
+null result: its fail-open sample is drawn from the head of `mw.AllRows`, and the
+head of AllRows is stocks and funds, which the parser correctly rejects as
+`'not a confirmed option'` — all six samples were `parsed: 'rejected'`. A sample
+of non-option rows cannot diagnose the option rows (the E-060 blindness lesson
+again).
+
+The diagnostic is **read-only** (no slot write, no `SaveParams`, no
+`RenderData`, no storage, no timer) and buckets **every** row by parse status and
+by the funnel step that stopped it:
+
+| step | what is counted |
+|---|---|
+| S | is `parsed.underlying` in the underlying map — and if not, does a stock row with that `l18` exist and what is its `pc`? |
+| T | does the Jalali calendar resolve the expiry (dte histogram) |
+| price | which hybrid priority (q8) applies, and if none, why: no book / book too wide / outside the no-arbitrage band / no trade |
+| IV | ivStatus and IV buckets for the rows that get that far |
+
+It also reports the underlying map's size and every option underlying that
+misses it — the direct read on the G-11/G-12 relation that has been
+"sample-only" since E-012. Validated on four population shapes in node
+(full / missing stock rows / missing book / no options).
+
+Parity unchanged at **156/156**; bundle parity **24/24**; `node --check` passes
+on every new file.
 ### Added — the engine runs in the browser, and a live probe measures its real projection
 
 **`src/engine/tseEngine.browser.v1.js`** (new, generated) — the five pure modules the
