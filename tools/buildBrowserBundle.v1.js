@@ -54,7 +54,12 @@ const SRC = [
   ['aLookup', 'src/engine/aLookup.v0.1.0.js', null],
   ['bEngine', 'src/engine/bEngine.v0.1.0.js',
     [/^const\s+CAL\s*=\s*require\('\.\/\.\.\/models\/jalaliCalendar\.v0\.1\.0\.js'\);\s*$/m,
-     "const CAL = __req('jalaliCalendar');"]]
+     "const CAL = __req('jalaliCalendar');"]],
+  // after bEngine: it requires bEngine's DEFAULT_FUNNEL_CONFIG / normalizeFunnelConfig,
+  // and __def runs each factory immediately, so order is load-bearing.
+  ['funnelSettings', 'src/ux/funnelSettings.v0.1.0.js',
+    [/^const\s+ENG\s*=\s*require\('\.\/\.\.\/engine\/bEngine\.v0\.1\.0\.js'\);\s*$/m,
+     "const ENG = __req('bEngine');"]]
 ];
 
 /**
@@ -219,7 +224,9 @@ function main() {
   lines.push(' *   window.TseBEngine  — { createBEngine, VERSION, DEFAULT_FUNNEL_CONFIG, ... }');
   lines.push(' *   window.TseModels   — { optionParser, greeks, calendar }');
   lines.push(' *   window.TseLookup   — { evaluateRow, buildFilterCodeBody, capacityCheck, ... }');
-  lines.push(' * No DOM, no network, no storage: the engine stays pure.');
+  lines.push(' *   window.TseFunnelSettings = { SCHEMA, DEFAULTS, PRESETS, normalizeSettings, toFunnelConfig, configHash, load, save, applyChange, applyPreset, describe }');
+  lines.push(' * No DOM, no network, no storage: the engine stays pure. funnelSettings takes an');
+  lines.push(' * INJECTED storage, so the same code runs in node tests and against localStorage.');
   lines.push(' * SPDX-License-Identifier: Smart-FFA-1.1');
   lines.push(' */');
   lines.push("(function (global) {");
@@ -248,6 +255,7 @@ function main() {
   lines.push('global.TseBEngine = __req(' + JSON.stringify('bEngine') + ');');
   lines.push("global.TseModels = { optionParser: __req('optionParser'), greeks: __req('greeks'), calendar: __req('jalaliCalendar') };");
   lines.push("global.TseLookup = __req('aLookup');");
+  lines.push("global.TseFunnelSettings = __req('funnelSettings');");
   lines.push("})(typeof window !== 'undefined' ? window : globalThis);");
   lines.push('');
 

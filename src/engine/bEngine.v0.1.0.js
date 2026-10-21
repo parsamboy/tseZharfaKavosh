@@ -308,10 +308,12 @@ function normalizeFunnelConfig(cfg) {
   out.legacyV9Mapping = bool('legacyV9Mapping');
   out.checkArbitrageBounds = bool('checkArbitrageBounds');
   out.pinFailOpen = bool('pinFailOpen');
-  // whitelist: only these two modes, but an ABSENT key must keep the default -
-  // `(c.TMode === 'dte') ? 'dte' : 'fixed'` silently overrode the default with
-  // 'fixed' for every caller that did not pass TMode explicitly.
-  out.TMode = (c.TMode === undefined) ? out.TMode : ((c.TMode === 'dte') ? 'dte' : 'fixed');
+  // whitelist: only these two modes. An ABSENT key must keep the default, and so
+  // must a PRESENT BUT INVALID one: `(c.TMode === 'dte') ? 'dte' : 'fixed'` silently
+  // switched every row to a fixed maturity on a typo, which is exactly the "silently
+  // wrong config" this function is fail-CLOSED to prevent. (Found by
+  // probes/uxSettings.parity.v1.js while proving every variable is UX-changeable.)
+  out.TMode = (c.TMode === 'dte' || c.TMode === 'fixed') ? c.TMode : out.TMode;
   out.maxSpreadPct = num('maxSpreadPct', 0, 1);
   // an inverted IV window is unusable: restore the default window
   if (!(out.ivMin < out.ivMax)) {

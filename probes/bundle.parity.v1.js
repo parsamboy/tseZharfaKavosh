@@ -34,13 +34,15 @@ const OP = require(path.join(ROOT, 'src/optionParser.v0.1.0.js'));
 const G = require(path.join(ROOT, 'src/models/greeks.v0.1.0.js'));
 const CAL = require(path.join(ROOT, 'src/models/jalaliCalendar.v0.1.0.js'));
 const ENG = require(path.join(ROOT, 'src/engine/bEngine.v0.1.0.js'));
+const UXSRC = require(path.join(ROOT, 'src/ux/funnelSettings.v0.1.0.js'));
 
 // ---------- the bundle ----------
 // The bundle is an IIFE that writes to globalThis (no window in node).
-delete globalThis.TseBEngine; delete globalThis.TseModels;
+delete globalThis.TseBEngine; delete globalThis.TseModels; delete globalThis.TseFunnelSettings;
 require(BUNDLE);
 const BENG = globalThis.TseBEngine;
 const BM = globalThis.TseModels;
+const BUX = globalThis.TseFunnelSettings;
 if (!BENG || !BM) {
   console.error('FAIL  bundle did not define globalThis.TseBEngine / TseModels');
   process.exit(1);
@@ -322,6 +324,70 @@ section('5. A body (aLookup)');
   check('every fail-open corner returns true (nothing hidden)',
     corners.every(function (c) { return fnBundle({ inscode: c[2] }, c[1]) === true; }),
     cornerOut.join(', '));
+}
+
+// ---------- 7. the UX settings layer: bundled vs source (G-29) ----------
+// Owner decision 2026-10-21: «همه متغیرها در تنظیمات UX قابل تغییر باشند». The
+// settings layer is now part of the bundle, so it has to be proven identical too.
+section('7. UX funnel settings: bundle vs source');
+check('the bundle defines globalThis.TseFunnelSettings', !!BUX);
+if (BUX) {
+  check('same VERSION', BUX.VERSION === UXSRC.VERSION, BUX.VERSION + ' vs ' + UXSRC.VERSION);
+  check('same STORAGE_KEY', BUX.STORAGE_KEY === UXSRC.STORAGE_KEY);
+  check('same schema length', BUX.SCHEMA.length === UXSRC.SCHEMA.length,
+    BUX.SCHEMA.length + ' vs ' + UXSRC.SCHEMA.length);
+  check('schema is deep-identical', eq(BUX.SCHEMA, UXSRC.SCHEMA));
+  check('DEFAULTS are deep-identical', eq(BUX.DEFAULTS, UXSRC.DEFAULTS));
+  check('DEFAULTS equal the engine defaults', eq(BUX.DEFAULTS, BENG.DEFAULT_FUNNEL_CONFIG));
+  check('PRESETS are deep-identical', eq(BUX.PRESETS, UXSRC.PRESETS));
+  // normalizeSettings: a garbage blob must fail closed to the same defaults
+  const garbage = { r: 99, ivMax: 'x', TMode: 'bogus', marketPriceFrom: 'nope', __unknown__: 1, ivMin: 2.0, ivMax: 1.5 };
+  const nA = BUX.normalizeSettings(garbage), nB = UXSRC.normalizeSettings(garbage);
+  check('normalizeSettings is identical on a garbage blob', eq(nA.settings, nB.settings), JSON.stringify(nA.settings));
+  check('garbage fails closed to the engine defaults', eq(nA.settings, BENG.DEFAULT_FUNNEL_CONFIG));
+  check('garbage produces the same warnings', eq(nA.warnings, nB.warnings));
+  check('every garbage field is reported', nA.warnings.length >= 5, nA.warnings.length + ' warnings');
+  // toFunnelConfig: the engine must receive exactly the same object either way
+  const edited = { ivMax: 1.5, maxSpreadPct: 0.5, TMode: 'fixed', T: 14 / 365, r: 0.25 };
+  check('toFunnelConfig is identical', eq(BUX.toFunnelConfig(edited), UXSRC.toFunnelConfig(edited)));
+  check('toFunnelConfig is idempotent', eq(BENG.normalizeFunnelConfig(BUX.toFunnelConfig(edited)), BUX.toFunnelConfig(edited)));
+  // configHash: stable and sensitive through the bundle boundary
+  check('configHash is identical', BUX.configHash(edited) === UXSRC.configHash(edited));
+  check('configHash is stable', BUX.configHash(edited) === BUX.configHash(edited));
+  check('configHash is order-independent',
+    BUX.configHash({ ivMax: 1.5, r: 0.25 }) === BUX.configHash({ r: 0.25, ivMax: 1.5 }));
+  check('configHash changes with any single variable',
+    BUX.SCHEMA.every(function (f) {
+      const v = (f.type === 'bool') ? !f.default
+        : (f.type === 'enum') ? f.choices.find(function (c) { return c !== f.default; })
+        : (f.min + f.max) / 2;
+      return BUX.configHash(BUX.normalizeSettings(Object.assign({}, BUX.DEFAULTS, {})).settings) ===
+             BUX.configHash(BUX.DEFAULTS) &&
+             BUX.configHash(BUX.normalizeSettings({ [f.key]: v }).settings) !== BUX.configHash(BUX.DEFAULTS);
+    }));
+  // persistence through an injected store
+  const store = {};
+  const st = { getItem: function (k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; },
+               setItem: function (k, v) { store[k] = String(v); } };
+  const wA = BUX.save(st, null, edited), wB = UXSRC.save(st, 'other', edited);
+  check('save writes the same bytes either way', wA.ok === wB.ok && wA.bytes === wB.bytes,
+    wA.bytes + ' vs ' + wB.bytes);
+  const back = BUX.load(st);
+  check('load round-trips through the bundle', eq(back.settings, UXSRC.normalizeSettings(edited).settings));
+  check('loaded settings hash back to the same value', BUX.configHash(back.settings) === BUX.configHash(edited));
+  // describe + presets
+  check('describe is identical', eq(BUX.describe(edited), UXSRC.describe(edited)));
+  check('describe lists the changed variables', BUX.describe(edited).changedCount === 5,
+    BUX.describe(edited).changedCount + ' changed: ' + BUX.describe(edited).changed.map(function (c) { return c.key; }).join(','));
+  Object.keys(BUX.PRESETS).forEach(function (name) {
+    check('preset[' + name + '] identical', eq(BUX.applyPreset(BUX.DEFAULTS, name).settings, UXSRC.applyPreset(UXSRC.DEFAULTS, name).settings));
+  });
+  // the settings layer feeds a REAL engine through the bundle boundary
+  const eng = BENG.createBEngine({ models: {}, funnelConfig: BUX.toFunnelConfig(edited) });
+  check('an engine built from bundled settings sees them', eng.funnelConfig.ivMax === 1.5 && eng.funnelConfig.maxSpreadPct === 0.5 && eng.funnelConfig.TMode === 'fixed',
+    JSON.stringify(eng.funnelConfig));
+  check('a bogus TMode cannot silently opt into the fixed maturity',
+    BUX.normalizeSettings({ TMode: 'bogus' }).settings.TMode === 'dte');
 }
 
 // ---------- summary ----------

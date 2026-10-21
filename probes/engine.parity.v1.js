@@ -770,10 +770,24 @@ check('engine normalizes the config it is given',
 section('7b-5. q9: per-option maturity is the default (owner decision 2026-10-18)');
 // a fake calendar: expiry string -> fixed days-to-expiry, so the test is deterministic
 const FAKE_CAL = function () { return 3; };   // deterministic: every option has 3 days left
-check('TMode defaults to dte (q9: the shipped 30/365 modelled a 3-day option as 30 days)',
+check('TMode defaults to dte, and a bogus value falls back to dte (never to fixed)',
   B.DEFAULT_FUNNEL_CONFIG.TMode === 'dte' && B.normalizeFunnelConfig({}).TMode === 'dte' &&
-  B.normalizeFunnelConfig({ TMode: 'bogus' }).TMode === 'fixed' &&
-  B.normalizeFunnelConfig({ TMode: 'fixed' }).TMode === 'fixed', 'dte is the default, fixed is opt-in');
+  B.normalizeFunnelConfig({ TMode: 'bogus' }).TMode === 'dte' &&
+  B.normalizeFunnelConfig({ TMode: 'fixed' }).TMode === 'fixed' &&
+  B.normalizeFunnelConfig({ TMode: 'dte' }).TMode === 'dte',
+  'dte is the default, fixed is opt-in');
+// G-29 correction: this line used to assert `bogus -> fixed`. That mapped a typo to
+// the PRE-q9 behaviour (a fixed 30/365 maturity for every option, which E-051/E-052
+// measured as 10x off on short-dated chains) - i.e. it silently opted the caller into
+// the wrong model, which is exactly the "silently wrong config" normalizeFunnelConfig's
+// own docstring says it is fail-CLOSED to prevent. probes/uxSettings.parity.v1.js
+// caught it while proving every variable is UX-changeable: with every variable
+// user-editable, a garbage value must land on the default, not on a real alternative.
+check('a bogus TMode cannot silently opt into the fixed maturity',
+  B.normalizeFunnelConfig({ TMode: 'Dte' }).TMode === 'dte' &&
+  B.normalizeFunnelConfig({ TMode: '' }).TMode === 'dte' &&
+  B.normalizeFunnelConfig({ TMode: 3 }).TMode === 'dte',
+  'any non-whitelisted value -> the default');
 check('an engine built with no funnelConfig at all uses dte (no silent 30-day model)',
   (function () {
     const b = newEngine();   // no funnelConfig -> normalizeFunnelConfig(undefined)

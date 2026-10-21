@@ -3,6 +3,44 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Added — the UX funnel settings layer (E-069, owner decision 2026-10-21): «همه متغیرها در تنظیمات UX قابل تغییر باشند»
+
+The owner's answer to G-29 was not one of the four offered directions (keep /
+narrow the window / widen the guards / measure first) but the capability itself:
+**every** funnel variable must be changeable from the UX settings.
+
+`src/ux/funnelSettings.v0.1.0.js` is that layer — 16 variables (7 number, 5 bool,
+4 enum), each with a Persian label, help text, UI range/choices, a default read
+FROM the engine, five presets, injected-storage persistence, and a `configHash`
+that changes when any single variable changes. It is now the 6th module of the
+generated browser bundle (`window.TseFunnelSettings`, 46,484 bytes).
+
+**The one rule, enforced by a test rather than by discipline:** the engine is the
+single source of truth for values and ranges. The UX layer adds only labels,
+persistence and the hash, and `probes/uxSettings.parity.v1.js` (191/191) proves
+every declared UI range by probing the engine's own normalizer — so a range can
+only exist in one place.
+
+`probes/aSettingsPanel.live.v1.js` builds the RTL panel with one control per
+variable generated from the schema, recomputes the engine over `mw.AllRows` on
+every change and reports the delta against the shipped defaults. It is read-only
+with respect to the site (no filter slot, no `SaveParams`, no `RenderData`); the
+only thing it writes is its own `localStorage` key, and
+`window.__FUNNEL_SETTINGS_CLEANUP()` removes the panel and that key.
+
+### Fixed — `normalizeFunnelConfig` silently opted into the fixed maturity on a bogus `TMode` (found by the new settings parity, E-069)
+
+`normalizeFunnelConfig({ TMode: 'bogus' })` returned `'fixed'`, switching every row
+to the pre-q9 fixed `30/365` maturity — the same "silently wrong config" the
+function's own docstring says it is fail-CLOSED to prevent. It was invisible until
+every variable became user-editable, because a garbage value could previously only
+come from a caller who had already read the source. Now only `'dte'` and `'fixed'`
+pass; anything else (including absent) takes the default `'dte'`. The old assertion
+`bogus -> fixed` was an incidental encoding of the previous ternary and
+contradicted its own test name ("fixed is opt-in" — a typo should not opt you in).
+
+Engine parity 162 -> **163/163**, bundle parity 24/24 -> **54/54** (new section 7:
+bundled settings vs source), UX settings parity **191/191**.
 ### Verified — LIVE real projection re-run with the fixed bundle (E-068, owner, old.tsetmc.com 2026-10-21T08:10:29Z): the chain survives the engine fix, and the filter hides 5 rows
 
 The owner re-ran `probes/aRealProjection.live.v1.js` — **the same probe, byte for
