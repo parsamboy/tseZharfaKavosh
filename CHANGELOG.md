@@ -3,6 +3,54 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Added — the engine runs in the browser, and a live probe measures its real projection
+
+**`src/engine/tseEngine.browser.v1.js`** (new, generated) — the five pure modules the
+B engine needs, concatenated into ONE browser script by `tools/buildBrowserBundle.v1.js`:
+
+```
+src/models/jalaliCalendar.v0.1.0.js   calendar -> T = DTE/365 (q9)
+src/optionParser.v0.1.0.js            l18/l30 -> strike/kind/expiry
+src/models/greeks.v0.1.0.js           impliedVol / bsGreeks
+src/engine/aLookup.v0.1.0.js          buildFilterCodeBody() - the A body generator
+src/engine/bEngine.v0.1.0.js          the engine
+```
+
+It exposes `window.TseBEngine`, `window.TseModels` and `window.TseLookup`. `aLookup` is
+bundled deliberately: the live probe registers the A body the **repo generates**, not a
+hand-copied literal, so what is measured live is the body production would ship.
+
+**`probes/bundle.parity.v1.js`** (new) — proves the generated bundle changed nothing that
+matters: 24/24, comparing the bundled modules against the originals (`VERSION`,
+`DEFAULT_FUNNEL_CONFIG`, `buildFilterCodeBody()` byte-identical at 430 bytes,
+`computeFunnel` over 900 rows mixing pass / fail-iv-range / insufficient-data, a full
+`run()` + `publish()` cycle with identical bitset and known bytes, and every fail-open
+corner of the executed body).
+
+**`probes/aRealProjection.live.v1.js`** (new) — the first probe that lets the **real
+engine** compute from **real page data**:
+
+| phase | what is published | what must happen |
+|---|---|---|
+| REAL | the engine's own projection from `mw.AllRows` | the verdicts A computes must equal the projection's verdicts, row for row |
+| INVERTED | the same projection with every pass bit flipped | every verdict must flip with it — A holds no state |
+| CLEARED | `__B_index = null` | zero index reads — the body's own fail-open guard ran |
+
+then rollback of the slot, the mirror **and** the persisted storage (E-059/E-064).
+
+The bundle builder strips comments and blank lines with a real lexer (strings, template
+literals and regex literals are never touched — `optionParser` and `jalaliCalendar` contain
+regex literals a naive stripper would eat), taking 56,029 raw bytes to a 34,611-byte
+bundle; nothing else changes.
+
+A node harness (five page shapes) caught three probe bugs before delivery: the `verdicts`
+counter used `failOpen` while `verdictOf()` returned `fail-open`, so fail-open rows were
+counted under a stray key and reported as zero; the success status was reachable with
+`distinctCount === 0`, so a page that never evaluates the mirror reported success; and the
+index Proxy only counted keys present in the projection, making symbols that arrive after
+publication invisible when they are exactly the rows that must fail open.
+
+Parity unchanged at **156/156**; `node --check` passes on every new file.
 ### Verified — LIVE slot hygiene clean mode (E-064, owner, old.tsetmc.com 2026-10-21T06:22Z): the owner's page is clean, in memory and in storage
 
 `probes/aSlotHygiene.live.v1.js` ran in clean mode (`window.__A_CLEAN = true`).
