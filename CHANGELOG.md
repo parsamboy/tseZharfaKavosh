@@ -3,6 +3,64 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE funnel re-run with the fixed bundle (E-067, owner, old.tsetmc.com 2026-10-21T07:55:29Z): computed 14 -> 353, and the filter removes 2 rows
+
+The owner re-pasted the rebuilt bundle and re-ran the read-only diagnostic.
+
+| | E-066 (buggy clock) | E-067 (fixed) |
+|---|---|---|
+| computed | 14 | **353** |
+| engineElapsedMs | 20.7 | 47.7 |
+| `iv-or-greeks-failed: price-outside-arbitrage-bounds` | **326** | **0** |
+| genuine `price-outside-arbitrage-bounds` | hidden inside the 326 | **34** |
+
+**The fix is confirmed by the two columns agreeing where they previously could
+not:** `funnelReason` and `priceAttribution` now report the *same* population for
+every price reason — `no usable market price 389 = no-book-and-no-trade 389`,
+`price-outside-arbitrage-bounds 34 = 34`, `book-too-wide 175 = 175`. Before the
+fix those two columns disagreed by 326 rows, because the engine rejected on a
+bogus `T` while the probe attributed on the real one.
+
+**The IV distribution is real now:** p50 **0.836**, p90 **1.365**, min 0.010,
+max 2.9999999. E-045 measured p50 1.0522 / p90 2.1424 at the shipped fixed
+`T = 30/365` — the correct per-option maturity lowers the implied vols, exactly
+as the model predicts.
+
+### The filter removes 2 rows
+
+Of the 951 confirmed rows that reached the IV filter:
+
+| ivStatus | rows | verdict |
+|---|---|---|
+| `ok` | 344 | IV inside `[0.05, 2.5]` → **kept** |
+| `no-iv-solution` | 7 | pinned at the solver's own limits `[0.01, 3.0]` → kept visible by q10 |
+| `fail-iv-range` | 2 | solvable IV outside the window → **hidden** |
+
+Only **9 of 353** solved IVs fall outside `[0.05, 2.5]`, and 7 of those are
+pinned where there is no solution at all. The bitset carries 351 ones and
+**2 zeros**. This reproduces E-054's live finding — the default window removes
+essentially nothing — now with the real engine and the real chain.
+
+**Reconciliation with E-046** (411–615 solved): the difference is the q8 price
+guards. `175 book-too-wide + 34 price-outside-arbitrage-bounds = 209` rows the
+engine refuses, and `353 + 209 = 562`, inside E-046's range.
+
+**The dominant loss is the price, and it is the owner's own design:** 598 of 1058
+confirmed rows (56.6%) have no usable market price — 389 with a one-sided book
+(`pd1 > 0, po1 = 0`) and no trade (`tno = 0`), 175 with a spread wider than
+`maxSpreadPct 0.20`, 34 outside the no-arbitrage band. All fail open and stay
+visible, which is q8's "never a fabricated price". A further 84 (7.9%) fail on
+maturity — every sample is expiry `1405/07/29`, i.e. today with `dte 0`.
+
+**Precision:** E-054's window decision was *not* measured with the buggy engine —
+`probes/ivfilter.borderline.live.v1.js` resolves today with `new Date()`. The
+clock bug was confined to `bEngine`'s default options, which is why the
+standalone live probes and the engine disagreed by an order of magnitude.
+
+New open gate **G-28**: the product decision on the window and on the 598
+no-price rows, and the live measurement of the chain's effect through A.
+
+Parity unchanged at **162/162**, bundle parity **24/24**.
 ### Fixed — the engine's default clock poisoned every maturity (E-066): 162/162, bundle parity 24/24
 
 `probes/aFunnelDiagnostic.live.v1.js` ran live and isolated the wall behind E-065's
