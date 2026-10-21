@@ -109,7 +109,12 @@ const mwMock = { RoundNo: 7, AllRows: {}, FilterCode: '' };
 rows.forEach(r => { mwMock.AllRows[r.inscode] = r; });
 
 function newEngine(overrides) {
-  const o = Object.assign({ models: models, now: function () { return FIXED_NOW_MS; } }, overrides || {});
+  // BOTH clocks are pinned. `now` is the monotonic timing clock, `nowEpoch` is
+  // the wall clock the calendar resolves maturity against (E-066: they used to be
+  // the same input, which made every maturity ~57 years in a browser).
+  const o = Object.assign({ models: models,
+    now: function () { return FIXED_NOW_MS; },
+    nowEpoch: function () { return FIXED_NOW_MS; } }, overrides || {});
   return createBEngine(o);
 }
 
@@ -971,6 +976,92 @@ section('8. timing vs live budget (node, real models)');
   check('incremental cycle under 5ms threshold', incMs < 5, incMs.toFixed(2) + 'ms');
 }
 
+// ---------- 9. DEFAULT OPTIONS IN A BROWSER-LIKE CONTEXT (E-066 regression) ----------
+// The bug this section exists for: the engine used ONE clock for two different
+// questions. `now` defaults to performance.now() (monotonic, ms since page load)
+// and resolveT fed it straight into calendar(expiry, ms) -> new Date(ms). In a
+// browser performance exists, so every expiry was measured from 1970-01-01, T
+// became ~57 years, exp(-r*T) rounded to zero, the no-arbitrage bounds collapsed
+// to [S, S] and marketPriceProblem rejected 326 of 333 live rows with
+// 'price-outside-arbitrage-bounds' (E-066). Every earlier test injected
+// `now: FIXED_NOW_MS` - an epoch value - so the suite was blind to it.
+section('9. default options resolve maturity from the WALL clock (E-066)');
+{
+  const CALL_PREFIX = '\u0636';   // the dhad prefix: an option row
+  function firstOptionRow(list) {
+    for (let i = 0; i < list.length; i++) if (String(list[i].l18 || '').charAt(0) === CALL_PREFIX) return list[i];
+    return null;
+  }
+  const optionRow = firstOptionRow(rows);
+  const parsedOpt = OP.parseOptionLabel(optionRow);
+  const trueDte = CAL.daysToExpiry(parsedOpt.expiry, CAL.localDateToJDN(new Date()));
+
+  // the real generated bundle, in a context that HAS performance - exactly what
+  // the live probes run in. This is the artefact the owner pastes.
+  const bundle = path.join(ROOT, 'src/engine/tseEngine.browser.v1.js');
+  if (fs.existsSync(bundle)) {
+    const vm = require('vm');
+    const sb = {
+      performance: { now: function () { return 12345; } },   // a page loaded 12.3s ago
+      Date: Date, Math: Math, JSON: JSON, Object: Object, Array: Array, String: String,
+      Number: Number, isFinite: isFinite, RegExp: RegExp, Error: Error, parseInt: parseInt,
+      setTimeout: setTimeout
+    };
+    vm.createContext(sb);
+    vm.runInContext(fs.readFileSync(bundle, 'utf8'), sb);
+    const BE = sb.TseBEngine, BM = sb.TseModels;
+    const defEngine = BE.createBEngine({
+      models: { parseOptionLabel: BM.optionParser.parseOptionLabel,
+        impliedVol: BM.greeks.impliedVol, bsGreeks: BM.greeks.bsGreeks }
+    });
+    defEngine.buildIndex(rows);
+    const fr = defEngine.computeFunnel(optionRow, parsedOpt);
+    const T = (fr.inputs && fr.inputs.T !== undefined) ? fr.inputs.T : null;
+    check('bundle: default-options maturity is dte/365, not ~57 years',
+      T !== null && T > 0 && T < 1.0, 'T=' + T + ' (true dte=' + trueDte + 'd)');
+    check('bundle: default-options T matches the wall clock within a day',
+      T !== null && Math.abs(T * 365 - trueDte) <= 1.5,
+      'T*365=' + (T === null ? null : (T * 365).toFixed(2)) + ' vs dte=' + trueDte);
+    check('bundle: the price is NOT rejected as outside the arbitrage bounds',
+      fr.status !== 'insufficient-data' || fr.reason !== 'price-outside-arbitrage-bounds',
+      JSON.stringify({ status: fr.status, reason: fr.reason, src: fr.inputs && fr.inputs.marketPriceSource }));
+  }
+
+  // the same guarantee at the source level
+  const src = require(path.join(ROOT, 'src/engine/bEngine.v0.1.0.js'));
+
+  // a MONOTONIC-looking `now` must not be able to poison the maturity: the wall
+  // clock is a separate input, so this is the source-level statement of the bug
+  const pinned = src.createBEngine({
+    models: models,
+    now: function () { return 12345; }
+  });
+  pinned.buildIndex(rows);
+  const fr2 = pinned.computeFunnel(optionRow, parsedOpt);
+  check('a monotonic `now` cannot poison the maturity',
+    fr2.status !== 'insufficient-data' || fr2.reason !== 'price-outside-arbitrage-bounds',
+    JSON.stringify({ status: fr2.status, reason: fr2.reason }));
+
+  // an explicit nowEpoch still wins when supplied
+  const pinnedEpoch = src.createBEngine({
+    models: models,
+    nowEpoch: function () { return FIXED_NOW_MS; },
+    now: function () { return 12345; }
+  });
+  pinnedEpoch.buildIndex(rows);
+  const fr3 = pinnedEpoch.computeFunnel(optionRow, parsedOpt);
+  check('explicit nowEpoch is honoured over the monotonic now',
+    fr3.inputs && Math.abs(fr3.inputs.T - DTE_FIXTURE / 365) < 1e-9,
+    'T=' + (fr3.inputs && fr3.inputs.T));
+
+  // the suite's own pinning (both clocks) is unchanged
+  const b9 = newEngine();
+  b9.buildIndex(rows);
+  const fr4 = b9.computeFunnel(optionRow, parsedOpt);
+  check('the suite pinning (now + nowEpoch) resolves dte exactly',
+    fr4.inputs && Math.abs(fr4.inputs.T - DTE_FIXTURE / 365) < 1e-9,
+    'T=' + (fr4.inputs && fr4.inputs.T));
+}
 // ---------- summary ----------
 console.log('\n=== SUMMARY ===');
 console.log('pass=' + pass + ' fail=' + fail);

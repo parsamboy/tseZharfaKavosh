@@ -413,6 +413,8 @@ function createBEngine(options) {
   const now = opts.now || (typeof performance !== 'undefined' && performance.now
     ? function () { return performance.now(); }
     : function () { return Date.now(); });
+  const nowEpoch = (typeof opts.nowEpoch === 'function') ? opts.nowEpoch
+    : (typeof Date.now === 'function' ? function () { return Date.now(); } : now);
   const state = {
     symbols: [],                 
     index: Object.create(null),  
@@ -571,7 +573,7 @@ function createBEngine(options) {
     const expiry = parsed && parsed.expiry ? String(parsed.expiry) : '';
     if (!expiry) return { ok: false, reason: 'no expiry on the parsed label' };
     let dte = null;
-    try { dte = calendar(expiry, now()); } catch (e) { return { ok: false, reason: 'calendar failed' }; }
+    try { dte = calendar(expiry, nowEpoch()); } catch (e) { return { ok: false, reason: 'calendar failed' }; }
     if (dte === null || !isFinite(dte) || dte <= 0) return { ok: false, reason: 'no usable maturity' };
     return { ok: true, T: dte / 365 };
   }

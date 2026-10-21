@@ -3,6 +3,58 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Fixed — the engine's default clock poisoned every maturity (E-066): 162/162, bundle parity 24/24
+
+`probes/aFunnelDiagnostic.live.v1.js` ran live and isolated the wall behind E-065's
+`computed 11`. **The underlying relation was not the problem** — the hypothesis from
+G-27 was refuted by the data:
+
+| what was suspected | what the live histogram says |
+|---|---|
+| the G-11/G-12 `underlyingMap` relation (sample-only since E-012) starves the funnel | **refuted**: 1737 map entries cover 19 of 20 option underlyings; S resolved for **1014 of 1037** confirmed rows (97.8%). Only `طعام` (23 rows) has no stock row at all |
+| the parser rejects the options | **refuted**: 1037 confirmed, 257 candidate, and the 1759 rejected are the stocks and funds at the head of AllRows |
+
+The wall was the **market-price guard**: 326 of the 333 rows that *do* have a usable
+price were rejected with `price-outside-arbitrage-bounds`.
+
+Reproducing that locally gave a byte-identical reason, and the cause was not a market
+fact — it was a **clock bug**:
+
+- `createBEngine()` with default options used **one** clock for two different questions.
+- `now` defaults to `performance.now()` (monotonic, **ms since page load**) and
+  `resolveT` fed it straight into `calendar(expiry, ms)` → `new Date(ms)`.
+- In a browser `performance` exists, so every expiry was measured from **1970-01-01**:
+  `dte 20775` instead of 28, `T = 56.9 years` instead of `0.0767`.
+- With `r = 0.30` and `T = 56.9`, `exp(-r·T) ≈ 2.6e-8`, so a call's no-arbitrage
+  bounds collapse from `[S − K·disc, S]` to **`[S, S]`** — and any price that is not
+  exactly the spot is `price-outside-arbitrage-bounds`. **326 of 333 rows**, exactly
+  the live count.
+
+**The suite was blind to it:** `probes/engine.parity.v1.js` has always injected
+`now: FIXED_NOW_MS`, an *epoch* value, so the two clocks were never distinguished.
+The bug only appears when the engine is created with **default options** where
+`performance` exists — which is precisely what both live probes do.
+
+**Fix:** a separate `nowEpoch` (default `Date.now()`) used only for maturity
+resolution, with **no** fallback to `now` — guessing which kind of clock a caller
+injected is the mistake that caused this. The parity suite pins both clocks.
+
+New regression section 9 asserts, against the **generated bundle** in a context that
+has `performance`:
+
+- default-options maturity is `dte/365`, not ~57 years
+- a monotonic `now` cannot poison the maturity
+- an explicit `nowEpoch` wins over a monotonic `now`
+- the suite's own pinning (`now` + `nowEpoch`) still resolves dte exactly
+
+`pass=162 fail=0` (was 156), bundle parity **24/24** unchanged, `node --check` clean.
+
+Also worth recording from E-066: the 84 rows whose T does not resolve all carry
+expiry `1405/07/29` — **today**, `dte 0` — and the engine correctly refuses to
+fabricate a maturity, so they fail open and stay visible. 8% of confirmed rows
+bypass the filter by design. And the 7 rows that "passed" before the fix all carried
+`iv 2.9999999108910558` — the IV solver cap, labelled `no-iv-solution` and kept
+visible by q10 — so even those 7 were artefacts of the wrong T.
 ### Verified — LIVE the real engine projection end to end (E-065, owner, old.tsetmc.com 2026-10-21T07:09:51Z): the A<->B chain holds on real data; the engine judges 11 of 2753 rows
 
 `probes/aRealProjection.live.v1.js` ran live after pasting the generated

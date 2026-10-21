@@ -361,9 +361,28 @@ function createBEngine(options) {
   // requestIdleCallback with a timeout runs B in the idle gap; setTimeout(0) is
   // the fallback. Both are injected for testability.
   const scheduler = opts.scheduler || createScheduler();
+  // TWO clocks, because the engine asks two different questions:
+  //   now()      - "how long did this cycle take" -> a MONOTONIC clock, so it can
+  //                never go backwards. performance.now() is the right default.
+  //   nowEpoch() - "what is today" -> a WALL clock, because calendar(expiry, ms)
+  //                does new Date(ms). A monotonic value here is catastrophic and
+  //                SILENT: new Date(12345) is 1970-01-01, so every expiry looks
+  //                ~20775 days away, T becomes ~57 years, exp(-r*T) rounds to
+  //                zero, the no-arbitrage bounds collapse to [S, S] and
+  //                marketPriceProblem rejects every price that is not exactly S.
+  //                That is E-066: 326 of 333 live rows failed with
+  //                'price-outside-arbitrage-bounds' for a reason that was a
+  //                clock bug, not a market fact.
+  // The two clocks are pinned separately: `now` for timing, `nowEpoch` for
+  // maturity. The parity suite pins BOTH (see newEngine()).
   const now = opts.now || (typeof performance !== 'undefined' && performance.now
     ? function () { return performance.now(); }
     : function () { return Date.now(); });
+  // nowEpoch does NOT fall back to `now`: the two are not interchangeable and
+  // guessing which kind of clock a caller injected is exactly the mistake that
+  // caused E-066. A caller who needs a deterministic maturity pins nowEpoch.
+  const nowEpoch = (typeof opts.nowEpoch === 'function') ? opts.nowEpoch
+    : (typeof Date.now === 'function' ? function () { return Date.now(); } : now);
 
   const state = {
     symbols: [],                 // [inscode, ...] ordered
@@ -608,7 +627,7 @@ function createBEngine(options) {
     const expiry = parsed && parsed.expiry ? String(parsed.expiry) : '';
     if (!expiry) return { ok: false, reason: 'no expiry on the parsed label' };
     let dte = null;
-    try { dte = calendar(expiry, now()); } catch (e) { return { ok: false, reason: 'calendar failed' }; }
+    try { dte = calendar(expiry, nowEpoch()); } catch (e) { return { ok: false, reason: 'calendar failed' }; }
     if (dte === null || !isFinite(dte) || dte <= 0) return { ok: false, reason: 'no usable maturity' };
     return { ok: true, T: dte / 365 };
   }
