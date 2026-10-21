@@ -3,6 +3,56 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Verified — LIVE real projection re-run with the fixed bundle (E-068, owner, old.tsetmc.com 2026-10-21T08:10:29Z): the chain survives the engine fix, and the filter hides 5 rows
+
+The owner re-ran `probes/aRealProjection.live.v1.js` — **the same probe, byte for
+byte** — after pasting the bundle rebuilt for E-066's clock fix.
+
+| | E-065 (buggy clock) | E-068 (fixed) |
+|---|---|---|
+| computed | 11 | **365** (33x) |
+| kept | 11 | 360 |
+| hidden | 0 | **5** |
+| failOpen | 2742 | 2770 |
+| rows | 2753 | 3135 |
+| evaluated by the site | 1965 (71.4%) | 2323 (74.1%) |
+| reads | 3930 | 4646 (= 2 x 2323) |
+| engine elapsedMs | 20.1 | 41.8 |
+
+REAL: `reads 4646 over 2323 distinct inscodes, verdicts {keep 360, hide 5,
+failOpen 1958} = expected exactly, verdictsMatchProjection TRUE`. INVERTED:
+`flippedWithProjection 365, mismatches 0`. CLEARED: `reads 0`. ROLLBACK: slot,
+mirror and persisted storage all restored (889 chars, unchanged).
+
+**The chain is independent of what B decides.** E-065 published 11 judgements
+because of the clock bug; with only the engine behind the projection changed,
+the same probe publishes 365 and every property still holds. A is a pure
+function of the published bitset.
+
+**The filter now hides rows, and the reach is the product finding.** All 5
+hidden rows are `ivStatus: fail-iv-range` with iv between 2.5 and 2.902 —
+genuinely above the owner's `ivMax 2.5`, the first live run where the window has
+real teeth. But the engine judges only 365 of 3135 rows (11.6%), and of the 2323
+the site evaluates, A keeps 360 and fails open on 1958 (84.3%). It is right
+about every row it judges and silent on 5 of every 6 — the silence being E-067's
+598 no-usable-price rows and 84 `dte 0` rows failing open by the owner's own
+q8/q9 design.
+
+G-28 is closed by this run. **G-29 opens** for the product decision on the IV
+window and the price guards, measured by the new
+`probes/aConfigSweep.live.v1.js` (14 configs x the whole live population).
+
+### Added — `probes/aConfigSweep.live.v1.js` (G-29): what would each funnel config actually do to the live page?
+
+Read-only. For each candidate config it builds an engine with that config, builds
+the underlying map from `mw.AllRows` and runs `computeFunnel` over every row,
+reporting judged / kept / hidden / fail-open, the reason histograms, the IV
+distribution and the **delta against the shipped defaults** (`newlyJudged`,
+`newlyHidden`, `lostFromKept`) with samples of the rows each change adds. The
+shipped-defaults variant is checked against the E-067/E-068 band, and every
+variant is cross-checked by an identity
+(`judged = judgedBase + newlyJudged - lostFromJudged`) so a sweep that proves
+nothing reports `no-effect` instead of a vacuous pass.
 ### Verified — LIVE funnel re-run with the fixed bundle (E-067, owner, old.tsetmc.com 2026-10-21T07:55:29Z): computed 14 -> 353, and the filter removes 2 rows
 
 The owner re-pasted the rebuilt bundle and re-ran the read-only diagnostic.
