@@ -4,6 +4,41 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+### Verified — the code pasted into the filter editor's TEXTAREA reaches the page byte-identical (E-073, owner 2026-10-24T08:27:17.198Z): G-31 closed
+
+Every registration probe before this one wrote the filter slot from the console.
+`probes/aTextAreaRegister.live.v1.js` goes through the editor the owner actually
+uses, and the answer is the useful one: **the textarea path is byte-transparent.**
+
+`QueryWindowEditFilter()` opened the filter dialog — the first rung of the opener
+ladder, so no click-based fallback was needed. The repo-generated 430-byte body
+was written into `#InputFilterCode`, `input` and `change` were dispatched, the
+textarea was read back unchanged, and `QueryWindowSaveFilter()` plus the «ثبت»
+control ran. What landed: slot 4 holds 430 bytes with fnv1a `38fe0c59` and
+`mw.FilterCode` holds the same — byte-identical to the generated body. No hidden
+transformation sits between the paste and the execution.
+
+B ran with the shipped defaults over 1987 symbols (computed 191, kept 189,
+hidden 2, fail-open 1796). On the page the code read 1340 distinct rows — 67.4%
+of all rows, the same subset the console path rendered in E-071 — and produced
+189 keep / 2 hide / 1149 fail-open, exactly the projection's verdicts over those
+same rows. Rollback restored the slot, the mirror, `FilterNo`, the five-filter
+array, the textarea's original 46,424 bytes and the persisted storage.
+
+**A correction to E-071's own note.** E-071 called 4096 bytes "the limit the site
+enforces". That was wrong: `#InputFilterCode` has `maxLength -1`, so the DOM
+imposes no length limit at all. The 4096 figure is our own spec-derived estimate
+— `src/projection/exactA.v0.1.0.js`, "Capacity estimate for A (15131F textarea
+limit ~4KB) … per spec §8.14" — not a measured property of the page, which has
+now demonstrably accepted 46,424 bytes in the textarea and persisted them in a
+slot. The 430-byte body's margin against 4096 remains a useful conservative
+budget; it is a margin against our estimate, not against a wall we measured.
+
+Also recorded: `judged` is a subset of `evaluated` on this path too (189 + 2 =
+191 over 1340 rendered rows), and the third measurement of data drift — judged
+143 (E-070, 05:56Z) → 188 (E-071, 07:05Z) → 191 (E-073, 08:27Z) with the same
+`configHash`. Any live settings delta must be attributed to drift first.
+
 ### Fixed — the apply probe's rollback repaired the mirror instead of restoring it, and a flaky absolute millisecond bound failed the engine suite on a busy machine (E-072)
 
 `probes/aSettingsApply.harness.v1.js` is new: it runs the apply probe file itself
