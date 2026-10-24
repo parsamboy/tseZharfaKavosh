@@ -122,7 +122,11 @@
       if (mw && mw.Settings && mw.Settings.Filters && savedFilterNo !== null && mw.Settings.Filters[savedFilterNo]) {
         mw.Settings.Filters[savedFilterNo].FilterCode = savedSettingsCode;
       }
-      mw.FilterCode = (savedFilterCode !== '') ? savedFilterCode : savedSettingsCode;
+      // Restore, do not repair: if the mirror was empty before the run it goes back to
+      // empty, even when the slot held code. Substituting the slot's code here would
+      // change the page away from its original state and make mirrorRestored report a
+      // rollback that did not actually happen (the node harness caught exactly this).
+      mw.FilterCode = savedFilterCode;
       var i;
       for (i in mw) { if (mw.hasOwnProperty(i) && i.indexOf('__B_') === 0) delete mw[i]; }
       if (mw && typeof mw.SaveParams === 'function') mw.SaveParams();

@@ -4,6 +4,38 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+### Fixed — the apply probe's rollback repaired the mirror instead of restoring it, and a flaky absolute millisecond bound failed the engine suite on a busy machine (E-072)
+
+`probes/aSettingsApply.harness.v1.js` is new: it runs the apply probe file itself
+inside a vm context with a minimal fake site, so all five scenarios are
+reproducible without the owner. 108 checks pass — defaults, stored `wideReach`,
+garbage storage (nothing registered), an inline override, and a change made
+through the panel's own `applyChange` → `save` path.
+
+Building it found two defects, and neither was in the code the harness was
+written to test:
+
+**The rollback repaired instead of restoring.** `restoreState()` set
+`mw.FilterCode` to the *slot's* code when the mirror had been empty. That leaves
+the page in a state it had never been in, and makes `mirrorRestored` report a
+rollback that did not actually happen. It now restores `savedFilterCode`
+verbatim — restore, do not repair.
+
+**An absolute millisecond bound is a test that depends on the machine.**
+`engine.parity.v1.js` asserted `detectDirty < 3.0ms` while its own comment admits
+a 1.4–2.6ms variance, so a loaded machine fails the suite for no code reason. It
+did exactly that during this session (162/1). The bound is now a ratio against
+the same run's own full cycle, which is machine-independent; five consecutive
+runs are 163/0.
+
+The synthetic population is measured, not guessed. The first version produced
+zero hidden rows, which would have made every hidden-row assertion vacuous, so a
+price sweep against the engine located where each verdict class actually lives:
+the solved IV climbs monotonically with price, so one ladder crosses `ivMax`
+(`fail-iv-range` → HIDE) and keeps climbing into the q10 pin
+(`no-iv-solution` → stays visible). The harness now asserts the population itself
+exercises keep, hide *and* fail-open, so it cannot silently degrade again.
+
 ### Verified — the settings now drive the LIVE filter (E-071, owner 2026-10-24T07:05:08.372Z): G-30 closed
 
 `probes/aSettingsApply.live.v1.js` ran on `old.tsetmc.com/Loader.aspx?ParTree=15131F`.
