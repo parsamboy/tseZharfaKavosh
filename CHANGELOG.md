@@ -3,6 +3,47 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+### Added — the settings now reach the live filter, not just the measurement (E-070 owner run + E-071 apply probe)
+
+The UX settings panel ran live on `old.tsetmc.com/Loader.aspx?ParTree=15131F`
+(owner, 2026-10-24T05:56:26.341Z) with the 46,484-byte browser bundle: all four
+globals preflighted true, the panel built its 16 controls from `SCHEMA`, and every
+variable moved the measured counts. Under the shipped defaults the engine judges
+143 of 1987 rows (7.2%): 143 kept, **0 hidden**, 1844 fail-open; `ivStatus`
+{ok 142, no-iv-solution 1}; `failOpenReason` {not a confirmed option 1525,
+book-too-wide 100, price-outside-arbitrage-bounds 30, missing S/K 23, no usable
+market price 166}. The `wideReach` preset takes judged 143 → 194 (+51, 0 lost
+from kept): all 30 out-of-bounds rows recover, only 21 of the 100 book-too-wide
+do. Turning the IV filter off on top changed nothing — an honest null result,
+because hidden was already 0.
+
+One gap the run exposed: `filterNo` was `-1`, so **no filter slot was
+registered** — the panel changed the measurement, not what the page shows.
+
+`probes/aSettingsApply.live.v1.js` closes that gap. It takes the settings from
+`window.__FUNNEL_SETTINGS_OVERRIDE` > storage > defaults, normalises them through
+`TseFunnelSettings`, runs B with them and publishes, registers the repo-generated
+A body through the proven E-064/E-068 path, reads the verdicts back through
+tallying Proxies in real / inverted / cleared phases, then rolls everything back
+(filter slot, mirror, persisted storage). The guard hash is
+`TseFunnelSettings.configHash(settings)` — never `configVersion + FilterCode.length`
+— and the probe proves it is sensitive to **all 16 variables** by moving each one
+alone and requiring the hash to change.
+
+The node harness (`/home/user/applyHarness.js`, 5 scenarios) passes: defaults,
+stored `wideReach`, garbage storage (nothing registered), an inline override, and
+a change made through the panel's own `applyChange` → `save` path. Two harness
+defects were found and fixed on the way, and both were the known traps rather than
+new ones: the A body references a bare global `mw`, so a site simulator written in
+the host realm must expose it or every `eval` throws and "A matched the
+projection" becomes vacuously true over zero rows; and a hash probe that asks for
+one hard-coded value is blind when the owner already chose that value — it now
+moves every variable and skips candidates the normalizer repairs back.
+
+The first `SETTINGS_JSON` after load shows judged 143 → 142 with **no variable
+changed**: `mw.AllRows` mutates in place, so any live settings comparison must
+attribute data drift before claiming an effect.
+
 ### Added — the UX funnel settings layer (E-069, owner decision 2026-10-21): «همه متغیرها در تنظیمات UX قابل تغییر باشند»
 
 The owner's answer to G-29 was not one of the four offered directions (keep /
