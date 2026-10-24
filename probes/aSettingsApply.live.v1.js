@@ -415,8 +415,10 @@
     var code = null;
     try { code = mw.PrepareFilterCode(BODY); } catch (e) { out.errors.push('PrepareFilterCode: ' + String((e && e.message) || e)); }
     var finalCode = (typeof code === 'string') ? code : BODY;
+    var slotWritten = false;
     if (mw && mw.Settings && mw.Settings.Filters && savedFilterNo !== null && mw.Settings.Filters[savedFilterNo]) {
       mw.Settings.Filters[savedFilterNo].FilterCode = finalCode;
+      slotWritten = true;
     }
     mw.FilterCode = finalCode;
     if (typeof mw.SaveParams === 'function') mw.SaveParams();
@@ -427,7 +429,14 @@
       compiledIdentical: (typeof code === 'string') ? (code === BODY) : null,
       compiledLen: (typeof code === 'string') ? code.length : null
     };
-    out.register = { renderCalled: doRender() };
+    // E-070 found filterNo = -1 on the live page: no slot was active, so a registration
+    // that only writes the slot would silently do nothing. Report which slot was used and
+    // whether it was actually written, so the verdict can never be ambiguous about it.
+    out.register = {
+      slot: savedFilterNo, slotWritten: slotWritten,
+      mirrorWritten: (mw.FilterCode === finalCode),
+      renderCalled: doRender()
+    };
     setTimeout(next, 400);
   }
 
