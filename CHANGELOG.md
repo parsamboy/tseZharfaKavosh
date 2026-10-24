@@ -3,6 +3,45 @@
 All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
+
+### Verified — the settings now drive the LIVE filter (E-071, owner 2026-10-24T07:05:08.372Z): G-30 closed
+
+`probes/aSettingsApply.live.v1.js` ran on `old.tsetmc.com/Loader.aspx?ParTree=15131F`.
+This time a filter slot was active (`filterNo 4`), which E-070 had not been.
+
+With the shipped defaults the engine judged 188 of 1987 symbols — 187 kept, 1
+hidden, 1799 fail-open — and published `snap-1-1987` with `configHash
+fs1-df750af0` over a 249-byte bitset. The dual-trigger guard refused to re-run on
+the same snapshotId+hash. The repo-generated A body (430 bytes, fnv1a `38fe0c59`,
+returned byte for byte by `PrepareFilterCode`) went into slot 4 and the mirror,
+then `SaveParams` and `RenderData`.
+
+On the real page A read 1340 distinct rows and produced **exactly** the
+projection's verdicts — 187 keep / 1 hide / 1152 fail-open, `verdictsMatchProjection
+true`. The inverted phase flipped 188 rows with 0 mismatches; clearing produced 0
+reads; rollback restored the slot, the mirror and the persisted storage and
+verified the bytes.
+
+Two identities worth keeping:
+
+- **judged ⊆ evaluated.** 187 + 1 = 188 = everything the engine judged, and the
+  647 rows the site never rendered all fall inside the 1799 insufficient-data
+  rows. The funnel never judges a row the page does not show — the same property
+  E-068 showed.
+- **data drift is real.** E-070 at 05:56:26Z with the identical hash judged 143
+  of 1987 with 0 hidden; this run at 07:05:08Z judged 188 with 1 hidden. +45
+  judged and +1 hidden in 69 minutes with an unchanged config. Any live settings
+  delta must be attributed to drift before it is attributed to a variable.
+
+Hygiene held under a real slot: the persisted blob was 48,489 bytes and the active
+slot already held 46,424 bytes of `FilterCode` before the run — larger than the
+4096-byte limit the site enforces. The run replaced it and restored it byte for
+byte.
+
+What remains open is not machinery but product: the IV window, and the 1525 rows
+that never reach the option parser at all. Those are invisible to the funnel — the
+projection fail-opens them — so only the A/B registration can act on them.
+
 ### Added — the settings now reach the live filter, not just the measurement (E-070 owner run + E-071 apply probe)
 
 The UX settings panel ran live on `old.tsetmc.com/Loader.aspx?ParTree=15131F`
