@@ -39,7 +39,11 @@ function evaluateRow(row, published) {
   if (pos === undefined) return true;              // fail-open: unknown symbol
   const byteIdx = pos >> 3;                        // pos / 8 (identical, cheaper)
   const mask = 1 << (pos & 7);                     // pos % 8 (identical, cheaper)
-  if (byteIdx < 0 || byteIdx >= published.known.length) return true; // fail-open: out of range
+  // fail-open: out of range. BOTH arrays are checked, not just `known`: a bitset that is
+  // shorter than known would otherwise read `undefined >> mask` === 0 and HIDE a row the
+  // engine never judged. Found by probes/filterProgram.harness.v1.js (E-074).
+  if (byteIdx < 0 || byteIdx >= published.known.length) return true;
+  if (byteIdx >= published.bitset.length) return true;
   if (!((published.known[byteIdx] & mask) !== 0 ? 1 : 0)) return true; // not computed -> fail-open
   return ((published.bitset[byteIdx] & mask) !== 0);
 }
@@ -50,22 +54,44 @@ function evaluateRow(row, published) {
  * Every guard below is a fail-open exit: a missing/short projection can never
  * hide rows from the user.
  * Written as plain readable source: no mangling, no Terser/Uglify (contract §1.3).
- * @returns {string} source body assigning `FilterResult`
+ *
+ * WHY THE LAST LINE IS A BARE `FilterResult;` (E-074, found by measuring the site's
+ * own call site). The site executes the body as
+ *     var FilterResult; try { FilterResult = eval(mw.FilterCode) } catch(e){ FilterResult=false }
+ *     if (!FilterResult) { ...hide the row... }
+ * so the COMPLETION VALUE of the body is the verdict, not the value of the
+ * `FilterResult` variable. A script whose final statement is an `if` whose inner
+ * assignment did not run completes with `undefined`, and `!undefined` is true —
+ * so every fail-open row was being HIDDEN. The guards below were all correct;
+ * the exit value was not. Ending with a bare `FilterResult;` makes the completion
+ * value exactly the verdict, so a fail-open row yields `true` and stays visible.
+ *
+ * NOTE FOR TESTS: compileFilterCodeBody() appends `return FilterResult;`, which is a
+ * DIFFERENT execution model from the site. A parity check that only exercises that
+ * wrapper cannot see this class of defect; it must also eval the body and inspect the
+ * completion value.
+ *
+ * @returns {string} source body whose completion value is the verdict
  */
 function buildFilterCodeBody() {
   return [
     '// tseZharfaKavosh A lookup ' + VERSION + ' — reads only B published projection',
+    '// The site does FilterResult = eval(mw.FilterCode): the COMPLETION VALUE of this',
+    '// body IS the verdict. Every fail-open exit below must therefore evaluate to true,',
+    '// never to undefined - a script ending in an if that did not run its last',
+    '// assignment completes with undefined, and !undefined hides the row (E-074).',
     'var FilterResult = true;',
     'var __i = mw.__B_index;',
     'if (__i && mw.__B_known && mw.__B_bitset && row) {',
     '  var __p = __i[row.inscode];',
     '  if (__p !== undefined) {',
     '    var __b = __p >> 3, __m = __p & 7;',
-    '    if (__b >= 0 && __b < mw.__B_known.length && (mw.__B_known[__b] >> __m) & 1) {',
+    '    if (__b >= 0 && __b < mw.__B_known.length && __b < mw.__B_bitset.length && (mw.__B_known[__b] >> __m) & 1) {',
     '      FilterResult = !!((mw.__B_bitset[__b] >> __m) & 1);',
     '    }',
     '  }',
-    '}'
+    '}',
+    'FilterResult;'
   ].join('\n');
 }
 

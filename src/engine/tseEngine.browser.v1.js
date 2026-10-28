@@ -221,24 +221,30 @@ function evaluateRow(row, published) {
   if (pos === undefined) return true;              
   const byteIdx = pos >> 3;                        
   const mask = 1 << (pos & 7);                     
-  if (byteIdx < 0 || byteIdx >= published.known.length) return true; 
+  if (byteIdx < 0 || byteIdx >= published.known.length) return true;
+  if (byteIdx >= published.bitset.length) return true;
   if (!((published.known[byteIdx] & mask) !== 0 ? 1 : 0)) return true; 
   return ((published.bitset[byteIdx] & mask) !== 0);
 }
 function buildFilterCodeBody() {
   return [
     '// tseZharfaKavosh A lookup ' + VERSION + ' — reads only B published projection',
+    '// The site does FilterResult = eval(mw.FilterCode): the COMPLETION VALUE of this',
+    '// body IS the verdict. Every fail-open exit below must therefore evaluate to true,',
+    '// never to undefined - a script ending in an if that did not run its last',
+    '// assignment completes with undefined, and !undefined hides the row (E-074).',
     'var FilterResult = true;',
     'var __i = mw.__B_index;',
     'if (__i && mw.__B_known && mw.__B_bitset && row) {',
     '  var __p = __i[row.inscode];',
     '  if (__p !== undefined) {',
     '    var __b = __p >> 3, __m = __p & 7;',
-    '    if (__b >= 0 && __b < mw.__B_known.length && (mw.__B_known[__b] >> __m) & 1) {',
+    '    if (__b >= 0 && __b < mw.__B_known.length && __b < mw.__B_bitset.length && (mw.__B_known[__b] >> __m) & 1) {',
     '      FilterResult = !!((mw.__B_bitset[__b] >> __m) & 1);',
     '    }',
     '  }',
-    '}'
+    '}',
+    'FilterResult;'
   ].join('\n');
 }
 function buildFilterCode() {
@@ -449,7 +455,7 @@ function createBEngine(options) {
       if (!inscode || index[inscode] !== undefined) continue; 
       index[inscode] = symbols.length;
       rowIndex[inscode] = list[i];
-      symbols.push(inscode);
+      symbols.push( inscode );   
     }
     let changed = false;
     if (symbols.length !== state.symbols.length) changed = true;
@@ -500,7 +506,7 @@ function createBEngine(options) {
           if (p[dirtyFields[f]] !== r[dirtyFields[f]]) { isDirty = true; break; }
         }
       }
-      if (isDirty) { dirty.push(inscode); rowMap[inscode] = r; }
+      if (isDirty) { dirty.push( inscode ); rowMap[inscode] = r; }   
     }
     return { dirty: dirty, rowMap: rowMap, count: dirty.length };
   }

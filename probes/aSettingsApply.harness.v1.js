@@ -40,6 +40,24 @@ const REPO = path.join(__dirname, '..');
 const BUNDLE = path.join(REPO, 'src', 'engine', 'tseEngine.browser.v1.js');
 const PROBE = path.join(REPO, 'probes', 'aSettingsApply.live.v1.js');
 
+// The expected A body is derived from the repo generator, never hard-coded: the body's
+// size and hash change whenever the generator changes (E-074 changed both, from 430 B /
+// fnv1a 38fe0c59 to a longer body), and a hard-coded expectation silently pins the
+// harness to a stale body and passes for the wrong reason.
+const EXPECT_BUNDLE_CTX = { window: null, performance: { now: function () { return 1; } } };
+EXPECT_BUNDLE_CTX.window = EXPECT_BUNDLE_CTX;
+EXPECT_BUNDLE_CTX.global = EXPECT_BUNDLE_CTX;
+vm.createContext(EXPECT_BUNDLE_CTX);
+vm.runInContext(fs.readFileSync(BUNDLE, 'utf8'), EXPECT_BUNDLE_CTX, { filename: 'b.js' });
+const BODY = EXPECT_BUNDLE_CTX.TseALookup.buildFilterCode().body;
+function fnv1a(s) {
+  let h = 0x811c9dc5, i;
+  for (i = 0; i < s.length; i++) { h ^= s.charCodeAt(i) & 0xff; h = (h * 0x01000193) >>> 0; }
+  return ('00000000' + h.toString(16)).slice(-8);
+}
+const EXPECTED_BODY = { body: BODY, bytes: BODY.length, fnv1a: fnv1a(BODY) };
+function expectedBody() { return EXPECTED_BODY; }
+
 let failures = 0;
 let checks = 0;
 function check(name, cond, detail) {
@@ -223,7 +241,7 @@ function checkMachinery(json, label) {
     typeof json.register.slot === 'number' && json.register.slotWritten === true && json.register.mirrorWritten === true,
     JSON.stringify(json.register));
   check(label + ': the body is the repo generator, not a literal',
-    json.body.fnv1a === '38fe0c59' && json.body.bytes === 430 && json.body.compiledIdentical === true,
+    json.body.fnv1a === expectedBody().fnv1a && json.body.bytes === expectedBody().bytes && json.body.compiledIdentical === true,
     json.body.fnv1a + ' ' + json.body.bytes + 'B');
   // the non-vacuity assertion: read the verdicts only if rows were actually read
   check(label + ': the site evaluated a non-empty subset',

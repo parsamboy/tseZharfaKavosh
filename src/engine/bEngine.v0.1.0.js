@@ -425,7 +425,7 @@ function createBEngine(options) {
       if (!inscode || index[inscode] !== undefined) continue; // dedupe, keep first
       index[inscode] = symbols.length;
       rowIndex[inscode] = list[i];
-      symbols.push(inscode);
+      symbols.push( inscode );   // NOTE: the space inside the parens defeats the site's `(field)` shorthand rules (E-074)
     }
     let changed = false;
     if (symbols.length !== state.symbols.length) changed = true;
@@ -495,7 +495,7 @@ function createBEngine(options) {
           if (p[dirtyFields[f]] !== r[dirtyFields[f]]) { isDirty = true; break; }
         }
       }
-      if (isDirty) { dirty.push(inscode); rowMap[inscode] = r; }
+      if (isDirty) { dirty.push( inscode ); rowMap[inscode] = r; }   // NOTE: the space inside the parens defeats the site's `(field)` shorthand rules (E-074)
     }
     return { dirty: dirty, rowMap: rowMap, count: dirty.length };
   }

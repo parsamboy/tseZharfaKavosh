@@ -1,0 +1,32 @@
+{
+  "artifact": "filterProgram.v1",
+  "builtFrom": "src/engine/tseEngine.browser.v1.js",
+  "bytes": 51720,
+  "lines": 1206,
+  "fnv1a": "8556dc3a",
+  "tickMs": 400,
+  "fingerprintFields": [
+    "pl",
+    "plc",
+    "l18",
+    "l30",
+    "tvol",
+    "tno",
+    "pcp",
+    "pd1",
+    "po1",
+    "pc"
+  ],
+  "cacheKeys": [
+    "__TSE_PROGRAM",
+    "__TSE_SCHED"
+  ],
+  "guards": [
+    "parses in a (row, mw) scope",
+    "no `(siteField)` shorthand shape",
+    "ends with the IIFE call so the completion value is the verdict",
+    "no top-level FilterResult declaration",
+    "never throws: every path is inside try/catch",
+    "fail-open: any missing projection piece returns true"
+  ]
+}

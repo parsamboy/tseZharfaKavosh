@@ -918,6 +918,146 @@ check('createCalendar() reads today from the LOCAL date (a UTC shift moves a 1-d
   })(), 'local-day based');
 
 
+section('7a. the SITE execution model: the completion value IS the verdict (E-074)');
+{
+  // This section exists because of a defect the rest of the suite could not see.
+  // The site executes the filter body as
+  //   var FilterResult; try { FilterResult = eval(mw.FilterCode) } catch(e){ FilterResult=false }
+  //   if (!FilterResult) { ...hide the row... }
+  // so the COMPLETION VALUE of the body is the verdict. Section 7 tests the body through
+  // compileFilterCodeBody(), which appends `return FilterResult;` - a DIFFERENT execution
+  // model. Under that model a fail-open row returns `true`; under the site's model the
+  // same body completed with `undefined`, and `!undefined` hid the row. Every guard in
+  // the body was correct and every row was still wrong: 48 of 48 fail-open rows hidden.
+  // The only way to catch that class of defect is to execute the body the way the site
+  // does and assert what the PAGE does, not what the module returns.
+  //
+  // The projection here is hand-built on purpose: the engine parity population above
+  // happens to produce zero `hide` verdicts, so a suite driven by it could never test the
+  // hide branch. A fixed 24-symbol rig covers all four outcomes exactly.
+  const fc = A.buildFilterCode();
+  // the site's own function, written non-strict, with the verbatim call site
+  const siteRow = new Function('mw', 'row', 'document', [
+    'var hidden = false;',
+    'if (mw.FilterCode.length != 0) {',
+    '  var FilterResult;',
+    '  try { FilterResult = eval(mw.FilterCode); }',
+    '  catch (e) { FilterResult = false; }',
+    '  if (!FilterResult) { if (document.getElementById(row.inscode) != null) { hidden = true; } }',
+    '}',
+    'return { verdict: FilterResult, hidden: hidden };'
+  ].join('\n'));
+  const fakeDoc = { getElementById: function () { return {}; } };
+
+  const RIG = [
+    ['keepA', 0, 1, true],   // symbol, position, known bit, bitset bit -> expected
+    ['keepB', 1, 1, true],
+    ['keepC', 2, 1, true],
+    ['keepD', 3, 1, true],
+    ['hideA', 4, 1, false],
+    ['hideB', 5, 1, false],
+    ['hideC', 6, 1, false],
+    ['hideD', 7, 1, false],
+    ['foUnknownBitA', 8, 0, false],  // in the index, but not computed -> fail-open
+    ['foUnknownBitB', 9, 0, true],
+    ['foUnknownBitC', 10, 0, false]
+  ];
+  const index = {}, known = [0, 0], bitset = [0, 0];
+  for (let i = 0; i < RIG.length; i++) {
+    const name = RIG[i][0], pos = RIG[i][1], kb = RIG[i][2], vb = RIG[i][3];
+    index[name] = pos;
+    if (kb) known[pos >> 3] |= (1 << (pos & 7));
+    if (vb) bitset[pos >> 3] |= (1 << (pos & 7));
+  }
+  // 'foAbsent' is simply not in the index at all -> fail-open
+  // NOTE (E-074): evaluateRow() guards on `published.ok`, which the page never publishes
+  // (publish() writes only __B_index/__B_known/__B_bitset and friends). The body therefore
+  // guards on the presence of those three arrays instead. Both guard sets are checked here
+  // so the node reference and the page body cannot drift apart.
+  const publishedLike = { ok: true, index: index, known: known, bitset: bitset };
+  const mwLike = { FilterCode: fc.body, __B_index: index, __B_known: known, __B_bitset: bitset };
+  const expectedClass = { keepA: 'keep', keepB: 'keep', keepC: 'keep', keepD: 'keep',
+    hideA: 'hide', hideB: 'hide', hideC: 'hide', hideD: 'hide',
+    foUnknownBitA: 'failOpen', foUnknownBitB: 'failOpen', foUnknownBitC: 'failOpen',
+    foAbsent: 'failOpen' };
+  const wantVisible = { keep: true, hide: false, failOpen: true };
+
+  const bad = [];
+  const seen = { keep: 0, hide: 0, failOpen: 0 };
+  const names = Object.keys(expectedClass);
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i], cls = expectedClass[name];
+    seen[cls]++;
+    const got = siteRow(mwLike, { inscode: name }, fakeDoc);
+    if (got.hidden === wantVisible[cls]) {
+      if (bad.length < 8) bad.push({ symbol: name, class: cls, completionValue: String(got.verdict), hidden: got.hidden });
+    }
+  }
+  check('the rig exercises keep, hide AND fail-open', seen.keep > 0 && seen.hide > 0 && seen.failOpen > 0, JSON.stringify(seen));
+  check('the SITE hides exactly the rows the projection hides (E-074)',
+    bad.length === 0, 'wrong=' + bad.length + ' of ' + names.length + ' ' + JSON.stringify(bad.slice(0, 3)));
+  // the same rig through the module, so the two cannot silently diverge
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i], cls = expectedClass[name];
+    const viaModule = A.evaluateRow({ inscode: name }, publishedLike);
+    const viaBody = A.compileFilterCodeBody(fc.body)({ inscode: name }, mwLike);
+    if (viaModule !== viaBody || viaBody !== wantVisible[cls]) {
+      if (bad.length < 12) bad.push({ symbol: name, class: cls, module: String(viaModule), body: String(viaBody) });
+    }
+  }
+  check('evaluateRow and the generated body agree with the rig on all outcomes',
+    bad.length === 0, 'wrong=' + bad.length + ' ' + JSON.stringify(bad.slice(0, 3)));
+
+  // and the fail-open law itself, through the site's model
+  check('site model: nothing published -> the row STAYS VISIBLE',
+    siteRow({ FilterCode: fc.body }, { inscode: 'keepA' }, fakeDoc).hidden === false);
+  check('site model: an empty index -> the row STAYS VISIBLE',
+    siteRow({ FilterCode: fc.body, __B_index: {}, __B_known: known, __B_bitset: bitset }, { inscode: 'keepA' }, fakeDoc).hidden === false);
+  check('site model: a short known array -> the row STAYS VISIBLE',
+    siteRow({ FilterCode: fc.body, __B_index: index, __B_known: [], __B_bitset: bitset }, { inscode: 'keepA' }, fakeDoc).hidden === false);
+  check('site model: a missing row object -> the row STAYS VISIBLE',
+    siteRow({ FilterCode: fc.body, __B_index: index, __B_known: known, __B_bitset: bitset }, undefined, fakeDoc).hidden === false);
+  // a throwing body must still be fail-closed (the site's own law, unchanged)
+  check('site model: a throwing body hides the row (the site is fail-closed)',
+    siteRow({ FilterCode: 'var FilterResult = true; throw new Error("boom");' }, { inscode: 'keepA' }, fakeDoc).hidden === true);
+  // and the completion value must be exactly the verdict, not merely truthy
+  const completions = {};
+  for (let i = 0; i < names.length; i++) {
+    const v = siteRow(mwLike, { inscode: names[i] }, fakeDoc).verdict;
+    completions[JSON.stringify(v)] = (completions[JSON.stringify(v)] || 0) + 1;
+  }
+  check('the completion value is a real boolean for every outcome',
+    Object.keys(completions).sort().join(',') === 'false,true',
+    'distinct completion values: ' + JSON.stringify(completions) + ' (undefined would mean fail-open rows get hidden)');
+  // the same four guard shapes must agree between the module and the body
+  const guardShapes = [
+    ['complete', { index: index, known: known, bitset: bitset }],
+    ['no index', { known: known, bitset: bitset }],
+    ['no known', { index: index, bitset: bitset }],
+    ['no bitset', { index: index, known: known }],
+    ['empty index', { index: {}, known: known, bitset: bitset }]
+  ];
+  const guardBad = [];
+  for (let g = 0; g < guardShapes.length; g++) {
+    const label = guardShapes[g][0], shape = guardShapes[g][1];
+    const pub = { ok: shape.index && shape.known && shape.bitset ? true : false };
+    pub.index = shape.index; pub.known = shape.known; pub.bitset = shape.bitset;
+    const page = { FilterCode: fc.body };
+    if (shape.index !== undefined) page.__B_index = shape.index;
+    if (shape.known !== undefined) page.__B_known = shape.known;
+    if (shape.bitset !== undefined) page.__B_bitset = shape.bitset;
+    for (let i = 0; i < names.length; i++) {
+      const m = A.evaluateRow({ inscode: names[i] }, pub);
+      const b2 = siteRow(page, { inscode: names[i] }, fakeDoc);
+      if (m !== (b2.hidden === false)) {
+        if (guardBad.length < 6) guardBad.push({ shape: label, symbol: names[i], module: String(m), pageHidden: b2.hidden });
+      }
+    }
+  }
+  check('evaluateRow and the page body agree on every guard shape (E-074)',
+    guardBad.length === 0, 'wrong=' + guardBad.length + ' ' + JSON.stringify(guardBad.slice(0, 3)));
+}
+
 section('7c. scheduler + configVersion init');
 {
   // createScheduler prefers requestIdleCallback

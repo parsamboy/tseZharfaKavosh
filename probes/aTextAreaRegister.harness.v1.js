@@ -36,6 +36,24 @@ const REPO = path.join(__dirname, '..');
 const BUNDLE = path.join(REPO, 'src', 'engine', 'tseEngine.browser.v1.js');
 const PROBE = path.join(REPO, 'probes', 'aTextAreaRegister.live.v1.js');
 
+// The expected A body is derived from the repo generator, never hard-coded: the body's
+// size and hash change whenever the generator changes (E-074 changed both, from 430 B /
+// fnv1a 38fe0c59 to a longer body), and a hard-coded expectation silently pins the
+// harness to a stale body and passes for the wrong reason.
+const EXPECT_BUNDLE_CTX = { window: null, performance: { now: function () { return 1; } } };
+EXPECT_BUNDLE_CTX.window = EXPECT_BUNDLE_CTX;
+EXPECT_BUNDLE_CTX.global = EXPECT_BUNDLE_CTX;
+vm.createContext(EXPECT_BUNDLE_CTX);
+vm.runInContext(fs.readFileSync(BUNDLE, 'utf8'), EXPECT_BUNDLE_CTX, { filename: 'b.js' });
+const BODY = EXPECT_BUNDLE_CTX.TseALookup.buildFilterCode().body;
+function fnv1a(s) {
+  let h = 0x811c9dc5, i;
+  for (i = 0; i < s.length; i++) { h ^= s.charCodeAt(i) & 0xff; h = (h * 0x01000193) >>> 0; }
+  return ('00000000' + h.toString(16)).slice(-8);
+}
+const EXPECTED_BODY = { body: BODY, bytes: BODY.length, fnv1a: fnv1a(BODY) };
+function expectedBody() { return EXPECTED_BODY; }
+
 let failures = 0, checks = 0;
 function check(name, cond, detail) {
   checks++;
@@ -263,10 +281,10 @@ console.log('\n=== A. the dialog is closed; QueryWindowEditFilter opens it; the 
   check('no errors', json.errors.length === 0, JSON.stringify(json.errors));
   check('the dialog was opened by QueryWindowEditFilter()', json.dialog.opened === true && json.dialog.by === 'QueryWindowEditFilter()', json.dialog.by);
   check('the path is the textarea', json.path === 'textarea', json.path);
-  check('the body is the repo generator', json.body.bytes === 430 && json.body.fnv1a === '38fe0c59', json.body.fnv1a);
+  check('the body is the repo generator', json.body.bytes === expectedBody().bytes && json.body.fnv1a === expectedBody().fnv1a, json.body.fnv1a + ' ' + json.body.bytes + 'B');
   check('the body is deterministic', json.body.deterministic === true);
   check('the page did NOT rewrite the textarea', json.textarea.pageRewroteIt === false, json.textarea.readBackLen + 'B');
-  check('the textarea received the whole body', json.textarea.readBackLen === 430, json.textarea.readBackLen);
+  check('the textarea received the whole body', json.textarea.readBackLen === expectedBody().bytes, json.textarea.readBackLen);
   check('the name field was filled', json.textarea.nameField && json.textarea.nameField.set === true);
   check('input+change were dispatched', json.textarea.eventsDispatched.join(',') === 'input,change', json.textarea.eventsDispatched.join(','));
   check('QueryWindowSaveFilter ran', json.save.calls.saveFilter === 'called', json.save.calls.saveFilter);
