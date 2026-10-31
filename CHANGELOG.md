@@ -4,6 +4,37 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The settings layer changes the live verdicts: hide 4 -> 100, cfgHash fs1-df750af0 -> fs1-f52463a4 (E-080, G-33 closed)
+
+The owner set localStorage['tseFunnelSettings.v1'] = {version:1,savedAt:null,settings:{ivMax:1.0}}
+and ran RUN_ME.js. The program booted with cfgHash fs1-f52463a4 - not the default
+fs1-df750af0, exactly the pair E-074 measured - and on the page read 2187 distinct rows of
+3408 AllRows producing keep 338 / hide 100 / failOpen 1749 at 3.729 us/row, with the body and
+TseLookup.evaluateRow agreeing on whether the row is hidden for 2187 of 2187 rows.
+
+The result is clean and interpretable. Judged rows were 438 in both runs and fail-open was
+1749 in both, so exactly 96 rows moved from keep to hide and nothing else moved - precisely
+what tightening the IV window to 1.0 must do, with zero collateral damage to the fail-open
+population. That is the q8/q10 law holding under a configuration change.
+
+The live magnitude is larger than the fake page predicted: the node sweep said hidden 74 of
+176 rows, the live page hides 100 of 2187. The harness population is far more IV-marginal
+than the owner's real watch.
+
+The override route is the settings layer's own storage, not a special variable. E-079
+established that __FUNNEL_SETTINGS_OVERRIDE does not exist and that the localStorage key is
+the real input; this confirms it end to end with no change to the live-verified program.
+
+The program is stable across four live runs on three page states: E-077/E-078/E-079 all
+defaults (hide 4, keep 434, 1749 fail-open, cross-check perfect) and E-080 with ivMax 1.0
+(hide 100, keep 338, same 1749 fail-open). Three independent live per-row cost measurements:
+3.61, 3.936 and 3.729 us/row, all far inside E-064's 13-16 us budget.
+
+Rollback was fully clean this time, including textAreaRestored true and dialogLeftOpen false,
+because the owner had opened the dialog by hand so there was an original value to restore.
+
+The owner should run localStorage.removeItem('tseFunnelSettings.v1') to return to the defaults.
+
 The override variable I told the owner to set does not exist (E-079)
 
 The owner set window.__FUNNEL_SETTINGS_OVERRIDE = { ivMax: 1.0 } as instructed and ran
