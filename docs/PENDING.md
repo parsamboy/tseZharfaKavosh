@@ -108,4 +108,6 @@ exact projection → bridge → release tests → owner approval
 - هر dependency جدید، gateهای downstream وابسته را دوباره بازبینی می‌کند؛
 - هیچ موردی در این فایل default اجرایی یا مجوز shipping نیست.
 
-| G-32 | the self-contained program (51,719 B) must boot and execute on the live page | OPEN — E-076: the safety gate PASSED live (51,719 -> 51,719 bytes, fnv1a 036ebf14) and the textarea delivered it byte-identical to slot 5 and the mirror, but the program never booted (window.__TSE_PROGRAM unset after 3120ms, zero rows read). The probe now measures the cause with a sentinel body. | E-076 |
+| G-32 | the self-contained program (51,719 B) must boot and execute on the live page | CLOSED — E-077: booted (ticks=1 runs=1, fp-3402-5c7218df, fs1-df750af0), published a real projection, read 2186 distinct rows of 3402 (keep 434 / hide 4 / failOpen 1748) at 3.61 us/row, cross-check 2186/2186 agree, status program-verified-live. | E-077 |
+
+| G-33 | the non-default configuration must be proven to change the LIVE verdicts | OPEN — owner call: set window.__FUNNEL_SETTINGS_OVERRIDE before pasting RUN_ME.js, no new probe needed. E-077 ran on the defaults (fs1-df750af0). | E-077 |

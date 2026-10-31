@@ -4,6 +4,42 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The self-contained program ran live: 2186 rows, 3.61 us/row, cross-check 2186/2186 (E-077, G-32 closed)
+
+The owner ran RUN_ME.js at old.tsetmc.com/Loader.aspx?ParTree=15131F. The safety gate
+passed again - the site's PrepareFilterCode left all 51,719 bytes identical, fnv1a
+036ebf14 on both sides. The program booted: window.__TSE_PROGRAM installed, the scheduler
+ticked once (ticks=1, runs=1, fp=fp-3402-5c7218df, cfgHash=fs1-df750af0 - the default
+settings hash, same as E-071/E-072/E-073), lastError null, and the engine, models, lookup
+and settings modules all present on the page. It published a real projection and the body
+read 4372 reads / 2186 distinct rows of 3402 AllRows (64.3% coverage), producing keep 434 /
+hide 4 / failOpen 1748. The body and TseLookup.evaluateRow on the same published projection
+agreed on whether the row is hidden for 2186 of 2186 rows - zero disagreements, 1748 of them
+fail-open, which is the q8/q10 law working as designed. Status program-verified-live.
+
+The first honest live per-row cost: 3.61 us/row over a 7890ms span and 2186 distinct rows,
+against E-064's 13-16 us budget. The node harness's 0.007-0.017 us/row was a fake-page
+artefact and its 1.58 us/row was a lower bound from a page that renders in one tight loop.
+
+The opener ladder earned its keep. QueryWindowEditFilter() did NOT open the dialog this
+time; the probe fell through NewFilter(), an edit-filter control, and finally a generic
+filter-control click. E-073 and E-076 had both been opened by QueryWindowEditFilter(), so a
+probe that hard-coded one opener would have failed here and reported textarea-unavailable.
+
+One real probe defect, fixed: the probe opened the filter dialog itself and left it OPEN.
+Everything else rolled back - slot, mirror, textarea, editor fields, program page state,
+persisted storage - but a probe that opens a modal must close it. The rollback now tries a
+close control matching the site's own Persian/Cancel/close labels, then Escape on the
+modal, then hiding #ModalWindowOuter1, and reports which one worked.
+
+The textarea reports restored false / cleared true because it did not exist before the
+probe opened the dialog, so there is no original value to restore - emptying it is the
+state the owner left it in. The wording invites a false alarm.
+
+G-32 closed. What remains open is the owner's call: the same probe with
+window.__FUNNEL_SETTINGS_OVERRIDE set to a non-default configuration, to prove the settings
+layer changes the live verdicts.
+
 The safety gate passed live over the whole 51,719-byte program (E-076)
 
 The owner ran RUN_ME.js at old.tsetmc.com/Loader.aspx?ParTree=15131F. The site's own

@@ -185,6 +185,53 @@
     savedTextAreaExisted = !!el;
     savedTextArea = el ? { id: el.id || null, value: String(el.value || '') } : null;
   }
+  // Close the filter dialog the probe opened, so the page is left as it was found. The site
+  // gives no QueryWindow*Close, so try the controls a real user would use, in order, and
+  // report which one worked. Returns null when the dialog was not open in the first place.
+  function closeDialog() {
+    if (typeof document === 'undefined') return null;
+    var ta = document.getElementById('InputFilterCode');
+    if (!ta) return null;                       // the dialog is not open, nothing to do
+    var tried = [];
+    function attempt(label, el) {
+      if (!el) return false;
+      tried.push(label);
+      try { el.click(); } catch (e) { return false; }
+      return !document.getElementById('InputFilterCode');
+    }
+    // 1. a control whose text or class says it closes
+    var closers = document.querySelectorAll(
+      '#ModalWindowInner1 .close, #ModalWindowInner1 [data-dismiss], #ModalWindowInner1 button, #ModalWindowInner1 a, .close, [data-dismiss]');
+    for (var i = 0; i < closers.length; i++) {
+      var el = closers[i];
+      var txt = String((el.textContent || '') + ' ' + (el.className || '') + ' ' + (el.getAttribute && el.getAttribute('aria-label') || ''));
+      if (/بستن|انصراف|Cancel|close/i.test(txt)) {
+        if (attempt('control:' + txt.trim().slice(0, 24), el)) return 'control:' + txt.trim().slice(0, 24);
+      }
+    }
+    // 2. Escape, the way a user would dismiss a modal
+    try {
+      var target = document.getElementById('ModalWindowInner1') || ta;
+      ['keydown', 'keyup'].forEach(function (type) {
+        var ev = new KeyboardEvent(type, { key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true });
+        target.dispatchEvent(ev);
+      });
+      tried.push('escape');
+      if (!document.getElementById('InputFilterCode')) return 'escape';
+    } catch (e) {}
+    // 3. the overlay the site uses to host the modal
+    var outer = document.getElementById('ModalWindowOuter1');
+    if (outer) {
+      try {
+        outer.style.display = 'none';
+        outer.setAttribute('style', 'display:none');
+        tried.push('overlay-hidden');
+        if (!document.getElementById('InputFilterCode')) return 'overlay-hidden';
+      } catch (e) {}
+    }
+    return null;
+  }
+
   function restoreState() {
     try {
       if (mw && mw.Settings && mw.Settings.Filters) {
@@ -201,6 +248,11 @@
         try { ta.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
       }
       if (nameEl) nameEl.value = '';
+      // The probe opened this dialog itself, so leaving it open is a change to the owner's
+      // page. E-077 left it open - everything else rolled back, but a probe that opens a
+      // modal must close it again. Best effort: an explicit close control first, then Escape,
+      // then the modal overlay the site uses.
+      var closedBy = closeDialog();
       for (var k in mw) { if (mw.hasOwnProperty(k) && k.indexOf('__B_') === 0) delete mw[k]; }
       // the program's own page state must go too, or the owner keeps a half-live program
       try { delete window.__TSE_PROGRAM; } catch (e) {}
@@ -208,7 +260,8 @@
       if (mw && typeof mw.SaveParams === 'function') mw.SaveParams();
       return { restored: true, filterNo: savedFilterNo, filters: savedFilters.length,
         textAreaRestored: savedTextAreaExisted, textAreaCleared: !!ta && !savedTextAreaExisted,
-        nameFieldCleared: !!nameEl, programStateRemoved: (!window.__TSE_PROGRAM && !window.__TSE_SCHED) };
+        nameFieldCleared: !!nameEl, programStateRemoved: (!window.__TSE_PROGRAM && !window.__TSE_SCHED),
+        dialogClosedBy: closedBy };
     } catch (e) { return { restored: false, error: String((e && e.message) || e) }; }
   }
 
@@ -572,7 +625,9 @@
     out.rollback.mirrorRestored = (String(mw.FilterCode || '') === savedFilterCode);
     out.rollback.textAreaRestored = savedTextAreaExisted;
     out.rollback.openedDialog = openedDialog;
-    out.rollback.dialogLeftOpen = openedDialog && !savedTextAreaExisted;
+    var closedBy = out.rollback.restore && out.rollback.restore.dialogClosedBy;
+    out.rollback.dialogLeftOpen = openedDialog && !savedTextAreaExisted && !closedBy;
+    out.rollback.dialogClosedBy = closedBy;
     out.rollback.editorFieldsEmptied = (out.rollback.restore && out.rollback.restore.textAreaCleared) || savedTextAreaExisted;
     out.identity = {
       generatedBytes: BODY.length, generatedFnv1a: fnv1a(BODY),
