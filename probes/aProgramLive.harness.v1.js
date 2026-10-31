@@ -117,7 +117,9 @@ function makePage(opts) {
   //     appendChild does, and a fake that registers at creation lets the opener ladder
   //     pass without opening anything.
   const nodes = [];
-  function El(tag) { this.tagName = String(tag).toUpperCase(); this.id = ''; this.value = ''; this._h = {}; }
+  function El(tag) { this.tagName = String(tag).toUpperCase(); this.id = ''; this.value = '';
+    this.textContent = ''; this.className = ''; this._h = {}; }
+  El.prototype.getAttribute = function (n) { return this._h[n] !== undefined ? this._h[n] : null; };
   El.prototype.addEventListener = function () {};
   El.prototype.removeEventListener = function () {};
   El.prototype.dispatchEvent = function (ev) {
@@ -130,9 +132,15 @@ function makePage(opts) {
     createElement: (tag) => new El(tag),
     getElementById: (id) => { for (let i = 0; i < nodes.length; i++) if (nodes[i].id === id) return nodes[i]; return null; },
     getElementsByTagName: (tag) => nodes.filter((e) => e.tagName === String(tag).toUpperCase()),
-    querySelectorAll: () => [],
+    querySelectorAll: () => nodes.slice(),
     createEvent: () => ({ initEvent: function () {} })
   };
+  // the market-watch toolbar: present before any dialog, as on the real page
+  const toolbar = doc.createElement('div');
+  toolbar.id = 'FilterToolbar';
+  toolbar.textContent = 'فیلتر';
+  nodes.push(toolbar);
+
   win.document = doc;
 
   // the dialog's DOM, created only when an opener runs (as on the real page)
@@ -207,7 +215,11 @@ function makePage(opts) {
   return win;
 }
 
-function runProbe(win) {
+// The probe is a chain of setTimeout phases. The default budget drains the phases a healthy
+// run needs; a scenario that ends in a timeout (no textarea, no boot) legitimately takes
+// longer, because the opener ladder now waits for the market-watch toolbar and retries
+// before it concludes the page has no filter editor.
+function runProbe(win, budget) {
   let json = null, lines = [];
   const origLog = console.log;
   console.log = function () {
@@ -220,7 +232,7 @@ function runProbe(win) {
   try {
     vm.runInContext(fs.readFileSync(PROBE, 'utf8'), win, { filename: 'probe.js' });
     // the probe is a chain of setTimeout phases: drain them all
-    win.__flush(2000);
+    win.__flush(budget || 2000);
   } finally { console.log = origLog; }
   return { json: json, lines: lines };
 }
@@ -318,7 +330,7 @@ section('C. no opener produces the textarea: the probe must not change anything'
 {
   const win = makePage({ prepare: 'faithful', openers: false });
   const before = { slot0: win.mw.Settings.Filters[0].FilterCode, mirror: win.mw.FilterCode };
-  const r = runProbe(win);
+  const r = runProbe(win, 9000);
   const j = r.json;
   check('the probe emitted PROBE_JSON', !!j);
   if (j) {

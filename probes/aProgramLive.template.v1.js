@@ -60,6 +60,11 @@
   var RENDER_WAIT = 2600;
   var POLL_MS = 260;
   var BOOT_WAIT = 3000;
+  // The owner can paste while the page is still building its toolbar, and every opener then
+  // finds nothing to click. The same probe that had just succeeded reported
+  // textarea-unavailable nine minutes later, so the ladder has to be able to WAIT and to
+  // RETRY rather than conclude that the page has no filter editor.
+  var TOOLBAR_WAIT = 4000;
   var out = {
     meta: {
       test: 'A-PROGRAM-LIVE-v1', gate: 'G-32', evidenceId: 'E-075',
@@ -322,6 +327,19 @@
     next();
   }
 
+  // Does the page have anything that looks like a filter control yet? Used only to decide
+  // whether it is worth running the opener ladder at all.
+  function findFilterControl() {
+    if (typeof document === 'undefined') return null;
+    var els = document.querySelectorAll('button, a, li, td, span, div, input[type=button], [onclick]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var txt = String((el.textContent || '') + ' ' + (el.getAttribute && el.getAttribute('onclick') || ''));
+      if (/filter|فیلتر/i.test(txt)) return el;
+    }
+    return null;
+  }
+
   function phaseOpenDialog(next) {
     var openers = [
       { name: 'QueryWindowEditFilter()', run: function () { return { ok: mw.QueryWindowEditFilter() }; } },
@@ -329,9 +347,9 @@
       { name: 'click an edit-filter control', run: function () { var c = clickMatching(/filter|فیلتر/i, /edit|ویرایش|تغییر/i); return { clicked: c }; } },
       { name: 'click any filter control', run: function () { var c = clickMatching(/filter|فیلتر/i, null); return { clicked: c }; } }
     ];
-    var attempts = [], step = 0;
-    function tryNext() {
-      if (step >= openers.length) {
+    var attempts = [], step = 0, round = 0;
+    var ROUNDS = 3;
+    function ladderDone() {
         out.dialog = { opened: false, attempts: attempts, textAreaFound: !!findCodeTextArea() };
         out.status = 'textarea-unavailable';
         out.verdict = 'no opener produced the filter editor textarea, so this probe did NOT run the UI path and did not change anything. Open the filter dialog by hand (the filter/edit control on the market-watch toolbar) and run this probe again. What was tried: ' +
@@ -339,8 +357,38 @@
         say(out);
         console.log('A-PROGRAM-LIVE: ' + out.verdict);
         return;
+    }
+    function tryNext() {
+      if (step >= openers.length) {
+        // A modal can still be animating and the toolbar can render after the paste, so run
+        // the whole ladder again before concluding the page has no filter editor.
+        round++;
+        if (round < ROUNDS) {
+          step = 0;
+          setTimeout(tryNext, 700);
+          return;
+        }
+        ladderDone();
+        return;
       }
       var o = openers[step], rec = { name: o.name };
+      if (round === 0 && step === 0 && !findFilterControl()) {
+        // nothing to click yet: the page is still building. Wait for it rather than burn all
+        // four openers against an empty toolbar and report a false textarea-unavailable.
+        var waitedToolbar = 0;
+        (function waitToolbar() {
+          if (findFilterControl() || findCodeTextArea()) { tryNext(); return; }
+          waitedToolbar += 150;
+          if (waitedToolbar > TOOLBAR_WAIT) {
+            attempts.push({ name: 'wait for the market-watch toolbar',
+              error: 'no filter control appeared within ' + TOOLBAR_WAIT + 'ms' });
+            tryNext();
+            return;
+          }
+          setTimeout(waitToolbar, 150);
+        })();
+        return;
+      }
       try { var r = o.run(); if (r && r.clicked) rec.clicked = r.clicked; } catch (e) { rec.error = String((e && e.message) || e); }
       attempts.push(rec);
       setTimeout(function () {

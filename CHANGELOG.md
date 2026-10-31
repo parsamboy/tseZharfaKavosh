@@ -4,6 +4,34 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The opener ladder now waits and retries, and the fake page had to become realistic first (E-078)
+
+Nine minutes after the probe produced program-verified-live, the same probe on the same page
+reported textarea-unavailable: all four openers failed to produce the filter editor
+textarea. The probe behaved correctly - it refused the UI path, changed nothing, and told the
+owner to open the dialog by hand - but a ladder that gives up after one pass is fragile in
+exactly the way this demonstrated, since E-077 had itself been opened by the fourth rung.
+
+The ladder now retries three rounds, and before the first attempt it waits up to four seconds
+for the market-watch toolbar to appear. The owner can paste while the page is still building
+its toolbar, and every opener then finds nothing to click.
+
+Making the probe wait exposed two defects in the harness's own fake page. Its
+querySelectorAll returned [] unconditionally, so the new wait-for-the-toolbar guard could
+never be satisfied and the probe burned its whole budget - scenarios A, C and D stopped
+emitting PROBE_JSON. And the fake page had no toolbar at all, which no real page looks like.
+Both fixed: querySelectorAll returns the registered nodes, El gained textContent and
+getAttribute so a control can be classified by its text, and the page carries a toolbar from
+the start while the dialog is still created only by an opener.
+
+The deadlock is the lesson: the wait condition included findCodeTextArea(), which can only
+become true by running an opener, so on a page with no visible filter control the guard could
+never be satisfied by the thing it was waiting for. It now waits for the toolbar, which the
+page provides by itself.
+
+All suites green: filterProgram 43/43, apply 108/108, textarea 51/51, aProgramLive 56/56,
+engine 173/0, uxSettings 191/0, bundle 54/0.
+
 The self-contained program ran live: 2186 rows, 3.61 us/row, cross-check 2186/2186 (E-077, G-32 closed)
 
 The owner ran RUN_ME.js at old.tsetmc.com/Loader.aspx?ParTree=15131F. The safety gate
