@@ -112,4 +112,4 @@ exact projection → bridge → release tests → owner approval
 
 | G-33 | the non-default configuration must be proven to change the LIVE verdicts | CLOSED — E-080: cfgHash fs1-df750af0 -> fs1-f52463a4, hide 4 -> 100, keep 434 -> 338, failOpen unchanged at 1749, cross-check 2187/2187. Route is localStorage['tseFunnelSettings.v1']. | E-080 |
 
-| G-34 | the clean installer must be run live and left installed | OPEN — probes/aInstall.harness.v1.js 46/46 and tools/buildInstallProbe.v1.js green, including the hard guard that the body is 51,719 bytes / fnv1a 036ebf14. The owner runs INSTALL_ME.js at old.tsetmc.com/Loader.aspx?ParTree=15131F -> Console. | E-081 |
+| G-34 | the clean installer must be run live and left installed | BLOCKED — the fnv1a unification (E-082) changed the body to 51,672 bytes / fnv1a 2d264eb8, so tools/buildInstallProbe.v1.js correctly refuses to build until the new body is verified live. The owner runs RUN_ME.js once. | E-082 |

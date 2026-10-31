@@ -24,6 +24,20 @@
  */
 'use strict';
 
+/*
+ * ---------------------------------------------------------------------------
+ * THIS IS A NODE HARNESS - it must NOT be pasted into a browser console.
+ *   run it with:   node probes/aInstall.harness.v1.js
+ * A browser console has no `require`, no `process` and no filesystem, so pasting
+ * this file there fails with `require is not defined`. The file to paste into the
+ * page is INSTALL_ME.js (or RUN_ME.js) at the repository root, never a *.harness.v1.js.
+ * ---------------------------------------------------------------------------
+ */
+if (typeof require !== 'function') {
+  console.log('STOP: this is a NODE harness. Run it with  node probes/aInstall.harness.v1.js  - do not paste it into a browser console. The browser file is INSTALL_ME.js.');
+  throw new Error('node harness pasted into a browser console');
+}
+
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -194,6 +208,19 @@ function runInstaller(win, budget) {
   return { json: json, lines: lines };
 }
 
+// If the installer is not built, it is almost always because tools/buildInstallProbe.v1.js
+// REFUSED: the program body changed and its fnv1a is no longer the live-verified one. That is
+// the guard working, so say so once instead of failing six times on a missing file.
+if (!fs.existsSync(INSTALLER)) {
+  console.log('\n=== 0. the installer is not built ===');
+  console.log('  FAIL  INSTALL_ME.js does not exist');
+  console.log('       tools/buildInstallProbe.v1.js refuses to build it unless the program body is');
+  console.log('       the one that ran live (LIVE_VERIFIED_FNV1A). The body changed, so it must be');
+  console.log('       re-verified on the page first: run node tools/buildProgramProbe.v1.js, paste');
+  console.log('       RUN_ME.js, and once it reports program-verified-live update the constant.');
+  console.log('\n=== SUMMARY ===\n  checks=1 failures=1\n1 FAILURES');
+  process.exit(1);
+}
 const installerSrc = fs.readFileSync(INSTALLER, 'utf8');
 const programSrc = fs.readFileSync(PROGRAM, 'utf8').replace(/\s+$/, '');
 

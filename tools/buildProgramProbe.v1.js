@@ -13,6 +13,7 @@
  */
 
 const fs = require('fs');
+const { execFileSync } = require('child_process');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
@@ -84,6 +85,15 @@ const BANNER = [
   ''
 ].join('\n');
 fs.writeFileSync(OUT, BANNER + probe);
+
+// It must parse. The vm.Script check above catches syntax, but node --check is the same
+// engine the owner's browser is closest to, and it costs nothing.
+try {
+  execFileSync(process.execPath, ['--check', OUT], { stdio: 'pipe' });
+} catch (e) {
+  console.error('BUILD REFUSED: node --check failed on the written probe.');
+  process.exit(1);
+}
 console.log('  probe template  ' + path.relative(ROOT, TEMPLATE) + '  (' + template.length + ' bytes)');
 console.log('  program body    ' + program.length + ' bytes / fnv1a ' + fnv1a(program));
 console.log('  probe           ' + probe.length + ' bytes -> ' + path.relative(ROOT, OUT));

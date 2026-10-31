@@ -2,6 +2,9 @@
  * OI CDN live v1 — try exact same fetch as page (no credentials, same headers)
  * Run on main.tsetmc.com/InstInfo/624... — should get JSON with OI
  */
+
+ * RUN HERE (always): old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12)
+ *   tag: [کنسول] - paste this file, nothing before it.
 (async function(){
   var out={ tries:[], status:'unknown' };
   const urls=[

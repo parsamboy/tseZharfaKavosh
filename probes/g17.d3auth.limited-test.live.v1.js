@@ -3,6 +3,9 @@
  * Run on ANY page (even old.tsetmc.com) — fetches real .well-known discovery
  * Uses public Google issuer as live proof that discovery works (TSETMC issuer will be same pattern)
  */
+
+ * RUN HERE (always): old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12)
+ *   tag: [کنسول] - paste this file, nothing before it.
 (async function g17live(){
   var out={ meta:{ test:'G17-D3AUTH-LIVE-v1', gate:'G-17', host:location.host, now:new Date().toISOString()}, discovery:{ issuer:'https://accounts.google.com', url:'https://accounts.google.com/.well-known/openid-configuration', fetched:false, status:null, hasKeys:false }, validate:{ httpsPass:false, httpFail:false }, status:'unknown' };
   // Test validateAuthConfig with live data (same as src)

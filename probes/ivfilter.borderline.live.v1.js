@@ -33,6 +33,9 @@
  *
  * Run: paste in the console on the Bourse page, then report the PROBE_JSON line.
  */
+
+ * RUN HERE (always): old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12)
+ *   tag: [کنسول] - paste this file, nothing before it.
 'use strict';
 
 (function () {

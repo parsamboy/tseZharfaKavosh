@@ -13,6 +13,9 @@
  * No FilterCode change, no SaveParams, no network — timing only.
  * SPDX-License-Identifier: Smart-FFA-1.1
  */
+
+ * RUN HERE (always): old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12)
+ *   tag: [کنسول] - paste this file, nothing before it.
 'use strict';
 
 // ---- BEGIN verbatim src/optionParser.v0.1.0.js (exports stripped) ----

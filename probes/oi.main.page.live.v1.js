@@ -2,6 +2,9 @@
  * OI main page live v1 — on main.tsetmc.com/InstInfo/62444... — parse OI from rendered bodyText
  * Run on main.tsetmc.com/InstInfo/62444611500832644 AFTER page shows موقعیت های باز
  */
+
+ * RUN HERE (always): old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12)
+ *   tag: [کنسول] - paste this file, nothing before it.
 (function(){
   var out={ meta:{ test:'OI-MAIN-PAGE-LIVE-v1', host:location.host, url:location.href, now:new Date().toISOString()}, parse:null, api:null, status:'unknown' };
   function parseOiFromBodyText(text, inscode){

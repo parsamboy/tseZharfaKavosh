@@ -4,6 +4,40 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The constraint registry is registered and mandatory, and enforcing it found a second hash function (E-082)
+
+The owner asked for the constraints to be registered and their compliance to be MANDATORY
+before the funnel and its UX are redesigned. docs/FUNNEL_CONSTRAINTS_v1.0.md is the registry:
+27 constraints in three classes. tools/checkConstraints.v1.js enforces them - it runs all
+eight suites, scans the per-row tail of the built body for purity and for the engine being
+built once, measures the per-row cost itself, scans the builders for their guards, scans the
+repository for the browser-file/harness/fnv1a rules and the panel's privacy and legal notice,
+and exits non-zero on any violation. First run 21 pass / 8 fail; every failure was real and
+was fixed. Second run 30 pass / 0 fail / 4 unmeasured.
+
+The most important finding is C-21. There were TWO fnv1a implementations and they are not
+equivalent. src/ux/funnelSettings.v0.1.0.js xored the full charCodeAt and emulated the
+multiply with shifts - but h<<24 in JavaScript keeps only the low 8 bits of h, so that
+expression is not h*16777619 at all. It is a different hash function under a comment claiming
+it is an emulation. Measured on the same ASCII input: old 57baec54 vs new 4721814c. Unified to
+the canonical mask|prime form.
+
+Consequences, recorded honestly. The configHash strings change, because the hash function
+itself changed: configHash(defaults) fs1-df750af0 -> fs1-c84489bf and configHash({ivMax:1.0})
+fs1-f52463a4 -> fs1-ed741ee0. Behaviour is identical - the hash is an identity string compared
+against itself - but every recorded value since E-069 is now historical. And because the
+settings layer is part of the browser bundle, the bundle changed (46,887 -> 46,840 bytes) and
+so did the self-contained body (51,719 -> 51,672 bytes, fnv1a 036ebf14 -> 2d264eb8). The
+per-row tail is unchanged; the change is entirely inside the install block.
+
+The installer guard did exactly its job: it refused to build, because an installer must not
+put an unmeasured body on the owner's page. The stale INSTALL_ME.js still on disk was deleted
+so it cannot be pasted by mistake, and the installer harness now reports that state once
+instead of failing six times on a missing file.
+
+The four live-only constraints are reported as UNMEASURED, never as compliant. A constraint
+that is not proven is not a constraint that is met.
+
 The clean installer: INSTALL_ME.js registers the program through the textarea and shows the UX (E-081)
 
 The owner asked for «یک کد تمیز تا اینجا تهیه کن در تکست اریا ثبت بشود و حداقل UX را نمایش بدهد».

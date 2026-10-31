@@ -114,14 +114,15 @@ const DEFAULTS = (function () {
 
 // ---------- small helpers ----------
 
+// C-21: ONE fnv1a in the repository. This copy used to xor the full charCodeAt and emulate the
+// multiply with shifts, while buildFilterProgram / buildProgramProbe / the live probe masked to
+// the low byte and used the FNV prime directly. For the ASCII input a config hash is built from
+// the two are identical, so the values below do not change - but a second implementation is a
+// second implementation, and E-081 is what happens when one of them drifts.
 function fnv1a(str) {
   let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    // h *= 16777619 with 32-bit wraparound
-    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-  }
-  return ('0000000' + h.toString(16)).slice(-8);
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i) & 0xff; h = (h * 0x01000193) >>> 0; }
+  return ('00000000' + h.toString(16)).slice(-8);
 }
 
 function isBoolish(v) { return v === true || v === false || v === 'true' || v === 'false' || v === '1' || v === '0' || v === 1 || v === 0; }

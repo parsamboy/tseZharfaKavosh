@@ -1,9 +1,9 @@
 {
   "artifact": "filterProgram.v1",
   "builtFrom": "src/engine/tseEngine.browser.v1.js",
-  "bytes": 51720,
-  "lines": 1206,
-  "fnv1a": "8556dc3a",
+  "bytes": 51673,
+  "lines": 1203,
+  "fnv1a": "c54de236",
   "tickMs": 400,
   "fingerprintFields": [
     "pl",

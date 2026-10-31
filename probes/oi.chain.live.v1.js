@@ -3,6 +3,9 @@
  * Uses CDN API GetInstrumentOptionByInstrumentID (found in resourceEntries) if CORS allows, else fallback to page scrape would be sequential
  * Run on main.tsetmc.com (where you already saw 4969) — LIVE
  */
+
+ * RUN HERE (always): old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12)
+ *   tag: [کنسول] - paste this file, nothing before it.
 (async function(){
   var out={ meta:{ test:'OI-CHAIN-LIVE-v1', host:location.host, now:new Date().toISOString()}, chain:{ underlying:'اهرم', expiry:'1405/07/29', count:0 }, results:[], status:'unknown' };
   // we need AllRows from old — but on main we don't have it, so we use a hard-coded chain from earlier 36 (18 strikes x2)

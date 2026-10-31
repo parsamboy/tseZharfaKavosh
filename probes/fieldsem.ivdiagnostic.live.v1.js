@@ -17,6 +17,9 @@
  * Run: paste in console on the Bourse page, then report the PROBE_JSON line.
  * SPDX-License-Identifier: Smart-FFA-1.1
  */
+
+ * RUN HERE (always): old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12)
+ *   tag: [کنسول] - paste this file, nothing before it.
 'use strict';
 
 // ---- verbatim src/models/greeks.v0.1.0.js (exports stripped) ----
