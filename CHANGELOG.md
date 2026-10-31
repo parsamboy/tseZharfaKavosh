@@ -4,6 +4,45 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The clean installer: INSTALL_ME.js registers the program through the textarea and shows the UX (E-081)
+
+The owner asked for «یک کد تمیز تا اینجا تهیه کن در تکست اریا ثبت بشود و حداقل UX را نمایش بدهد».
+probes/aInstall.template.v1.js plus tools/buildInstallProbe.v1.js produce INSTALL_ME.js at the
+repository root: the safety gate, the ranked dialog ladder, the textarea write, the UI save, the
+boot wait, then the E-070/G-29 UX panel embedded verbatim, and an INSTALL_JSON report.
+
+The installer is not a flag on the probe. RUN_ME.js measures and restores; this registers and
+leaves it, because the registration is the product. Three deliberate differences, each asserted
+by the harness: no restoreState, no __TSE_SCHED.arm = noop, no tallying Proxy. Disarming would
+kill the mechanism the panel needs - the program re-arms from the per-row code and re-publishes
+when the config hash changes, which is how a slider change reaches the rows.
+
+A real defect the harness caught in my own builder: I wrote a second fnv1a (no & 0xff,
+shift-based multiply) and it disagreed with the one that produced the live hash - it reported
+41df8acb for the very program every live run calls 036ebf14. There is now one fnv1a, identical
+in buildFilterProgram, buildProgramProbe, the live probe template, the installer and its
+harness, and the builder hard-refuses to build unless the body is 51,719 bytes / fnv1a 036ebf14.
+An installer must not put an unmeasured body on the owner's page.
+
+The harness also caught two of its own traps. vm.runInContext needs an object passed to
+vm.createContext; and the installer runs inside the context, so its console.log resolves
+against the context globals - without win.console it threw on the first line of finish() AFTER
+the registration had already happened, a failure that looks exactly like success. Two more:
+"it embeds the whole program" was a substring search on the source, but the body is injected as
+a JSON literal so its raw text is not present; and I asserted loaded.ok === true on the settings
+layer's load(), which returns { settings, warnings, source, version } and has no ok.
+
+The panel is embedded, not re-implemented: probes/aSettingsPanel.live.v1.js is spliced in
+verbatim as a JSON literal and run with an indirect eval, so it keeps its own 'use strict' IIFE
+and its own cleanup hook. Nothing needs to be pasted first, which was the old panel probe's
+prerequisite.
+
+probes/RUN_GUIDE_FA.md documents the install, the panel, the removal steps, the four live runs
+and the difference between INSTALL_ME.js and RUN_ME.js in Persian.
+
+All suites green: filterProgram 43/0, apply 108/108, textarea 51/51, aProgramLive 56/0,
+aInstall 46/0, engine 173/0, uxSettings 191/0, bundle 54/0 - 722 checks.
+
 The settings layer changes the live verdicts: hide 4 -> 100, cfgHash fs1-df750af0 -> fs1-f52463a4 (E-080, G-33 closed)
 
 The owner set localStorage['tseFunnelSettings.v1'] = {version:1,savedAt:null,settings:{ivMax:1.0}}
