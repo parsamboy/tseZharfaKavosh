@@ -1,4 +1,20 @@
 'use strict';
+/*
+ * ---------------------------------------------------------------------------
+ * THIS IS A NODE HARNESS - it must NOT be pasted into a browser console.
+ *   run it with:   node probes/<this file>
+ * A browser console has no `require`, no `process` and no filesystem, so pasting
+ * this file there fails with `require is not defined`. The file to paste into the
+ * page is the matching *.live.v1.js / aProgramLive.v1.js, never a *.harness.v1.js.
+ * ---------------------------------------------------------------------------
+ */
+if (typeof require !== 'function') {
+  console.log('STOP: this is a NODE harness. Run it with  node ' +
+    (typeof __filename !== 'undefined' ? __filename : 'this file') +
+    '  - do not paste it into a browser console. The browser file is the matching *.live.v1.js / aProgramLive.v1.js.');
+  throw new Error('node harness pasted into a browser console');
+}
+
 /**
  * probes/aProgramLive.harness.v1.js
  *
