@@ -110,4 +110,4 @@ exact projection → bridge → release tests → owner approval
 
 | G-32 | the self-contained program (51,719 B) must boot and execute on the live page | CLOSED — E-077: booted (ticks=1 runs=1, fp-3402-5c7218df, fs1-df750af0), published a real projection, read 2186 distinct rows of 3402 (keep 434 / hide 4 / failOpen 1748) at 3.61 us/row, cross-check 2186/2186 agree, status program-verified-live. | E-077 |
 
-| G-33 | the non-default configuration must be proven to change the LIVE verdicts | OPEN — owner call: set window.__FUNNEL_SETTINGS_OVERRIDE before pasting RUN_ME.js, no new probe needed. E-077 ran on the defaults (fs1-df750af0). The E-078 attempt never reached the textarea (all four openers failed), so the override is still untested live. | E-078 |
+| G-33 | the non-default configuration must be proven to change the LIVE verdicts | OPEN — the override name I gave the owner does not exist (E-079); no code change is needed. Set localStorage['tseFunnelSettings.v1'] = {version:1,savedAt:null,settings:{ivMax:1.0}} before pasting RUN_ME.js. | E-079 |

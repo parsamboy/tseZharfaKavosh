@@ -4,6 +4,34 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The override variable I told the owner to set does not exist (E-079)
+
+The owner set window.__FUNNEL_SETTINGS_OVERRIDE = { ivMax: 1.0 } as instructed and ran
+RUN_ME.js. The program verified again - gate identical, ticks=1 runs=1, 2187 distinct rows
+producing keep 434 / hide 4 / failOpen 1749 at 3.936 us/row, cross-check 2187 of 2186 - but
+cfgHash was fs1-df750af0, the DEFAULT hash, and the verdicts matched E-077 to within one row.
+The override was silently ignored: there is no __FUNNEL_SETTINGS_OVERRIDE, nor any *OVERRIDE,
+anywhere in the program, the engine or the settings layer. I carried that name out of session
+memory and presented it as the way to run a non-default configuration. It was never built.
+
+The correct route already exists and needs no change to the live-verified program: the
+settings layer's own storage. localStorage['tseFunnelSettings.v1'] holds
+{ version, savedAt, settings }, load() JSON-parses it, normalizeSettings fills the remaining
+fields from the defaults with garbage-to-default, and the program picks it up on its next
+tick. Writing that key is the whole of G-33.
+
+The measurement that caught this is cfgHash in the boot evidence. Had the probe reported only
+verdicts, an unchanged hide count would have been indistinguishable from a correct run; the
+config hash is what makes an override provably effective or provably absent.
+
+Second independent live confirmation of E-077: a different row set (3408 vs 3402 AllRows), a
+changed fingerprint, hide still 4, keep still 434, cross-check perfect - the program is
+deterministic across runs and page states.
+
+Still open: dialogClosedBy is null and dialogLeftOpen is true. closeDialog() tried a close
+control matching the site's own labels, then Escape, then hiding #ModalWindowOuter1, and none
+worked. Everything else rolls back, but the probe leaves the filter dialog open.
+
 The opener ladder now waits and retries, and the fake page had to become realistic first (E-078)
 
 Nine minutes after the probe produced program-verified-live, the same probe on the same page
