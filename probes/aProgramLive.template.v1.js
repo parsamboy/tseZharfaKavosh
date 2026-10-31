@@ -384,6 +384,32 @@
         var st2 = window.__TSE_SCHED && window.__TSE_SCHED.state;
         out.boot = { waitedMs: waited, timedOut: true, program: !!window.__TSE_PROGRAM,
           schedState: st2 ? { ticks: st2.ticks, runs: st2.runs, lastError: st2.lastError } : null };
+        // DIAGNOSE, do not guess. window.__TSE_PROGRAM is unset, so the body did not install.
+        // That is either because the site never evaluated the filter code after the UI save
+        // (a trigger defect - E-073 proved it does evaluate) or because the 51,719-byte body
+        // was evaluated and threw (a body defect - the site is fail-closed on exception, so
+        // every row would be hidden). A three-line sentinel body separates them: it can
+        // neither be size-related nor syntax-related. The owner's code is put back straight
+        // after, and the rollback that follows restores the slot regardless.
+        try {
+          window.__TSE_SENTINEL_RAN = 0;
+          var savedFilterCode = mw.FilterCode;
+          mw.FilterCode = 'window.__TSE_SENTINEL_RAN++; true;';
+          doRender();
+          out.boot.sentinelRuns = window.__TSE_SENTINEL_RAN;
+          mw.FilterCode = savedFilterCode;
+          // and once more with the real body, to see whether the site evaluates it and what
+          // a throw would look like: the site swallows the exception, so we cannot read it
+          // directly - but a second sentinel AFTER the real body tells us whether the site
+          // kept going.
+          mw.FilterCode = BODY;
+          doRender();
+          out.boot.bodyThenSentinel = window.__TSE_SENTINEL_RAN;
+          out.boot.bodyThrewEvidence = {
+            programAfter: !!window.__TSE_PROGRAM,
+            lastError: (window.__TSE_SCHED && window.__TSE_SCHED.state && window.__TSE_SCHED.state.lastError) || null
+          };
+        } catch (e) { out.errors.push('sentinel diagnosis: ' + String((e && e.message) || e)); }
         // ROLL BACK ANYWAY. The program is already sitting in the owner's slot and mirror
         // at this point, so bailing out here without restoring would leave code the owner
         // never chose registered on their page. The first version of this probe returned
@@ -591,7 +617,10 @@
     console.log('A-PROGRAM-LIVE: ' + out.verdict);
     console.log('  GATE: PrepareFilterCode identical=' + out.gate.identical + ' (' + out.gate.inputBytes + ' -> ' + out.gate.outputBytes + ' bytes, firstDiffAt=' + out.gate.firstDiffAt + ')');
     console.log('  SAVE: dialog=' + out.dialog.by + ' textarea=' + out.textarea.readBackLen + 'B mirror=' + out.save.mirrorLen + 'B(' + out.save.mirrorFnv1a + ') identical=' + out.identity.mirrorEqualsGenerated);
-    console.log('  BOOT: ticks=' + out.boot.schedState.ticks + ' runs=' + out.boot.schedState.runs + ' fp=' + out.boot.schedState.fp + ' lastError=' + out.boot.schedState.lastError);
+    // schedState is null whenever the program never booted, so this line must not assume it.
+    console.log('  BOOT: ' + (out.boot.schedState
+      ? 'ticks=' + out.boot.schedState.ticks + ' runs=' + out.boot.schedState.runs + ' fp=' + out.boot.schedState.fp + ' lastError=' + out.boot.schedState.lastError
+      : 'no scheduler state (program=' + out.boot.program + ', waitedMs=' + out.boot.waitedMs + ')'));
     console.log('  RUN : reads=' + t.reads + ' distinct=' + t.distinctCount + ' ' + JSON.stringify(t.verdicts) + ' perRow=' + t.perRowUs + 'us coverage=' + t.coverage.pctOfAllRows + '%');
     console.log('  XCHK: agree=' + cc.agree + ' disagree=' + cc.disagree + ' of ' + cc.compared + ' (failOpen=' + cc.bodyFailOpen + ')');
     console.log('  BACK: slot=' + out.rollback.slotRestored + ' mirror=' + out.rollback.mirrorRestored + ' programStateRemoved=' + out.rollback.restore.programStateRemoved + ' textarea=' + out.rollback.textAreaRestored);

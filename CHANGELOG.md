@@ -4,6 +4,45 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The safety gate passed live over the whole 51,719-byte program (E-076)
+
+The owner ran RUN_ME.js at old.tsetmc.com/Loader.aspx?ParTree=15131F. The site's own
+PrepareFilterCode was run over the entire self-contained program and returned it
+BYTE-IDENTICAL: 51,719 bytes in, 51,719 bytes out, fnv1a 036ebf14 on both sides,
+firstDiffAt -1. This is the decisive proof that the 58 unrecorded .replace() rules are
+harmless for this program, and it is why the probe leads with a gate that refuses to
+register anything if even one byte differs. The dialog opened by QueryWindowEditFilter(),
+#InputFilterCode (maxLength -1) held all 51,719 bytes unchanged with pageRewroteIt false,
+and the UI save delivered the program to mw.FilterCode and slot 5 byte-identical. The
+owner's own slot 4 still holds 46,424 bytes, which settles the size question again.
+
+The program did NOT boot: window.__TSE_PROGRAM stayed unset for 3120ms after one
+RenderData, no tick error was recorded, and the execute phase read zero rows. The rollback
+still ran and restored the slot, the mirror, the textarea, the dialog and the program page
+state.
+
+Two probe defects, both fixed:
+
+1. THE BOOT DIAGNOSTIC CRASHED. On the timeout path out.boot.schedState is null, and the
+   BOOT line dereferenced it: TypeError: Cannot read properties of null (reading 'ticks').
+   It threw after the report had already printed, so the owner's page was safe - the
+   rollback runs before finish() - but the report was truncated.
+
+2. THE PROBE COULD NOT SAY WHY THE PROGRAM DID NOT BOOT, WHICH IS THE REAL DEFECT.
+   program:false means the body never installed, but that single observation is consistent
+   with two opposite causes: the site never evaluated the filter code after the UI save (a
+   trigger defect - E-073 proved it does evaluate, 1340 distinct reads) versus the site
+   evaluated the 51.7 KB body and it threw (a body defect - the site is fail-closed on
+   exception per E-061, so every row would be hidden). The boot phase now runs a three-line
+   sentinel body that can be neither size- nor syntax-related, renders once, and reads the
+   counter; then it renders once more with the real body. That one number separates a
+   trigger defect from a body defect, and guessing it would have been the same mistake the
+   evidence ledger records three times already.
+
+Also: the generated probe is written to the repository root as RUN_ME.js, the only file in
+this repo meant for the browser, with a banner saying where to run it and what not to paste
+(the owner had pasted a node harness and then the obsolete E-065 probe).
+
 The live probe for the self-contained program, and the harness that had to be wrong first
 
 probes/aProgramLive.v1.js (85,444 bytes) runs the whole program as ONE paste in the

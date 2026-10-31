@@ -108,4 +108,4 @@ exact projection → bridge → release tests → owner approval
 - هر dependency جدید، gateهای downstream وابسته را دوباره بازبینی می‌کند؛
 - هیچ موردی در این فایل default اجرایی یا مجوز shipping نیست.
 
-| G-32 | the self-contained program (51,719 B) has never run on the live page | OPEN — probes/aProgramLive.v1.js built and harness-proven 56/56, including the safety gate; the owner must run it at old.tsetmc.com/Loader.aspx?ParTree=15131F -> Console. 58 of the site's 61 PrepareFilterCode rules remain unrecorded. | E-075 |
+| G-32 | the self-contained program (51,719 B) must boot and execute on the live page | OPEN — E-076: the safety gate PASSED live (51,719 -> 51,719 bytes, fnv1a 036ebf14) and the textarea delivered it byte-identical to slot 5 and the mirror, but the program never booted (window.__TSE_PROGRAM unset after 3120ms, zero rows read). The probe now measures the cause with a sentinel body. | E-076 |
