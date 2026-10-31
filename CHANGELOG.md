@@ -4,6 +4,69 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The live probe for the self-contained program, and the harness that had to be wrong first
+
+probes/aProgramLive.v1.js (85,444 bytes) runs the whole program as ONE paste in the
+console and drives the textarea path E-073 proved. Its first and most important job is a
+SAFETY GATE: it runs the site's own PrepareFilterCode over the entire 51,719-byte body and
+compares it byte for byte. If even one byte differs, the probe registers NOTHING and
+changes NOTHING, and reports the offset of the first difference. The reason is E-056: the
+site's DSL compiler has 61 .replace() rules mapping `(field)` shorthand to row["field"]
+and only three were ever recorded. A rewrite inside a call expression is a syntax error,
+and the site is fail-closed on exception - so registering a rewritten body would empty the
+owner's market watch. Proving the gate works required making it fail: a destructive
+scenario rewrites `(row)` and the probe stops with nothing touched.
+
+Then it opens the dialog through the ranked ladder, writes the program into
+#InputFilterCode, saves through QueryWindowSaveFilter() plus the save button, compares what
+landed in the slot and the mirror byte for byte, boots the program with one RenderData,
+waits for its own background tick, DISARMS the tick (window.__TSE_SCHED.arm = noop) so a
+re-publish cannot silently blind the measurement, installs the tallying Proxy over the
+projection the PROGRAM published, renders again, and reads the verdicts the body actually
+produced per row - with first/last read timestamps so the per-row cost is measured rather
+than assumed. Finally it cross-checks every rendered row against TseLookup.evaluateRow on
+the same projection and rolls everything back: slot, mirror, FilterNo, the textarea's
+original value, the persisted storage, and the program's own page state.
+
+probes/aProgramLive.harness.v1.js (56 checks, all passing) runs the probe against a fake
+page whose RenderData is the site's own call site built INSIDE the page context, and whose
+createElement does not register a node. It found four defects, three of them real:
+
+1. THE PROBE DID NOT ROLL BACK ON ITS OWN FAILURE PATH. On program-did-not-boot the probe
+   returned straight after say(), so the program it had just registered stayed in the
+   owner's slot and mirror and __TSE_PROGRAM/__TSE_SCHED stayed on the page. finish() now
+   runs on that path too, is defensive about the phases it never reached, and preserves the
+   root-cause status instead of flattening it into program-live-with-findings.
+
+2. THE CROSS-CHECK COMPARED THE WRONG THING. It mapped evaluateRow's true to 'keep' and
+   then compared classes, so all 48 fail-open rows disagreed and a correct program was
+   reported as having findings. evaluateRow returns a boolean and cannot express
+   fail-open; what the two paths must agree on is whether the row is HIDDEN. Now 176/176
+   agree, and the check also asserts the comparison is not vacuous.
+
+3. THE HARNESS WAS BLIND TO ITS OWN SCENARIO. Scenario D wrapped win.TseBEngine
+   .createBEngine to throw and changed nothing, because the program installs its OWN module
+   instances on first run and replaces whatever the harness wrapped. It now drops the
+   setTimeout whose delay is the program's own TICK_MS (read out of the built program so it
+   cannot drift), so the tick never fires and nothing is published.
+
+4. TWO OF THE HARNESS'S OWN BUGS, both the same shape: a trailing () after
+   vm.runInContext(...) that called the returned function with no arguments, which is why
+   RenderData rendered zero rows; and a check that read `j.save === undefined` when the
+   probe initialises out.save to {}, so a correctly-stopped probe was reported as having
+   registered something.
+
+Also documented: the program installs its own module instances on first run, replacing
+window.TseBEngine / TseModels / TseLookup / TseFunnelSettings. Benign - same source, same
+storage key - but it is why any instrumentation must be armed after the program has run.
+
+The per-row cost measured on the fake page (0.007 us/row) is an artefact of a page that
+renders all rows in one tight loop; the honest figure is the node harness's 1.58 us/row
+against E-064's 13-16 us budget. The live number is what the probe is for.
+
+All suites green: engine 173/0, uxSettings 191/0, bundle 54/0, filterProgram 43/43, apply
+108/108, textarea 51/51, aProgramLive 56/56.
+
 ### Verified — the code pasted into the filter editor's TEXTAREA reaches the page byte-identical (E-073, owner 2026-10-24T08:27:17.198Z): G-31 closed
 
 Every registration probe before this one wrote the filter slot from the console.
