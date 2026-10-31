@@ -18,7 +18,12 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const TEMPLATE = path.join(ROOT, 'probes', 'aProgramLive.template.v1.js');
 const BODY = path.join(ROOT, 'build', 'filterProgram.v1.js');
-const OUT = path.join(ROOT, 'probes', 'aProgramLive.v1.js');
+// The probe is written to the REPO ROOT under an unmistakable name. It used to be written
+// into probes/ beside two dozen other *.live.v1.js files, and the owner twice pasted a
+// different one (an old probe that wants the bundle pasted first, and a node harness).
+// There is now exactly ONE file in this repository that is meant to be pasted into the
+// page, and its name says so.
+const OUT = path.join(ROOT, 'RUN_ME.js');
 const TOKEN = "'__TSE_PROGRAM_BODY__'";
 
 function fnv1a(s) {
@@ -64,9 +69,24 @@ if (probe.indexOf(TOKEN) !== -1) {
   process.exit(1);
 }
 
-fs.writeFileSync(OUT, probe);
+// A banner the owner cannot miss, because two different files have now been pasted by
+// mistake: an obsolete probe that wants the bundle pasted first, and a node harness.
+const BANNER = [
+  '/**',
+  ' * ===========================================================================',
+  ' *  RUN_ME.js  -  PASTE THIS WHOLE FILE INTO THE PAGE CONSOLE.',
+  ' *  https://old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  F12 -> Console.',
+  ' *  Nothing else needs to be pasted first: the program is self-contained.',
+  ' *  Do NOT paste any *.harness.v1.js (those are node files) and do NOT paste',
+  ' *  src/engine/tseEngine.browser.v1.js (this file already contains it).',
+  ' * ===========================================================================',
+  ' */',
+  ''
+].join('\n');
+fs.writeFileSync(OUT, BANNER + probe);
 console.log('  probe template  ' + path.relative(ROOT, TEMPLATE) + '  (' + template.length + ' bytes)');
 console.log('  program body    ' + program.length + ' bytes / fnv1a ' + fnv1a(program));
 console.log('  probe           ' + probe.length + ' bytes -> ' + path.relative(ROOT, OUT));
 console.log('  round-trip      identical');
 console.log('  RUN AT          old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  Console (F12), one paste, no prerequisite');
+console.log('  PASTE THIS      RUN_ME.js  (the only file in this repo meant for the browser)');

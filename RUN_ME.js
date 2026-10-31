@@ -1,9 +1,18 @@
 /**
+ * ===========================================================================
+ *  RUN_ME.js  -  PASTE THIS WHOLE FILE INTO THE PAGE CONSOLE.
+ *  https://old.tsetmc.com/Loader.aspx?ParTree=15131F  ->  F12 -> Console.
+ *  Nothing else needs to be pasted first: the program is self-contained.
+ *  Do NOT paste any *.harness.v1.js (those are node files) and do NOT paste
+ *  src/engine/tseEngine.browser.v1.js (this file already contains it).
+ * ===========================================================================
+ */
+/**
  * tseZharfaKavosh — run the SELF-CONTAINED program through the TEXTAREA, live  v1
  *
- * TEMPLATE. tools/buildProgramProbe.v1.js injects build/filterProgram.v1.js between the
- * two body markers and writes probes/aProgramLive.v1.js. The template is not runnable on
- * its own; the generated file is.
+ * TEMPLATE. tools/buildProgramProbe.v1.js injects build/filterProgram.v1.js and writes
+ * RUN_ME.js at the repository root - the ONLY file in this repo meant to be pasted into
+ * the page. The template is not runnable on its own; the generated file is.
  *
  * WHY THIS EXISTS (owner, 2026-10-24, decision "self_contained")
  *   The owner asked for the whole program in ONE paste in the filter textarea: no console

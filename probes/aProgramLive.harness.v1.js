@@ -41,7 +41,9 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const BUNDLE = path.join(ROOT, 'src', 'engine', 'tseEngine.browser.v1.js');
-const PROBE = path.join(ROOT, 'probes', 'aProgramLive.v1.js');
+// The probe the owner pastes. It lives at the repository root under a name that cannot
+// be confused with the two dozen other *.live.v1.js files or with the node harnesses.
+const PROBE = path.join(ROOT, 'RUN_ME.js');
 
 let checks = 0, failures = 0;
 function check(name, cond, detail) {
