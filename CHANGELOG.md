@@ -4,6 +4,30 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The probe printed nothing while it worked, and it was clicking the site's toolbar twelve times (E-084)
+
+During market hours the owner still got no PROBE_JSON - only the browser's own performance
+warnings. The probe was working; it printed nothing until the very end, so a slow probe was
+indistinguishable from a dead one.
+
+Two causes. First, no progress output: the probe had eleven console.log calls and every one was
+in finish(), so a run that took a minute looked identical to a run that had crashed. Every phase
+now reports itself as it starts and each opener attempt is logged as it happens - nine progress
+lines on the happy path, and the preflight line comes first so the owner can see immediately
+whether the page has rows at all.
+
+Second, the ladder was too clicky. E-078 had made it retry three rounds of four rungs, and the
+last rung clicks the site's own filter toolbar item, which re-renders the whole market watch -
+about a second each time. That was up to twelve expensive clicks. The generic rung is now tried
+once, in the first round only, and the ladder retries at most twice. No live run ever needed
+that rung twice: E-077/E-079/E-080 had it work on the first attempt and E-078 on the fourth rung
+of the first round.
+
+The performance warnings are the site's, not ours - but our clicking is what provokes them.
+
+Progress output is now part of the probe's contract, asserted by the harness, so the regression
+cannot come back silently. aProgramLive.harness.v1.js is 70/70.
+
 The probe produced no output at all outside market hours (E-083)
 
 The owner ran RUN_ME.js outside market hours and got no JSON whatsoever - not a JSON with a

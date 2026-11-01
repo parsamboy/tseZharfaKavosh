@@ -113,6 +113,13 @@
     return ('00000000' + h.toString(16)).slice(-8);
   }
   function say(o) { console.log('PROBE_JSON ' + JSON.stringify(o)); }
+  // The owner ran this during market hours and got no output at all: the probe was working -
+  // the console showed 'click handler took 1089ms' over and over - but it printed nothing until
+  // the very end, so a slow probe is indistinguishable from a dead one. Every phase now reports
+  // itself as it starts.
+  function progress(msg) {
+    try { console.log('  … ' + msg); } catch (e) {}
+  }
   function doRender() {
     if (mw && typeof mw.RenderData === 'function') {
       try { mw.RenderData(); return true; } catch (e) { out.errors.push('RenderData: ' + String((e && e.message) || e)); }
@@ -159,6 +166,7 @@
   // PHASE 0 — THE SAFETY GATE. Nothing is registered until this passes.
   // ==========================================================================
   function phaseGate(next) {
+    progress('phase 0 — the safety gate: running the site own PrepareFilterCode over the whole body');
     if (typeof mw.PrepareFilterCode !== 'function') {
       out.gate = { ran: false, reason: 'PrepareFilterCode is not a function on this page' };
       out.status = 'gate-unavailable';
@@ -347,6 +355,7 @@
   // PHASES 1-5 — the proven textarea path (E-073), unchanged in shape
   // ==========================================================================
   function phaseDom(next) {
+    progress('recon — reading the page');
     out.dom = describeDom();
     out.dom.queryWindow = queryWindowFns();
     out.dom.ownerActiveSlot = (mw && mw.Settings && savedFilterNo !== null && mw.Settings.Filters[savedFilterNo])
@@ -368,14 +377,19 @@
   }
 
   function phaseOpenDialog(next) {
+    progress('opening the filter dialog');
     var openers = [
       { name: 'QueryWindowEditFilter()', run: function () { return { ok: mw.QueryWindowEditFilter() }; } },
       { name: 'QueryWindowNewFilter()', run: function () { return { ok: mw.QueryWindowNewFilter() }; } },
       { name: 'click an edit-filter control', run: function () { var c = clickMatching(/filter|فیلتر/i, /edit|ویرایش|تغییر/i); return { clicked: c }; } },
-      { name: 'click any filter control', run: function () { var c = clickMatching(/filter|فیلتر/i, null); return { clicked: c }; } }
+      // The last rung clicks the site's OWN filter toolbar item, which re-renders the whole
+      // market watch - about a second each time on this page. It is tried once, in the first
+      // round only: repeating it is the single most expensive thing this probe can do, and it is
+      // the rung that already worked in E-077/E-079/E-080.
+      { name: 'click any filter control', once: true, run: function () { var c = clickMatching(/filter|فیلتر/i, null); return { clicked: c }; } }
     ];
     var attempts = [], step = 0, round = 0;
-    var ROUNDS = 3;
+    var ROUNDS = 2;
     function ladderDone() {
         out.dialog = { opened: false, attempts: attempts, textAreaFound: !!findCodeTextArea() };
         out.status = 'textarea-unavailable';
@@ -399,6 +413,7 @@
         return;
       }
       var o = openers[step], rec = { name: o.name };
+      if (o.once && round > 0) { step++; tryNext(); return; }   // never repeat the expensive rung
       if (round === 0 && step === 0 && !findFilterControl()) {
         // nothing to click yet: the page is still building. Wait for it rather than burn all
         // four openers against an empty toolbar and report a false textarea-unavailable.
@@ -418,6 +433,8 @@
       }
       try { var r = o.run(); if (r && r.clicked) rec.clicked = r.clicked; } catch (e) { rec.error = String((e && e.message) || e); }
       attempts.push(rec);
+      progress('opener ' + (round + 1) + '/' + ROUNDS + ' ' + o.name +
+        (rec.clicked ? ' → clicked ' + rec.clicked : (rec.error ? ' → threw' : ' → no effect')));
       setTimeout(function () {
         if (findCodeTextArea()) {
           openedDialog = true;
@@ -431,6 +448,7 @@
   }
 
   function phaseWriteTextArea(next) {
+    progress('writing the program into the filter textarea');
     var el = findCodeTextArea(), nameEl = findNameInput();
     if (!el) {
       out.status = 'textarea-lost';
@@ -458,6 +476,7 @@
   }
 
   function phaseSaveUi(next) {
+    progress('saving through the UI');
     var rec = { saveFilter: null, button: null, checkFilter: null };
     try { mw.QueryWindowSaveFilter(); rec.saveFilter = 'called'; }
     catch (e) { rec.saveFilter = 'threw: ' + String((e && e.message) || e); }
@@ -485,6 +504,7 @@
   // PHASE 6 — boot the program and disarm its tick
   // ==========================================================================
   function phaseBoot(next) {
+    progress('booting the program (one RenderData, then its own tick)');
     doRender();
     var waited = 0;
     (function poll() {
@@ -601,6 +621,7 @@
     return tally;
   }
   function phaseExecute(next) {
+    progress('measuring what the body reads on the page');
     T = installTally();
     doRender();
     setTimeout(function () {
@@ -630,6 +651,7 @@
   // PHASE 8 — cross-check the body against the reference implementation
   // ==========================================================================
   function phaseCrossCheck(next) {
+    progress('cross-checking the body against TseLookup.evaluateRow');
     var LOOKUP = window.TseLookup;
     if (!LOOKUP || typeof LOOKUP.evaluateRow !== 'function') {
       out.crossCheck = { ran: false, reason: 'TseLookup.evaluateRow is not on the page' };
@@ -785,6 +807,7 @@
   // being evaluated for a row - so there is genuinely nothing to measure. Say that plainly
   // instead of walking the owner through an opener ladder and a 3-second timeout for a result
   // that cannot exist. Nothing has been written at this point, so there is nothing to undo.
+  progress('preflight — mw=' + (!!mw) + ' allRows=' + ((mw && mw.AllRows) ? Object.keys(mw.AllRows).length : 0));
   if (!mw || !mw.AllRows || Object.keys(mw.AllRows).length === 0) {
     out.status = 'market-closed-no-rows';
     out.verdict = 'this page has no rows to evaluate (' +

@@ -272,6 +272,13 @@ section('A. the happy path: gate passes, program boots, verdicts agree');
   const r = runProbe(win);
   const j = r.json;
   check('the probe emitted PROBE_JSON', !!j, j ? j.status : 'no json');
+  // The owner ran this during market hours and saw no output at all: the probe was working (the
+  // console showed 'click handler took 1089ms' repeatedly) but printed nothing until the end, so
+  // a slow probe was indistinguishable from a dead one. Progress lines are now part of the
+  // contract, not a nicety.
+  const progressLines = r.lines.filter((l) => /…/.test(l) && /phase|recon|opener|preflight|booting|measuring|cross-check|writing|saving/.test(l));
+  check('the probe reports progress while it runs', progressLines.length >= 5,
+    progressLines.length + ' progress lines: ' + progressLines.slice(0, 3).join(' | '));
   if (!j) { console.log(r.lines.slice(0, 5).join('\n')); }
   else {
     check('the safety gate ran and passed', j.gate.ran === true && j.gate.identical === true,
