@@ -77,10 +77,18 @@
     errors: [], status: 'unknown', verdict: '', path: null
   };
 
-  var mw = (typeof window !== 'undefined') ? window.mw : null;
+  // Reading window.mw can itself THROW - a getter on the page object is not exotic, and the
+  // page is not ours. If that read is not guarded the whole IIFE dies before printing anything,
+  // which is the failure the owner actually hit (no output at all, outside market hours).
+  var mw = null;
+  try { mw = (typeof window !== 'undefined') ? window.mw : null; }
+  catch (e) { mw = null; out.__mwReadThrew = String((e && e.message) || e); }
   if (!mw) {
     out.status = 'no-page-object';
-    out.verdict = 'window.mw is not on this page - open the market watch (ParTree 15131F) and run this probe there. Nothing was changed.';
+    out.verdict = (out.__mwReadThrew
+        ? 'reading window.mw threw: ' + out.__mwReadThrew + '. '
+        : 'window.mw is not on this page. ') +
+      'Open the market watch (ParTree 15131F), let the symbol table finish loading, and run this probe there. Nothing was changed.';
     say(out); return;
   }
 
@@ -119,7 +127,17 @@
     },
     programAlreadyOnPage: !!window.__TSE_PROGRAM,
     jquery: !!(typeof window !== 'undefined' && window.jQuery),
-    prepareFilterCode: (typeof mw.PrepareFilterCode === 'function') ? 'fn/' + mw.PrepareFilterCode.length : 'absent'
+    // mw is NOT guaranteed to exist. Outside market hours, or before the page has finished
+    // building the market watch, window.mw is undefined - and this line used to dereference it
+    // unguarded at the top level of the IIFE, so the probe threw before printing anything. A
+    // probe that can die silently is worse than one that reports a failure.
+    mw: !!mw,
+    prepareFilterCode: (mw && typeof mw.PrepareFilterCode === 'function') ? 'fn/' + mw.PrepareFilterCode.length : 'absent',
+    // the page state that decides whether there is anything to measure at all
+    allRows: (mw && mw.AllRows) ? Object.keys(mw.AllRows).length : null,
+    roundNo: (mw && typeof mw.RoundNo !== 'undefined') ? mw.RoundNo : null,
+    updateSpeed: (mw && typeof mw.UpdateSpeed !== 'undefined') ? mw.UpdateSpeed : null,
+    renderData: (mw && typeof mw.RenderData === 'function') ? 'fn/' + mw.RenderData.length : 'absent'
   };
 
   if (typeof BODY !== 'string' || !BODY.length) {
@@ -730,8 +748,14 @@
   }
 
   // ============================== the chain ==============================
-  snapshotState();
-  phaseGate(function () {
+  // A probe that can die silently is a probe that wastes the owner's time: they paste, see
+  // nothing, and cannot tell a broken page from a broken probe. Everything below is wrapped, so
+  // any unexpected throw still produces a PROBE_JSON carrying the error, the page state and a
+  // rollback. The owner ran this outside market hours and got no output at all - that is what
+  // this is for.
+  function runChain() {
+    snapshotState();
+    phaseGate(function () {
     phaseDom(function () {
       phaseOpenDialog(function () {
         phaseWriteTextArea(function () {
@@ -746,4 +770,35 @@
       });
     });
   });
+  }
+
+  // Outside market hours the page has no rows, and the program can only install itself by
+  // being evaluated for a row - so there is genuinely nothing to measure. Say that plainly
+  // instead of walking the owner through an opener ladder and a 3-second timeout for a result
+  // that cannot exist. Nothing has been written at this point, so there is nothing to undo.
+  if (!mw || !mw.AllRows || Object.keys(mw.AllRows).length === 0) {
+    out.status = 'market-closed-no-rows';
+    out.verdict = 'this page has no rows to evaluate (' +
+      (!mw ? 'window.mw is not present' : 'mw.AllRows is empty') +
+      '), which is what it looks like outside market hours or before the market watch has ' +
+      'finished loading. The program installs itself only when the site evaluates the filter ' +
+      'for a row, so with no rows there is nothing to boot and nothing to measure. NOTHING WAS ' +
+      'WRITTEN AND NOTHING WAS CHANGED. Run this again during market hours, or reload the page ' +
+      'and wait for the symbol table to appear.';
+    say(out);
+    console.log('A-PROGRAM-LIVE: ' + out.verdict);
+    return;
+  }
+
+  try {
+    runChain();
+  } catch (e) {
+    // the last resort: still report, still roll back
+    out.errors.push('probe threw: ' + String((e && e.message) || e));
+    out.status = 'probe-error';
+    out.verdict = 'the probe itself threw before it could finish: ' + String((e && e.message) || e) +
+      '. The page state at the time is in the preflight and phase fields. Whatever was written ' +
+      'is rolled back below.';
+    try { finish(); } catch (e2) { say(out); }
+  }
 })();

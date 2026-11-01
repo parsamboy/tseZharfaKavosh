@@ -4,6 +4,40 @@ All notable changes to `tseZharfaKavosh` are recorded here.
 
 ## [Unreleased]
 
+The probe produced no output at all outside market hours (E-083)
+
+The owner ran RUN_ME.js outside market hours and got no JSON whatsoever - not a JSON with a
+failure status, nothing. Root cause: the preflight read mw.PrepareFilterCode with mw
+unguarded, and outside market hours window.mw is undefined, so that line threw at the TOP
+LEVEL of the IIFE, before any try/catch and before any say(). The probe died in silence.
+
+A probe that can die silently is worse than one that reports a failure: the owner cannot tell
+a broken page from a broken probe. The whole chain is now wrapped, so any unexpected throw
+still produces a PROBE_JSON carrying the error, the page state and a rollback. window.mw is
+read inside a try/catch and the thrown message is carried in the verdict.
+
+The no-rows case is a real case, not an error: the program installs itself only when the site
+evaluates the filter for a row, so with zero rows there is nothing to boot and nothing to
+measure. The probe now detects that up front and reports market-closed-no-rows with an
+explanation, instead of walking the owner through an opener ladder and a three-second timeout
+for a result that cannot exist. Nothing has been written at that point, so there is nothing to
+undo.
+
+The preflight now records the page state that decides everything: mw present, allRows count,
+RoundNo, UpdateSpeed, whether RenderData exists. The owner's "we are not in market hours" is
+now visible in the JSON instead of being lost.
+
+Two new harness scenarios prove it. F: a page with zero rows - the status, the explanation,
+the "nothing was written" claim, the recorded allRows, and that the owner's original code,
+mirror and dialog are untouched. G: mw.Settings as a throwing getter - the last-resort catch
+named the failure and carried the message. The first version of G used a throwing getter on
+mw itself and silently did not exercise the path at all, because the probe's own guard caught
+it earlier; a scenario that does not exercise its path passes for the wrong reason.
+
+checkConstraints: 29 pass / 1 fail / 4 unmeasured. The single failure is the installer
+harness, and it is correct - INSTALL_ME.js is not built because the body changed and the
+installer refuses to build an unmeasured body. That stays red until the owner verifies it.
+
 The constraint registry is registered and mandatory, and enforcing it found a second hash function (E-082)
 
 The owner asked for the constraints to be registered and their compliance to be MANDATORY

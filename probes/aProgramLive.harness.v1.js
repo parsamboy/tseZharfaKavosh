@@ -88,7 +88,7 @@ function makePopulation() {
 // opts.tickThrows: true | false              — whether the program's background tick fails
 function makePage(opts) {
   const o = opts || {};
-  const rows = makePopulation();
+  const rows = (o && o.rowCount === 0) ? {} : makePopulation();
   const win = {};
   win.window = win;
   win.global = win;
@@ -182,6 +182,23 @@ function makePage(opts) {
     SaveParams: function () {}
   };
   win.mw = mw;
+  if (o && o.throwOnSettings) {
+    // A throwing getter on mw.Settings: snapshotState() reads it, and nothing in the probe
+    // expects the page to fail there. This is the shape of "the page changed under us" and it is
+    // what exercises the probe's last-resort catch.
+    Object.defineProperty(mw, 'Settings', {
+      configurable: true,
+      get: function () { throw new Error('the page threw while the probe read mw.Settings'); }
+    });
+  }
+  if (o && o.throwOnMw) {
+    // a getter that throws: the probe touches mw in its preflight and its snapshot, and nothing
+    // in it expects that to fail. It is the shape of "the page changed under us".
+    Object.defineProperty(win, 'mw', {
+      configurable: true,
+      get: function () { throw new Error('the page threw while the probe read mw'); }
+    });
+  }
   vm.createContext(win);
   vm.runInContext(fs.readFileSync(BUNDLE, 'utf8'), win, { filename: 'bundle.js' });
   // THE SITE'S OWN CALL SITE (E-061, verbatim), built INSIDE the page context.
@@ -406,6 +423,45 @@ section('E. the site is fail-closed: a throwing body hides every row');
   check('the real program hides NOTHING before its first tick',
     win.mw.__hiddenRows === 0 && win.mw.__threwRows === 0,
     'hidden=' + win.mw.__hiddenRows + ' threw=' + win.mw.__threwRows + ' of ' + win.mw.__renderedRows);
+}
+
+section('F. OUTSIDE MARKET HOURS: no rows, so the probe must report instead of dying');
+{
+  // The owner ran this outside market hours and got NO OUTPUT AT ALL: window.mw was undefined
+  // and the preflight dereferenced it unguarded at the top level of the IIFE. A probe that can
+  // die silently is worse than one that reports a failure.
+  const win = makePage({ rowCount: 0 });
+  const r = runProbe(win, 900);
+  const j = r.json;
+  check('the probe emitted PROBE_JSON even with no rows', !!j);
+  if (j) {
+    check('the status says the market is closed', j.status === 'market-closed-no-rows', j.status);
+    check('the verdict explains WHY there is nothing to measure', /no rows to evaluate/i.test(j.verdict || ''));
+    check('the verdict says nothing was written', /NOTHING WAS WRITTEN/i.test(j.verdict || ''));
+    check('the preflight records the page state it actually saw',
+      j.preflight && j.preflight.allRows === 0, 'allRows=' + (j.preflight && j.preflight.allRows));
+  }
+  const ownerOriginal = '/* the owner original filter */';
+  check('the owner original code is untouched', win.mw.Settings.Filters[0].FilterCode === ownerOriginal,
+    JSON.stringify(win.mw.Settings.Filters[0].FilterCode));
+  check('the mirror is untouched', win.mw.FilterCode === '');
+  check('the program was never booted', win.__TSE_PROGRAM === undefined);
+  check('the dialog was never even opened', win.document.getElementById('InputFilterCode') === null);
+}
+
+section('G. THE PAGE THROWS AT THE PROBE: it must still report and still roll back');
+{
+  const win = makePage({ throwOnSettings: true });
+  const r = runProbe(win, 900);
+  const j = r.json;
+  check('the probe emitted PROBE_JSON despite the page throwing', !!j);
+  if (j) {
+    check('the last-resort catch named the failure', j.status === 'probe-error', j.status);
+    check('the error text is carried, not swallowed',
+      /threw/i.test((j.errors || []).join(' ') + ' ' + (j.verdict || '')),
+      (j.errors || []).join(';'));
+    check('the verdict tells the owner the page state is in the report', /preflight and phase/i.test(j.verdict || ''));
+  }
 }
 
 console.log('\n=== SUMMARY ===');
